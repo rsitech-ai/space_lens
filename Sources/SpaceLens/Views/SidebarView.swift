@@ -48,6 +48,29 @@ struct SidebarView: View {
                     }
                 }
                 .font(.caption)
+
+                Section("Support") {
+                    SettingsLink {
+                        Label {
+                            Text("Settings")
+                                .lineLimit(1)
+                        } icon: {
+                            Image(systemName: "gearshape")
+                        }
+                    }
+                    .help("Open SpaceLens settings")
+
+                    Link(destination: SupportLinks.buyMeACoffee) {
+                        Label {
+                            Text(layout.sponsorTitle)
+                                .lineLimit(1)
+                        } icon: {
+                            Image(systemName: "heart.fill")
+                                .foregroundStyle(.pink)
+                        }
+                    }
+                    .help("Support SpaceLens")
+                }
             }
             .listStyle(.sidebar)
         }
@@ -78,6 +101,10 @@ private struct SidebarLayout {
 
     var isCompact: Bool {
         width < 176
+    }
+
+    var sponsorTitle: String {
+        isCompact ? "Sponsor" : "Sponsor SpaceLens"
     }
 
     func title(for selection: AppState.SidebarSelection) -> String {

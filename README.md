@@ -19,7 +19,8 @@ rules, and queues review candidates before cleanup.
   Delete Forever for cleanup-ready items only.
 - Local intelligence summaries and per-item evidence without sending file
   contents or metadata to external services.
-- Settings window with safety notes, AI/privacy notes, and a support link.
+- Visible Settings and Sponsor entry points in the toolbar, sidebar, menu bar,
+  and Settings window.
 
 ## Run
 
@@ -47,6 +48,8 @@ swift build -c release
 - Use Select All or Select Safe to build a multi-selection.
 - Use the bottom action bar to queue, move to Bin, or permanently delete only
   cleanup-ready items.
+- Open Settings or Sponsor SpaceLens from the toolbar or the Support section in
+  the sidebar.
 
 ## Safety
 
