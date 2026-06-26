@@ -83,3 +83,8 @@ to Bin asks for confirmation; Delete Forever requires typing `DELETE`.
 If SpaceLens saves you time or disk space, you can support development here:
 
 <https://buymeacoffee.com/s1korrrr>
+
+Privacy and support:
+
+- [Privacy Policy](docs/PRIVACY.md)
+- [Support](docs/SUPPORT.md)
