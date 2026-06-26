@@ -41,6 +41,18 @@ swift build
 swift build -c release
 ```
 
+## App Store
+
+SpaceLens includes a reproducible Xcode/App Store packaging lane:
+
+```bash
+./script/validate_app_store_readiness.sh
+SPACE_LENS_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./script/archive_app_store.sh
+```
+
+See [docs/APP_STORE.md](docs/APP_STORE.md) for signing, archive, upload, and
+App Store Connect metadata steps.
+
 ## Workflow
 
 - Click table headers to sort scanned files.
