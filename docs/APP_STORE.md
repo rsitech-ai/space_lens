@@ -64,8 +64,10 @@ Prepare these before submitting for review:
 - App name: `SpaceLens`
 - Bundle ID: `com.andrzej.spacelens`
 - Category: Utilities
-- Privacy Policy URL
-- Support URL
+- Privacy Policy URL:
+  `https://github.com/s1korrrr/space_lens/blob/main/docs/PRIVACY.md`
+- Support URL:
+  `https://github.com/s1korrrr/space_lens/blob/main/docs/SUPPORT.md`
 - App privacy answers: local filesystem metadata is processed on device; no
   file contents or metadata are sent to external services by SpaceLens.
 - Review notes: SpaceLens scans only user-selected folders, classifies cleanup
