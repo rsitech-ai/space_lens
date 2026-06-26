@@ -56,7 +56,7 @@ struct ContentView: View {
                 Button {
                     NSWorkspace.shared.open(SupportLinks.buyMeACoffee)
                 } label: {
-                    Label("Sponsor", systemImage: "heart.fill")
+                    Label("Support", systemImage: "heart.fill")
                 }
                 .help("Support SpaceLens")
             }
