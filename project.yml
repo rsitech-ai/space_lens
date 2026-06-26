@@ -1,0 +1,77 @@
+name: SpaceLens
+options:
+  bundleIdPrefix: com.andrzej
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "26.5"
+settings:
+  base:
+    CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: YES
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"
+packages: {}
+targets:
+  SpaceLens:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/SpaceLens
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
+      - path: Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    info:
+      path: Config/Info.plist
+      properties:
+        CFBundleDisplayName: SpaceLens
+        CFBundleIconName: AppIcon
+        LSApplicationCategoryType: public.app-category.utilities
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: Copyright © 2026 Rafal Sikor. All rights reserved.
+        NSPrincipalClass: NSApplication
+        NSSupportsAutomaticGraphicsSwitching: true
+    entitlements:
+      path: Config/SpaceLens.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-write: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.andrzej.spacelens
+        PRODUCT_NAME: SpaceLens
+        PRODUCT_MODULE_NAME: SpaceLens
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: Config/SpaceLens.entitlements
+        INFOPLIST_FILE: Config/Info.plist
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+  SpaceLensTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/SpaceLensTests
+    dependencies:
+      - target: SpaceLens
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.andrzej.spacelens.tests
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/SpaceLens.app/Contents/MacOS/SpaceLens
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  SpaceLens:
+    build:
+      targets:
+        SpaceLens: all
+        SpaceLensTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SpaceLensTests
+    archive:
+      config: Release

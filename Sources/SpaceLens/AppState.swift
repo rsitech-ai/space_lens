@@ -115,6 +115,14 @@ final class AppState: ObservableObject {
     private var allNodes: [FlattenedFileNode] = []
     private var nodeByID: [UUID: FileNode] = [:]
     private var classificationCache: [UUID: SafetyClassification] = [:]
+    private var securityScopedRootURL: URL?
+    private var isAccessingSecurityScopedRoot = false
+
+    deinit {
+        if isAccessingSecurityScopedRoot {
+            securityScopedRootURL?.stopAccessingSecurityScopedResource()
+        }
+    }
 
     var selectedNodeID: UUID? {
         get {
@@ -166,6 +174,7 @@ final class AppState: ObservableObject {
 
     func startScan(root: URL) {
         scanTask?.cancel()
+        beginAccessingSecurityScopedRoot(root)
         let scanID = UUID()
         activeScanID = scanID
         isScanning = true
@@ -237,6 +246,9 @@ final class AppState: ObservableObject {
         activeScanID = nil
         isScanning = false
         scanProgress = nil
+        if rootNode == nil {
+            stopAccessingSecurityScopedRoot()
+        }
     }
 
     func classification(for node: FileNode) -> SafetyClassification {
@@ -476,5 +488,28 @@ final class AppState: ObservableObject {
 
         selectedCleanupEligibleNodes = eligibleNodes
         selectedRecoverableBytes = eligibleNodes.reduce(Int64(0)) { $0 + $1.effectiveSize }
+    }
+
+    private func beginAccessingSecurityScopedRoot(_ url: URL) {
+        let standardizedURL = url.standardizedFileURL
+        if securityScopedRootURL == standardizedURL, isAccessingSecurityScopedRoot {
+            return
+        }
+
+        stopAccessingSecurityScopedRoot()
+        securityScopedRootURL = standardizedURL
+        isAccessingSecurityScopedRoot = standardizedURL.startAccessingSecurityScopedResource()
+    }
+
+    private func stopAccessingSecurityScopedRoot() {
+        guard isAccessingSecurityScopedRoot, let securityScopedRootURL else {
+            self.securityScopedRootURL = nil
+            isAccessingSecurityScopedRoot = false
+            return
+        }
+
+        securityScopedRootURL.stopAccessingSecurityScopedResource()
+        self.securityScopedRootURL = nil
+        isAccessingSecurityScopedRoot = false
     }
 }

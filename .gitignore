@@ -3,3 +3,6 @@
 dist/
 DerivedData/
 *.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+build/AppStore/
