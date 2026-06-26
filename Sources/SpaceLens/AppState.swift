@@ -1,0 +1,480 @@
+import AppKit
+import Foundation
+import SwiftUI
+
+@MainActor
+final class AppState: ObservableObject {
+    enum SidebarSelection: String, CaseIterable, Identifiable {
+        case all
+        case safe
+        case review
+        case valuable
+        case active
+        case errors
+        case queue
+
+        var id: String {
+            rawValue
+        }
+
+        var title: String {
+            switch self {
+            case .all:
+                "All Files"
+            case .safe:
+                "Safe Candidates"
+            case .review:
+                "Needs Review"
+            case .valuable:
+                "Valuable Data"
+            case .active:
+                "Active / Tool-Owned"
+            case .errors:
+                "Scan Errors"
+            case .queue:
+                "Cleanup Queue"
+            }
+        }
+    }
+
+    enum TableFilter: String, CaseIterable, Identifiable {
+        case all
+        case cleanupReady
+        case largeOnly
+        case folders
+        case files
+
+        var id: String {
+            rawValue
+        }
+
+        var title: String {
+            switch self {
+            case .all:
+                "All"
+            case .cleanupReady:
+                "Cleanup Ready"
+            case .largeOnly:
+                "Large"
+            case .folders:
+                "Folders"
+            case .files:
+                "Files"
+            }
+        }
+    }
+
+    @Published var sidebarSelection: SidebarSelection = .all {
+        didSet {
+            rebuildVisibleNodes()
+        }
+    }
+    @Published var rootNode: FileNode? {
+        didSet {
+            rebuildNodeCaches()
+        }
+    }
+    @Published var snapshot: ScanSnapshot?
+    @Published var selectedNodeIDs: Set<UUID> = [] {
+        didSet {
+            rebuildSelectedNodeCaches()
+        }
+    }
+    @Published var searchText = "" {
+        didSet {
+            rebuildVisibleNodes()
+        }
+    }
+    @Published var tableFilter: TableFilter = .all {
+        didSet {
+            rebuildVisibleNodes()
+        }
+    }
+    @Published var isScanning = false
+    @Published var scanProgress: ScanProgress?
+    @Published var scanStatistics: ScanStatistics?
+    @Published var scanIntelligenceSummary: ScanIntelligenceSummary?
+    @Published var cleanupQueue: [CleanupCandidate] = [] {
+        didSet {
+            rebuildVisibleNodes()
+        }
+    }
+    @Published var cleanupInProgressIDs: Set<UUID> = []
+    @Published var cleanupStatusMessage: String?
+    @Published var latestError: String?
+    @Published private(set) var visibleNodes: [FlattenedFileNode] = []
+    @Published private(set) var visibleCleanupReadyCount = 0
+    @Published private(set) var selectedCleanupEligibleNodes: [FileNode] = []
+    @Published private(set) var selectedRecoverableBytes: Int64 = 0
+
+    let ruleEngine = RuleEngine()
+    let intelligenceService: IntelligenceService = LocalIntelligenceService()
+
+    private var scanTask: Task<Void, Never>?
+    private var activeScanID: UUID?
+    private var allNodes: [FlattenedFileNode] = []
+    private var nodeByID: [UUID: FileNode] = [:]
+    private var classificationCache: [UUID: SafetyClassification] = [:]
+
+    var selectedNodeID: UUID? {
+        get {
+            selectedNodeIDs.first
+        }
+        set {
+            selectedNodeIDs = newValue.map { Set([$0]) } ?? []
+        }
+    }
+
+    var selectedNode: FileNode? {
+        let preferredID = visibleNodes.first { selectedNodeIDs.contains($0.node.id) }?.node.id ?? selectedNodeID
+        guard let preferredID else {
+            return nil
+        }
+
+        return nodeByID[preferredID]
+    }
+
+    var selectedNodes: [FileNode] {
+        selectedNodeIDs.compactMap { nodeByID[$0] }
+    }
+
+    var projectedRecoverableBytes: Int64 {
+        cleanupQueue.reduce(Int64(0)) { $0 + $1.estimatedRecoverableBytes }
+    }
+
+    func chooseFolder() {
+        let panel = NSOpenPanel()
+        panel.title = "Select a folder to scan"
+        panel.prompt = "Scan"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+
+        if panel.runModal() == .OK, let url = panel.url {
+            startScan(root: url)
+        }
+    }
+
+    func rescan() {
+        guard let rootNode else {
+            chooseFolder()
+            return
+        }
+
+        startScan(root: rootNode.url)
+    }
+
+    func startScan(root: URL) {
+        scanTask?.cancel()
+        let scanID = UUID()
+        activeScanID = scanID
+        isScanning = true
+        latestError = nil
+        selectedNodeIDs = []
+        snapshot = nil
+        scanStatistics = nil
+        scanIntelligenceSummary = nil
+        scanProgress = ScanProgress(currentPath: root.path, scannedCount: 0, errorCount: 0)
+
+        let ruleEngine = ruleEngine
+        let intelligenceService = intelligenceService
+
+        scanTask = Task {
+            let result = await DiskScanner().scan(root: root) { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    guard let self, self.isScanning, self.activeScanID == scanID else {
+                        return
+                    }
+
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        self.scanProgress = progress
+                    }
+                }
+            }
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            let items = result.root.flattened().dropFirst().map { item in
+                ClassifiedScanItem(
+                    node: item.node,
+                    classification: ruleEngine.classify(item.node)
+                )
+            }
+            let statistics = ScanStatistics(snapshot: result.snapshot, items: items)
+            let intelligenceSummary = await intelligenceService.summarizeScan(
+                snapshot: result.snapshot,
+                items: items
+            )
+
+            await MainActor.run { [weak self] in
+                guard let self else {
+                    return
+                }
+                guard !Task.isCancelled, self.activeScanID == scanID else {
+                    return
+                }
+
+                self.rootNode = result.root
+                self.snapshot = result.snapshot
+                self.isScanning = false
+                self.activeScanID = nil
+                self.scanProgress = nil
+                self.scanStatistics = statistics
+                self.scanIntelligenceSummary = intelligenceSummary
+                self.selectedNodeIDs = result.root.children.first.map { Set([$0.id]) } ?? []
+                self.cleanupQueue.removeAll { candidate in
+                    result.root.find(id: candidate.fileNode.id) == nil
+                }
+            }
+        }
+    }
+
+    func cancelScan() {
+        scanTask?.cancel()
+        scanTask = nil
+        activeScanID = nil
+        isScanning = false
+        scanProgress = nil
+    }
+
+    func classification(for node: FileNode) -> SafetyClassification {
+        if let cached = classificationCache[node.id] {
+            return cached
+        }
+
+        let classification = ruleEngine.classify(node)
+        classificationCache[node.id] = classification
+        return classification
+    }
+
+    func addToCleanupQueue(node: FileNode) {
+        let classification = ruleEngine.classify(node)
+        guard classification.level.isQueueable else {
+            latestError = "SpaceLens only queues known safe, rebuildable, or generated candidates in this MVP."
+            return
+        }
+
+        guard !cleanupQueue.contains(where: { $0.fileNode.path == node.path }) else {
+            return
+        }
+
+        cleanupQueue.append(
+            CleanupCandidate(
+                fileNode: node,
+                classification: classification,
+                estimatedRecoverableBytes: node.effectiveSize,
+                action: .queueForFutureTrash
+            )
+        )
+    }
+
+    func addSelectedToCleanupQueue() {
+        let nodes = selectedCleanupEligibleNodes
+        nodes.forEach { addToCleanupQueue(node: $0) }
+        if !nodes.isEmpty {
+            cleanupStatusMessage = "Queued \(nodes.count) cleanup-ready items"
+        }
+    }
+
+    func selectAllVisible() {
+        selectedNodeIDs = Set(visibleNodes.map(\.node.id))
+    }
+
+    func selectCleanupReadyVisible() {
+        selectedNodeIDs = Set(visibleNodes.filter { classification(for: $0.node).level.isQueueable }.map(\.node.id))
+    }
+
+    func clearSelection() {
+        selectedNodeIDs = []
+    }
+
+    func pruneSelectionToVisible() {
+        let visibleIDs = Set(visibleNodes.map(\.node.id))
+        selectedNodeIDs = selectedNodeIDs.intersection(visibleIDs)
+    }
+
+    func isCleanupInProgress(node: FileNode) -> Bool {
+        cleanupInProgressIDs.contains(node.id)
+    }
+
+    func moveToBin(node: FileNode) async {
+        await performCleanup(node: node, operationName: "Moved to Bin") {
+            try await FileCleanupService.moveToBin(url: node.url)
+        }
+    }
+
+    func deleteForever(node: FileNode) async {
+        await performCleanup(node: node, operationName: "Deleted forever") {
+            try await FileCleanupService.deleteForever(url: node.url)
+        }
+    }
+
+    func moveSelectedToBin() async {
+        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Moved to Bin") { node in
+            try await FileCleanupService.moveToBin(url: node.url)
+        }
+    }
+
+    func deleteSelectedForever() async {
+        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Deleted forever") { node in
+            try await FileCleanupService.deleteForever(url: node.url)
+        }
+    }
+
+    func removeFromCleanupQueue(_ candidate: CleanupCandidate) {
+        cleanupQueue.removeAll { $0.id == candidate.id }
+    }
+
+    func revealInFinder(_ node: FileNode) {
+        FinderService.reveal(node.url)
+    }
+
+    private func performCleanup(
+        node: FileNode,
+        operationName: String,
+        operation: @escaping @Sendable () async throws -> Void
+    ) async {
+        let classification = ruleEngine.classify(node)
+        guard classification.level.isQueueable else {
+            latestError = "Cleanup is disabled for this item because it is not classified as a safe, rebuildable, or generated candidate."
+            return
+        }
+
+        guard FileManager.default.fileExists(atPath: node.path) else {
+            latestError = "The selected item no longer exists on disk. Rescan this folder."
+            rootNode = rootNode?.removing(id: node.id)
+            cleanupQueue.removeAll { $0.fileNode.id == node.id }
+            selectedNodeIDs.remove(node.id)
+            return
+        }
+
+        latestError = nil
+        cleanupStatusMessage = nil
+        cleanupInProgressIDs.insert(node.id)
+
+        do {
+            try await operation()
+            cleanupInProgressIDs.remove(node.id)
+            cleanupStatusMessage = "\(operationName): \(node.displayName)"
+            rootNode = rootNode?.removing(id: node.id)
+            cleanupQueue.removeAll { $0.fileNode.id == node.id }
+            selectedNodeIDs.remove(node.id)
+        } catch {
+            cleanupInProgressIDs.remove(node.id)
+            latestError = "Cleanup failed for \(node.displayName): \(error.localizedDescription)"
+        }
+    }
+
+    private func performBulkCleanup(
+        nodes: [FileNode],
+        operationName: String,
+        operation: @escaping @Sendable (FileNode) async throws -> Void
+    ) async {
+        guard !nodes.isEmpty else {
+            latestError = "Select one or more cleanup-ready items first."
+            return
+        }
+
+        var cleanedCount = 0
+        var cleanedBytes: Int64 = 0
+
+        for node in nodes {
+            let beforeIDs = selectedNodeIDs
+            await performCleanup(node: node, operationName: operationName) {
+                try await operation(node)
+            }
+            if latestError == nil, beforeIDs.contains(node.id), !selectedNodeIDs.contains(node.id) {
+                cleanedCount += 1
+                cleanedBytes += node.effectiveSize
+            }
+        }
+
+        if cleanedCount > 0 {
+            cleanupStatusMessage = "\(operationName): \(cleanedCount) items, \(ByteFormat.string(cleanedBytes))"
+        }
+    }
+
+    private func rebuildNodeCaches() {
+        allNodes = rootNode.map { Array($0.flattened().dropFirst()) } ?? []
+        nodeByID = [:]
+        if let rootNode {
+            nodeByID[rootNode.id] = rootNode
+        }
+        for item in allNodes {
+            nodeByID[item.node.id] = item.node
+        }
+        classificationCache.removeAll(keepingCapacity: true)
+        rebuildVisibleNodes()
+        rebuildSelectedNodeCaches()
+    }
+
+    private func rebuildVisibleNodes() {
+        guard rootNode != nil else {
+            visibleNodes = []
+            visibleCleanupReadyCount = 0
+            return
+        }
+
+        let sidebarFilteredNodes: [FlattenedFileNode]
+        switch sidebarSelection {
+        case .all:
+            sidebarFilteredNodes = allNodes
+        case .safe:
+            sidebarFilteredNodes = allNodes.filter { classification(for: $0.node).level.isQueueable }
+        case .review:
+            sidebarFilteredNodes = allNodes.filter { classification(for: $0.node).level == .unknownReview }
+        case .valuable:
+            sidebarFilteredNodes = allNodes.filter { classification(for: $0.node).level == .largeButValuable }
+        case .active:
+            sidebarFilteredNodes = allNodes.filter { classification(for: $0.node).level == .activeOrInUse }
+        case .errors:
+            sidebarFilteredNodes = allNodes.filter { $0.node.scanError != nil }
+        case .queue:
+            let queuedIDs = Set(cleanupQueue.map { $0.fileNode.id })
+            sidebarFilteredNodes = allNodes.filter { queuedIDs.contains($0.node.id) }
+        }
+
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let searchedNodes = query.isEmpty
+            ? sidebarFilteredNodes
+            : sidebarFilteredNodes.filter { item in
+                item.node.displayName.lowercased().contains(query)
+                    || item.node.path.lowercased().contains(query)
+                    || classification(for: item.node).category.lowercased().contains(query)
+            }
+
+        visibleNodes = searchedNodes.filter { item in
+            switch tableFilter {
+            case .all:
+                true
+            case .cleanupReady:
+                classification(for: item.node).level.isQueueable
+            case .largeOnly:
+                item.node.effectiveSize >= 100_000_000
+            case .folders:
+                item.node.isDirectory
+            case .files:
+                !item.node.isDirectory
+            }
+        }
+        visibleCleanupReadyCount = visibleNodes.reduce(into: 0) { count, item in
+            if classification(for: item.node).level.isQueueable {
+                count += 1
+            }
+        }
+    }
+
+    private func rebuildSelectedNodeCaches() {
+        let eligibleNodes = selectedNodeIDs.compactMap { id -> FileNode? in
+            guard let node = nodeByID[id], classification(for: node).level.isQueueable else {
+                return nil
+            }
+            return node
+        }
+
+        selectedCleanupEligibleNodes = eligibleNodes
+        selectedRecoverableBytes = eligibleNodes.reduce(Int64(0)) { $0 + $1.effectiveSize }
+    }
+}
