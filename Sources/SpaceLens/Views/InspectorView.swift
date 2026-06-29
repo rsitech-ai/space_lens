@@ -56,6 +56,7 @@ struct InspectorView: View {
                     Image(systemName: "finder")
                 }
                 .buttonStyle(.borderless)
+                .accessibilityLabel("Reveal in Finder")
                 .help("Reveal in Finder")
             }
 

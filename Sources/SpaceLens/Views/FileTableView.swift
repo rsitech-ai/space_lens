@@ -303,7 +303,7 @@ private struct TableControlBar: View {
 
     var body: some View {
         Group {
-            if layout.isCompact {
+            if layout.isTight {
                 VStack(alignment: .leading, spacing: 8) {
                     searchField
 
@@ -383,6 +383,7 @@ private struct TableControlBar: View {
             } label: {
                 AdaptiveActionLabel("Select All", systemImage: "checklist.checked", isCompact: layout.isCompact)
             }
+            .accessibilityLabel("Select all visible items")
             .disabled(visibleCount == 0)
 
             Button {
@@ -390,6 +391,7 @@ private struct TableControlBar: View {
             } label: {
                 AdaptiveActionLabel("Safe", systemImage: "checkmark.shield", isCompact: layout.isCompact)
             }
+            .accessibilityLabel("Select cleanup-ready visible items")
             .help("Select visible cleanup-ready items")
             .disabled(appState.visibleCleanupReadyCount == 0)
 
@@ -398,6 +400,7 @@ private struct TableControlBar: View {
             } label: {
                 AdaptiveActionLabel("Clear", systemImage: "xmark.circle", isCompact: layout.isCompact)
             }
+            .accessibilityLabel("Clear selection")
             .disabled(appState.selectedNodeIDs.isEmpty)
         }
     }
@@ -415,7 +418,7 @@ private struct BulkActionBar: View {
         let hasCleanupReadySelection = cleanupReadyCount > 0
 
         Group {
-            if layout.isCompact {
+            if layout.isTight {
                 VStack(alignment: .leading, spacing: 10) {
                     selectionSummary(selectedCount: selectedCount, cleanupReadyCount: cleanupReadyCount)
 
@@ -459,6 +462,7 @@ private struct BulkActionBar: View {
             } label: {
                 AdaptiveActionLabel("Queue", systemImage: "tray.and.arrow.down", isCompact: false)
             }
+            .accessibilityLabel("Queue selected cleanup-ready items")
             .buttonStyle(AnimatedBulkButtonStyle(color: .blue, isProminent: false))
             .disabled(!hasCleanupReadySelection)
 
@@ -467,6 +471,7 @@ private struct BulkActionBar: View {
             } label: {
                 AdaptiveActionLabel("Move to Bin", systemImage: "trash", isCompact: layout.isCompact)
             }
+            .accessibilityLabel("Move selected cleanup-ready items to the Bin")
             .buttonStyle(AnimatedBulkButtonStyle(color: .green, isProminent: true))
             .disabled(!hasCleanupReadySelection)
 
@@ -475,6 +480,7 @@ private struct BulkActionBar: View {
             } label: {
                 AdaptiveActionLabel("Delete Forever", systemImage: "trash.slash", isCompact: layout.isCompact)
             }
+            .accessibilityLabel("Delete selected cleanup-ready items forever")
             .buttonStyle(AnimatedBulkButtonStyle(color: .red, isProminent: true))
             .disabled(!hasCleanupReadySelection)
         }
