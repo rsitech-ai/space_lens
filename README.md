@@ -17,6 +17,8 @@ rules, and queues review candidates before cleanup.
   Safe.
 - Cleanup queue plus confirmation-gated Move to Bin and typed-confirmation
   Delete Forever for cleanup-ready items only.
+- Persistent last scan restore using security-scoped folder access and a durable
+  cleanup queue, so closing or restarting the app keeps your review context.
 - Local intelligence summaries and per-item evidence without sending file
   contents or metadata to external services.
 - Visible Settings and Support entry points in the toolbar, sidebar, menu bar,
@@ -50,8 +52,14 @@ SpaceLens includes a reproducible Xcode/App Store packaging lane:
 SPACE_LENS_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./script/archive_app_store.sh
 ```
 
+The latest local App Store export was verified with team `2NY8A789TN` and
+produced `build/AppStore/export/SpaceLens.pkg`.
+
 See [docs/APP_STORE.md](docs/APP_STORE.md) for signing, archive, upload, and
 App Store Connect metadata steps.
+
+Production readiness notes live in [docs/production-plan.md](docs/production-plan.md)
+and [docs/app-store-release-checklist.md](docs/app-store-release-checklist.md).
 
 ## Workflow
 
@@ -60,6 +68,7 @@ App Store Connect metadata steps.
 - Use Select All or Select Safe to build a multi-selection.
 - Use the bottom action bar to queue, move to Bin, or permanently delete only
   cleanup-ready items.
+- Restart SpaceLens to restore the last selected scan root and cleanup queue.
 - Open Settings or Support from the toolbar or the bottom sidebar action strip.
 
 ## Safety

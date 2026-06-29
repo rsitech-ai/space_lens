@@ -1,9 +1,12 @@
 import AppKit
 import Foundation
+import OSLog
 import SwiftUI
 
 @MainActor
 final class AppState: ObservableObject {
+    private static let logger = Logger(subsystem: "com.andrzej.spacelens", category: "session")
+
     enum SidebarSelection: String, CaseIterable, Identifiable {
         case all
         case safe
@@ -97,6 +100,7 @@ final class AppState: ObservableObject {
     @Published var cleanupQueue: [CleanupCandidate] = [] {
         didSet {
             rebuildVisibleNodes()
+            persistSession()
         }
     }
     @Published var cleanupInProgressIDs: Set<UUID> = []
@@ -117,10 +121,32 @@ final class AppState: ObservableObject {
     private var classificationCache: [UUID: SafetyClassification] = [:]
     private var securityScopedRootURL: URL?
     private var isAccessingSecurityScopedRoot = false
+    private let sessionStore: AppSessionStore?
+    private var pendingRestoredCleanupPaths: Set<String> = []
 
     deinit {
         if isAccessingSecurityScopedRoot {
             securityScopedRootURL?.stopAccessingSecurityScopedResource()
+        }
+    }
+
+    init(sessionStore: AppSessionStore? = nil, restoreOnLaunch: Bool = false) {
+        self.sessionStore = sessionStore
+
+        guard restoreOnLaunch, let sessionStore, let session = sessionStore.load() else {
+            return
+        }
+
+        pendingRestoredCleanupPaths = Self.pathMatchKeys(for: session.cleanupPaths)
+        guard let rootURL = sessionStore.resolveRootURL(from: session) else {
+            if !session.cleanupPaths.isEmpty || session.rootPath != nil {
+                latestError = "SpaceLens could not restore the last folder. Select it again to refresh saved access."
+            }
+            return
+        }
+
+        Task { @MainActor [weak self] in
+            self?.startScan(root: rootURL)
         }
     }
 
@@ -236,6 +262,8 @@ final class AppState: ObservableObject {
                 self.cleanupQueue.removeAll { candidate in
                     result.root.find(id: candidate.fileNode.id) == nil
                 }
+                self.restorePersistedCleanupQueueIfNeeded()
+                self.persistSession()
             }
         }
     }
@@ -490,6 +518,35 @@ final class AppState: ObservableObject {
         selectedRecoverableBytes = eligibleNodes.reduce(Int64(0)) { $0 + $1.effectiveSize }
     }
 
+    private func restorePersistedCleanupQueueIfNeeded() {
+        guard !pendingRestoredCleanupPaths.isEmpty else {
+            return
+        }
+
+        var restoredCandidates: [CleanupCandidate] = []
+        for item in allNodes where !Self.pathMatchKeys(for: [item.node.path]).isDisjoint(with: pendingRestoredCleanupPaths) {
+            let classification = classification(for: item.node)
+            guard classification.level.isQueueable else {
+                continue
+            }
+
+            restoredCandidates.append(
+                CleanupCandidate(
+                    fileNode: item.node,
+                    classification: classification,
+                    estimatedRecoverableBytes: item.node.effectiveSize,
+                    action: .queueForFutureTrash
+                )
+            )
+        }
+
+        cleanupQueue = restoredCandidates
+        pendingRestoredCleanupPaths.removeAll()
+        if !restoredCandidates.isEmpty {
+            cleanupStatusMessage = "Restored \(restoredCandidates.count) cleanup queued items"
+        }
+    }
+
     private func beginAccessingSecurityScopedRoot(_ url: URL) {
         let standardizedURL = url.standardizedFileURL
         if securityScopedRootURL == standardizedURL, isAccessingSecurityScopedRoot {
@@ -511,5 +568,35 @@ final class AppState: ObservableObject {
         securityScopedRootURL.stopAccessingSecurityScopedResource()
         self.securityScopedRootURL = nil
         isAccessingSecurityScopedRoot = false
+    }
+
+    private func persistSession() {
+        guard let sessionStore else {
+            return
+        }
+
+        do {
+            try sessionStore.save(rootURL: securityScopedRootURL ?? rootNode?.url, cleanupQueue: cleanupQueue)
+        } catch {
+            Self.logger.error("Failed to persist SpaceLens session: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private static func pathMatchKeys(for paths: [String]) -> Set<String> {
+        Set(paths.flatMap { path -> [String] in
+            let standardizedPath = URL(fileURLWithPath: path).standardizedFileURL.path
+            let resolvedPath = URL(fileURLWithPath: path).resolvingSymlinksInPath().standardizedFileURL.path
+            var keys = [path, standardizedPath, resolvedPath]
+
+            for candidate in [path, standardizedPath, resolvedPath] {
+                if candidate.hasPrefix("/private/") {
+                    keys.append(String(candidate.dropFirst("/private".count)))
+                } else if candidate.hasPrefix("/var/") || candidate.hasPrefix("/tmp/") {
+                    keys.append("/private" + candidate)
+                }
+            }
+
+            return keys
+        })
     }
 }
