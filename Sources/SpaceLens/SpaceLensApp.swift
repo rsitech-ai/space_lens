@@ -4,7 +4,7 @@ import SwiftUI
 @main
 struct SpaceLensApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var appState = AppState()
+    @StateObject private var appState = AppState(sessionStore: .shared, restoreOnLaunch: true)
 
     var body: some Scene {
         WindowGroup("SpaceLens") {
