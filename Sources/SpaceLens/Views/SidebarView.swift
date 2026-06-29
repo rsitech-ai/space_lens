@@ -120,12 +120,14 @@ private struct SidebarSupportBar: View {
                     SidebarSupportButton(title: "Settings", systemImage: "gearshape", background: .white.opacity(0.12))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Settings")
                 .help("Open SpaceLens settings")
 
                 Link(destination: SupportLinks.buyMeACoffee) {
                     SidebarSupportButton(title: "Support", systemImage: "heart.fill", background: Color(red: 1.0, green: 0.22, blue: 0.42))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Support SpaceLens")
                 .help("Support SpaceLens")
             }
             .frame(height: 40)

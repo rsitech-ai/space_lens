@@ -13,7 +13,7 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 340, ideal: 780)
         } detail: {
             InspectorView()
-                .navigationSplitViewColumnWidth(min: 260, ideal: 360)
+                .navigationSplitViewColumnWidth(min: 260, ideal: 360, max: 440)
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar {
