@@ -177,7 +177,7 @@ public final class SmartCleanupScanner: @unchecked Sendable {
             return
         }
 
-        candidates.append(result.root)
+        candidates.append(namedCandidate(result.root))
         progress?(
             ScanProgress(
                 currentPath: path,
@@ -189,6 +189,23 @@ public final class SmartCleanupScanner: @unchecked Sendable {
                 discoveredBytes: candidates.reduce(Int64(0)) { $0 + $1.effectiveSize },
                 startedAt: context.startedAt
             )
+        )
+    }
+
+    private func namedCandidate(_ node: FileNode) -> FileNode {
+        FileNode(
+            id: node.id,
+            url: node.url,
+            name: explicitDisplayName(for: node.url) ?? node.name,
+            path: node.path,
+            isDirectory: node.isDirectory,
+            isSymlink: node.isSymlink,
+            logicalSize: node.logicalSize,
+            allocatedSize: node.allocatedSize,
+            modifiedAt: node.modifiedAt,
+            createdAt: node.createdAt,
+            children: node.children,
+            scanError: node.scanError
         )
     }
 
@@ -268,6 +285,93 @@ public final class SmartCleanupScanner: @unchecked Sendable {
         }
 
         return false
+    }
+
+    private func explicitDisplayName(for url: URL) -> String? {
+        let path = url.standardizedFileURL.path.lowercased()
+        let name = url.lastPathComponent
+        let lowercasedName = name.lowercased()
+
+        if path.hasSuffix("/library/developer/coresimulator/caches") {
+            return "Xcode Simulator Caches"
+        }
+        if path.hasSuffix("/library/application support/com.apple.wallpaper/aerials/videos") {
+            return "Apple Aerial Wallpaper Videos"
+        }
+        if path.hasSuffix("/.gradle/caches") {
+            return "Gradle Caches"
+        }
+        if path.hasSuffix("/.android/avd") {
+            return "Android Virtual Devices"
+        }
+        if lowercasedName.hasSuffix(".avd"), path.contains("/.android/avd/") {
+            return "Android Emulator: \(name.replacingOccurrences(of: ".avd", with: ""))"
+        }
+        if path.hasSuffix("/.rustup/toolchains") {
+            return "Rust Toolchains"
+        }
+        if path.contains("/.rustup/toolchains/") {
+            return "Rust Toolchain: \(name)"
+        }
+        if path.hasSuffix("/library/developer/xcode/deriveddata") {
+            return "Xcode DerivedData"
+        }
+        if path.hasSuffix("/anaconda3/pkgs") || path.hasSuffix("/miniconda3/pkgs") {
+            return "Conda Package Cache"
+        }
+        if path.hasSuffix("/.codex/sessions") {
+            return "Codex Sessions"
+        }
+        if path.hasSuffix("/library/application support/notion/partitions") {
+            return "Notion Local Cache"
+        }
+        if path.hasSuffix("/library/application support/cursor/user/history") {
+            return "Cursor Local History"
+        }
+        if path.hasSuffix("/library/application support/cursor/user/globalstorage") {
+            return "Cursor Global Storage"
+        }
+        if lowercasedName == "docker.raw" {
+            return "Docker Disk Image"
+        }
+        if path.hasSuffix("/app/data/cache/lob") {
+            return "Trading LOB Cache"
+        }
+        if path.hasSuffix("/output/backtests") {
+            return "Backtest Outputs"
+        }
+        if path.hasSuffix("/downloads/library") {
+            return "Research PDF Library"
+        }
+        if path.hasSuffix("/node_modules/.cache") {
+            return "Node Package Cache"
+        }
+        if lowercasedName == ".build" {
+            return "Build Artifacts (.build)"
+        }
+        if lowercasedName == "build" {
+            return "Build Output"
+        }
+        if lowercasedName == "dist" {
+            return "Distribution Output"
+        }
+        if lowercasedName == "target" {
+            return "Rust Target Build Output"
+        }
+        if lowercasedName == ".dart_tool" {
+            return "Dart Tool Cache"
+        }
+        if lowercasedName == ".pytest_cache" {
+            return "Pytest Cache"
+        }
+        if lowercasedName == ".mypy_cache" {
+            return "Mypy Cache"
+        }
+        if lowercasedName == ".ruff_cache" {
+            return "Ruff Cache"
+        }
+
+        return nil
     }
 
     private func contains(_ candidate: URL, in rootURL: URL) -> Bool {

@@ -122,6 +122,24 @@ struct InspectorView: View {
         let classification = appState.classification(for: node)
 
         return VStack(alignment: .leading, spacing: 8) {
+            if let cleanupProgress = appState.cleanupProgress {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(
+                        "\(cleanupProgress.phase.displayName) \(cleanupProgress.completedItemCount) of \(max(cleanupProgress.totalItemCount, 1))",
+                        systemImage: "trash"
+                    )
+                    .font(.caption.weight(.semibold))
+
+                    ProgressView(value: cleanupProgress.fractionCompleted, total: 1)
+
+                    Text(URL(fileURLWithPath: cleanupProgress.currentPath).lastPathComponent)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+
             if let cleanupStatusMessage = appState.cleanupStatusMessage {
                 Label(cleanupStatusMessage, systemImage: "checkmark.circle")
                     .font(.caption)

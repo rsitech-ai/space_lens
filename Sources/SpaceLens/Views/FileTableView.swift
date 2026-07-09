@@ -445,14 +445,40 @@ private struct BulkActionBar: View {
 
     private func selectionSummary(selectedCount: Int, cleanupReadyCount: Int) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("\(selectedCount) selected")
-                .font(.headline.monospacedDigit())
-            Text("\(cleanupReadyCount) cleanup-ready, \(ByteFormat.string(appState.selectedRecoverableBytes)) recoverable")
+            if let cleanupProgress = appState.cleanupProgress {
+                cleanupProgressSummary(cleanupProgress)
+            } else {
+                Text("\(selectedCount) selected")
+                    .font(.headline.monospacedDigit())
+                Text("\(cleanupReadyCount) cleanup-ready, \(ByteFormat.string(appState.selectedRecoverableBytes)) recoverable")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+        }
+    }
+
+    private func cleanupProgressSummary(_ progress: CleanupProgress) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("\(progress.phase.displayName) \(progress.completedItemCount) of \(max(progress.totalItemCount, 1))")
+                    .font(.headline.monospacedDigit())
+            }
+
+            ProgressView(value: progress.fractionCompleted, total: 1)
+                .frame(width: 260)
+
+            Text("\(URL(fileURLWithPath: progress.currentPath).lastPathComponent.ifEmpty(progress.currentPath)) · \(ByteFormat.string(progress.completedBytes)) of \(ByteFormat.string(progress.totalBytes))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.82)
+                .truncationMode(.middle)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Cleanup progress \(progress.completedItemCount) of \(progress.totalItemCount)")
     }
 
     private func actionButtons(hasCleanupReadySelection: Bool) -> some View {
@@ -464,7 +490,7 @@ private struct BulkActionBar: View {
             }
             .accessibilityLabel("Queue selected cleanup-ready items")
             .buttonStyle(AnimatedBulkButtonStyle(color: .blue, isProminent: false))
-            .disabled(!hasCleanupReadySelection)
+            .disabled(!hasCleanupReadySelection || appState.cleanupProgress != nil)
 
             Button {
                 moveToBinConfirmation = true
@@ -473,7 +499,7 @@ private struct BulkActionBar: View {
             }
             .accessibilityLabel("Move selected cleanup-ready items to the Bin")
             .buttonStyle(AnimatedBulkButtonStyle(color: .green, isProminent: true))
-            .disabled(!hasCleanupReadySelection)
+            .disabled(!hasCleanupReadySelection || appState.cleanupProgress != nil)
 
             Button(role: .destructive) {
                 deleteForeverConfirmation = true
@@ -482,7 +508,7 @@ private struct BulkActionBar: View {
             }
             .accessibilityLabel("Delete selected cleanup-ready items forever")
             .buttonStyle(AnimatedBulkButtonStyle(color: .red, isProminent: true))
-            .disabled(!hasCleanupReadySelection)
+            .disabled(!hasCleanupReadySelection || appState.cleanupProgress != nil)
         }
     }
 }

@@ -128,6 +128,7 @@ final class AppState: ObservableObject {
         }
     }
     @Published var cleanupInProgressIDs: Set<UUID> = []
+    @Published var cleanupProgress: CleanupProgress?
     @Published var cleanupStatusMessage: String?
     @Published var latestError: String?
     @Published private(set) var visibleNodes: [FlattenedFileNode] = []
@@ -452,26 +453,26 @@ final class AppState: ObservableObject {
     }
 
     func moveToBin(node: FileNode) async {
-        await performCleanup(node: node, operationName: "Moved to Bin") {
-            try await FileCleanupService.moveToBin(url: node.url)
+        await performCleanup(node: node, operationName: "Moved to Bin") { progress in
+            try await FileCleanupService.moveToBin(url: node.url, progress: progress)
         }
     }
 
     func deleteForever(node: FileNode) async {
-        await performCleanup(node: node, operationName: "Deleted forever") {
-            try await FileCleanupService.deleteForever(url: node.url)
+        await performCleanup(node: node, operationName: "Deleted forever") { progress in
+            try await FileCleanupService.deleteForever(url: node.url, progress: progress)
         }
     }
 
     func moveSelectedToBin() async {
-        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Moved to Bin") { node in
-            try await FileCleanupService.moveToBin(url: node.url)
+        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Moved to Bin") { node, progress in
+            try await FileCleanupService.moveToBin(url: node.url, progress: progress)
         }
     }
 
     func deleteSelectedForever() async {
-        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Deleted forever") { node in
-            try await FileCleanupService.deleteForever(url: node.url)
+        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Deleted forever") { node, progress in
+            try await FileCleanupService.deleteForever(url: node.url, progress: progress)
         }
     }
 
@@ -486,7 +487,7 @@ final class AppState: ObservableObject {
     private func performCleanup(
         node: FileNode,
         operationName: String,
-        operation: @escaping @Sendable () async throws -> Void
+        operation: @escaping @Sendable (FileCleanupService.ProgressHandler?) async throws -> Void
     ) async {
         let classification = ruleEngine.classify(node)
         guard classification.level.isQueueable else {
@@ -504,17 +505,27 @@ final class AppState: ObservableObject {
 
         latestError = nil
         cleanupStatusMessage = nil
+        cleanupProgress = CleanupProgress(
+            phase: .preparing,
+            currentPath: node.path,
+            completedItemCount: 0,
+            totalItemCount: 1,
+            completedBytes: 0,
+            totalBytes: node.effectiveSize
+        )
         cleanupInProgressIDs.insert(node.id)
 
         do {
-            try await operation()
+            try await operation(cleanupProgressHandler(for: node))
             cleanupInProgressIDs.remove(node.id)
             cleanupStatusMessage = "\(operationName): \(node.displayName)"
+            cleanupProgress = nil
             rootNode = rootNode?.removing(id: node.id)
             cleanupQueue.removeAll { $0.fileNode.id == node.id }
             selectedNodeIDs.remove(node.id)
         } catch {
             cleanupInProgressIDs.remove(node.id)
+            cleanupProgress = nil
             latestError = "Cleanup failed for \(node.displayName): \(error.localizedDescription)"
         }
     }
@@ -522,7 +533,7 @@ final class AppState: ObservableObject {
     private func performBulkCleanup(
         nodes: [FileNode],
         operationName: String,
-        operation: @escaping @Sendable (FileNode) async throws -> Void
+        operation: @escaping @Sendable (FileNode, FileCleanupService.ProgressHandler?) async throws -> Void
     ) async {
         guard !nodes.isEmpty else {
             latestError = "Select one or more cleanup-ready items first."
@@ -535,7 +546,7 @@ final class AppState: ObservableObject {
         for node in nodes {
             let beforeIDs = selectedNodeIDs
             await performCleanup(node: node, operationName: operationName) {
-                try await operation(node)
+                try await operation(node, $0)
             }
             if latestError == nil, beforeIDs.contains(node.id), !selectedNodeIDs.contains(node.id) {
                 cleanedCount += 1
@@ -545,6 +556,18 @@ final class AppState: ObservableObject {
 
         if cleanedCount > 0 {
             cleanupStatusMessage = "\(operationName): \(cleanedCount) items, \(ByteFormat.string(cleanedBytes))"
+        }
+    }
+
+    private func cleanupProgressHandler(for node: FileNode) -> FileCleanupService.ProgressHandler {
+        { [weak self] progress in
+            Task { @MainActor [weak self] in
+                guard let self, self.cleanupInProgressIDs.contains(node.id) else {
+                    return
+                }
+
+                self.cleanupProgress = progress
+            }
         }
     }
 

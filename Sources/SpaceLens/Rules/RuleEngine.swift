@@ -338,6 +338,7 @@ public struct RuleEngine: Sendable {
     private func isPackageCache(path: String, name: String, components: [String]) -> Bool {
         let exactNames = [".build", "deriveddata", ".dart_tool", ".pytest_cache", "__pycache__", ".mypy_cache", ".ruff_cache"]
         return exactNames.contains(name)
+            || components.contains { exactNames.contains($0) }
             || path.contains("/node_modules/.cache")
             || path.contains("/library/developer/xcode/deriveddata")
             || path.contains("/.gradle/caches")
@@ -346,7 +347,8 @@ public struct RuleEngine: Sendable {
     }
 
     private func isGeneratedBuildOutput(name: String, components: [String]) -> Bool {
-        if name != "build" && name != "dist" && name != "target" {
+        let generatedNames = ["build", "dist", "target"]
+        if !generatedNames.contains(name) && components.allSatisfy({ !generatedNames.contains($0) }) {
             return false
         }
 

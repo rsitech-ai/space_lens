@@ -16,6 +16,7 @@ test -f Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
 echo "== Validate entitlements =="
 plutil -p Config/SpaceLens.entitlements | grep -q '"com.apple.security.app-sandbox" => true'
 plutil -p Config/SpaceLens.entitlements | grep -q '"com.apple.security.files.user-selected.read-write" => true'
+plutil -p Config/SpaceLens.entitlements | grep -q '"com.apple.security.files.bookmarks.app-scope" => true'
 
 echo "== Validate Info.plist version keys =="
 /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Config/Info.plist >/dev/null

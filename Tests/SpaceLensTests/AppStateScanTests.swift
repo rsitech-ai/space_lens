@@ -100,7 +100,7 @@ final class AppStateScanTests: XCTestCase {
 
         XCTAssertFalse(appState.isScanning)
         XCTAssertEqual(appState.scanMode, .smart)
-        XCTAssertEqual(appState.visibleNodes.map(\.node.name), [".build"])
+        XCTAssertEqual(appState.visibleNodes.map(\.node.displayName), ["Build Artifacts (.build)"])
         XCTAssertGreaterThan(appState.visibleCleanupReadyCount, 0)
     }
 }
