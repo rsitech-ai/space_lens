@@ -20,6 +20,11 @@ struct SpaceLensApp: App {
                 }
                 .keyboardShortcut("o", modifiers: [.command])
 
+                Button("Smart Scan") {
+                    appState.smartScan()
+                }
+                .keyboardShortcut("o", modifiers: [.command, .shift])
+
                 Button("Rescan") {
                     appState.rescan()
                 }

@@ -67,6 +67,29 @@ final class AppState: ObservableObject {
         }
     }
 
+    enum ScanMode: String {
+        case full
+        case smart
+
+        var inProgressTitle: String {
+            switch self {
+            case .full:
+                "Live scan in progress"
+            case .smart:
+                "Smart scan in progress"
+            }
+        }
+
+        var headerTitle: String {
+            switch self {
+            case .full:
+                "Scanning files"
+            case .smart:
+                "Finding cleanup candidates"
+            }
+        }
+    }
+
     @Published var sidebarSelection: SidebarSelection = .all {
         didSet {
             rebuildVisibleNodes()
@@ -94,6 +117,7 @@ final class AppState: ObservableObject {
         }
     }
     @Published var isScanning = false
+    @Published var scanMode: ScanMode = .full
     @Published var scanProgress: ScanProgress?
     @Published var scanStatistics: ScanStatistics?
     @Published var scanIntelligenceSummary: ScanIntelligenceSummary?
@@ -114,8 +138,10 @@ final class AppState: ObservableObject {
     let ruleEngine = RuleEngine()
     let intelligenceService: IntelligenceService = LocalIntelligenceService()
 
+    private let smartCleanupScanner: SmartCleanupScanner
     private var scanTask: Task<Void, Never>?
     private var activeScanID: UUID?
+    private var currentScanRootURL: URL?
     private var allNodes: [FlattenedFileNode] = []
     private var nodeByID: [UUID: FileNode] = [:]
     private var classificationCache: [UUID: SafetyClassification] = [:]
@@ -130,8 +156,13 @@ final class AppState: ObservableObject {
         }
     }
 
-    init(sessionStore: AppSessionStore? = nil, restoreOnLaunch: Bool = false) {
+    init(
+        sessionStore: AppSessionStore? = nil,
+        restoreOnLaunch: Bool = false,
+        smartCleanupScanner: SmartCleanupScanner = SmartCleanupScanner()
+    ) {
         self.sessionStore = sessionStore
+        self.smartCleanupScanner = smartCleanupScanner
 
         guard restoreOnLaunch, let sessionStore, let session = sessionStore.load() else {
             return
@@ -145,9 +176,7 @@ final class AppState: ObservableObject {
             return
         }
 
-        Task { @MainActor [weak self] in
-            self?.startScan(root: rootURL)
-        }
+        currentScanRootURL = rootURL
     }
 
     var selectedNodeID: UUID? {
@@ -198,11 +227,21 @@ final class AppState: ObservableObject {
         startScan(root: rootNode.url)
     }
 
+    func smartScan() {
+        let root = rootNode?.url
+            ?? currentScanRootURL
+            ?? securityScopedRootURL
+            ?? FileManager.default.homeDirectoryForCurrentUser
+        startSmartScan(root: root)
+    }
+
     func startScan(root: URL) {
         scanTask?.cancel()
         beginAccessingSecurityScopedRoot(root)
         let scanID = UUID()
         activeScanID = scanID
+        currentScanRootURL = root
+        scanMode = .full
         isScanning = true
         latestError = nil
         selectedNodeIDs = []
@@ -260,7 +299,80 @@ final class AppState: ObservableObject {
                 self.scanIntelligenceSummary = intelligenceSummary
                 self.selectedNodeIDs = result.root.children.first.map { Set([$0.id]) } ?? []
                 self.cleanupQueue.removeAll { candidate in
-                    result.root.find(id: candidate.fileNode.id) == nil
+                    !FileManager.default.fileExists(atPath: candidate.fileNode.path)
+                }
+                self.restorePersistedCleanupQueueIfNeeded()
+                self.persistSession()
+            }
+        }
+    }
+
+    func startSmartScan(root: URL) {
+        scanTask?.cancel()
+        beginAccessingSecurityScopedRoot(root)
+        let scanID = UUID()
+        activeScanID = scanID
+        currentScanRootURL = root
+        scanMode = .smart
+        isScanning = true
+        latestError = nil
+        selectedNodeIDs = []
+        snapshot = nil
+        scanStatistics = nil
+        scanIntelligenceSummary = nil
+        scanProgress = ScanProgress(currentPath: root.path, scannedCount: 0, errorCount: 0)
+
+        let ruleEngine = ruleEngine
+        let intelligenceService = intelligenceService
+        let smartCleanupScanner = smartCleanupScanner
+
+        scanTask = Task {
+            let result = await smartCleanupScanner.scan(root: root) { [weak self] progress in
+                Task { @MainActor [weak self] in
+                    guard let self, self.isScanning, self.activeScanID == scanID else {
+                        return
+                    }
+
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        self.scanProgress = progress
+                    }
+                }
+            }
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            let items = result.root.flattened().dropFirst().map { item in
+                ClassifiedScanItem(
+                    node: item.node,
+                    classification: ruleEngine.classify(item.node)
+                )
+            }
+            let statistics = ScanStatistics(snapshot: result.snapshot, items: items)
+            let intelligenceSummary = await intelligenceService.summarizeScan(
+                snapshot: result.snapshot,
+                items: items
+            )
+
+            await MainActor.run { [weak self] in
+                guard let self else {
+                    return
+                }
+                guard !Task.isCancelled, self.activeScanID == scanID else {
+                    return
+                }
+
+                self.rootNode = result.root
+                self.snapshot = result.snapshot
+                self.isScanning = false
+                self.activeScanID = nil
+                self.scanProgress = nil
+                self.scanStatistics = statistics
+                self.scanIntelligenceSummary = intelligenceSummary
+                self.selectedNodeIDs = result.root.children.first.map { Set([$0.id]) } ?? []
+                self.cleanupQueue.removeAll { candidate in
+                    !FileManager.default.fileExists(atPath: candidate.fileNode.path)
                 }
                 self.restorePersistedCleanupQueueIfNeeded()
                 self.persistSession()

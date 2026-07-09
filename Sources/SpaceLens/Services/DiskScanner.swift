@@ -9,11 +9,15 @@ public final class DiskScanner {
         self.fileManager = fileManager
     }
 
-    public func scan(root rootURL: URL, progress: ProgressHandler? = nil) async -> ScanResult {
+    public func scan(
+        root rootURL: URL,
+        options: ScanOptions = .appDefault,
+        progress: ProgressHandler? = nil
+    ) async -> ScanResult {
         let startedAt = Date()
         var context = ScanContext(startedAt: startedAt)
         let rootURL = rootURL.standardizedFileURL
-        let root = scanNode(rootURL, context: &context, progress: progress)
+        let root = scanNode(rootURL, context: &context, options: options, progress: progress)
         emitProgress(url: rootURL, context: &context, progress: progress, force: true)
         let completedAt = Date()
 
@@ -26,6 +30,9 @@ public final class DiskScanner {
                 totalLogicalSize: root.logicalSize,
                 totalAllocatedSize: root.allocatedSize,
                 nodeCount: context.nodeCount,
+                fileCount: context.fileCount,
+                directoryCount: context.directoryCount,
+                symlinkCount: context.symlinkCount,
                 errorCount: context.errorCount
             )
         )
@@ -34,6 +41,7 @@ public final class DiskScanner {
     private func scanNode(
         _ url: URL,
         context: inout ScanContext,
+        options: ScanOptions,
         progress: ProgressHandler?
     ) -> FileNode {
         if Task.isCancelled {
@@ -112,17 +120,16 @@ public final class DiskScanner {
             )
         }
 
-        let children = childURLs
-            .map { scanNode($0, context: &context, progress: progress) }
-            .sorted { lhs, rhs in
-                if lhs.effectiveSize == rhs.effectiveSize {
-                    return lhs.displayName.localizedStandardCompare(rhs.displayName) == .orderedAscending
-                }
-                return lhs.effectiveSize > rhs.effectiveSize
-            }
-
-        let logicalSize = children.reduce(Int64(0)) { $0 + $1.logicalSize }
-        let allocatedSize = children.reduce(Int64(0)) { $0 + $1.allocatedSize }
+        var retainedChildren: [FileNode] = []
+        var logicalSize: Int64 = 0
+        var allocatedSize: Int64 = 0
+        for childURL in childURLs {
+            let child = scanNode(childURL, context: &context, options: options, progress: progress)
+            logicalSize += child.logicalSize
+            allocatedSize += child.allocatedSize
+            retainDisplayChild(child, in: &retainedChildren, options: options)
+        }
+        finalizeRetainedChildren(&retainedChildren, options: options)
         emitProgress(url: url, context: &context, progress: progress)
 
         return FileNode(
@@ -133,7 +140,7 @@ public final class DiskScanner {
             allocatedSize: allocatedSize,
             modifiedAt: modifiedAt,
             createdAt: createdAt,
-            children: children
+            children: retainedChildren
         )
     }
 
@@ -169,6 +176,58 @@ public final class DiskScanner {
                 startedAt: context.startedAt
             )
         )
+    }
+
+    private func retainDisplayChild(
+        _ child: FileNode,
+        in retainedChildren: inout [FileNode],
+        options: ScanOptions
+    ) {
+        retainedChildren.append(child)
+
+        guard let limit = options.maxRetainedChildrenPerDirectory else {
+            return
+        }
+        if limit == 0 {
+            retainedChildren.removeAll(keepingCapacity: true)
+            return
+        }
+
+        let compactionThreshold = max(limit * 2, limit + 1)
+        guard retainedChildren.count > compactionThreshold else {
+            return
+        }
+
+        finalizeRetainedChildren(&retainedChildren, options: options)
+    }
+
+    private func finalizeRetainedChildren(
+        _ retainedChildren: inout [FileNode],
+        options: ScanOptions
+    ) {
+        retainedChildren.sort(by: Self.displaySort)
+        if let limit = options.maxRetainedChildrenPerDirectory, retainedChildren.count > limit {
+            retainedChildren.removeLast(retainedChildren.count - limit)
+        }
+    }
+
+    private static func displaySort(lhs: FileNode, rhs: FileNode) -> Bool {
+        if lhs.effectiveSize == rhs.effectiveSize {
+            return lhs.displayName.localizedStandardCompare(rhs.displayName) == .orderedAscending
+        }
+        return lhs.effectiveSize > rhs.effectiveSize
+    }
+}
+
+public struct ScanOptions: Equatable, Sendable {
+    public static let appDefault = ScanOptions(maxRetainedChildrenPerDirectory: 256)
+    public static let fullRetention = ScanOptions(maxRetainedChildrenPerDirectory: nil)
+
+    public let maxRetainedChildrenPerDirectory: Int?
+
+    public init(maxRetainedChildrenPerDirectory: Int? = 256) {
+        precondition(maxRetainedChildrenPerDirectory.map { $0 >= 0 } ?? true)
+        self.maxRetainedChildrenPerDirectory = maxRetainedChildrenPerDirectory
     }
 }
 

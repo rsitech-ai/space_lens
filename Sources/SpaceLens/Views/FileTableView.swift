@@ -618,7 +618,7 @@ private struct HeaderView: View {
 
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(appState.isScanning ? "Scanning files" : "Disk intelligence")
+            Text(appState.isScanning ? appState.scanMode.headerTitle : "Disk intelligence")
                 .font(.title3.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
@@ -748,7 +748,7 @@ private struct ScanTelemetryPanel: View {
 
     private var statusTitle: String {
         if appState.isScanning {
-            return "Live scan in progress"
+            return appState.scanMode.inProgressTitle
         }
 
         if let summary = appState.scanIntelligenceSummary {
@@ -1013,7 +1013,7 @@ private struct EmptyScanView: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 16) {
             Image(systemName: "externaldrive")
                 .font(.system(size: 56))
                 .foregroundStyle(.secondary)
@@ -1021,12 +1021,28 @@ private struct EmptyScanView: View {
             Text("No Scan Yet")
                 .font(.title3.weight(.semibold))
 
-            Button {
-                appState.chooseFolder()
-            } label: {
-                Label("Select Folder", systemImage: "folder.badge.plus")
+            HStack(spacing: 10) {
+                Button {
+                    appState.chooseFolder()
+                } label: {
+                    Label("Select Folder", systemImage: "folder.badge.plus")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    appState.smartScan()
+                } label: {
+                    Label("Smart Scan", systemImage: "sparkle.magnifyingglass")
+                }
+                .buttonStyle(.bordered)
+                .help("Find safe caches and review-worthy generated files without scanning every file first")
             }
-            .buttonStyle(.borderedProminent)
+
+            Text("Smart Scan checks common rebuildable caches, simulator data, package caches, and generated outputs. Nothing is removed automatically.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

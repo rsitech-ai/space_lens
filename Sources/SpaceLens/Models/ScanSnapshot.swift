@@ -8,6 +8,9 @@ public struct ScanSnapshot: Identifiable, Hashable, Sendable {
     public let totalLogicalSize: Int64
     public let totalAllocatedSize: Int64
     public let nodeCount: Int
+    public let fileCount: Int
+    public let directoryCount: Int
+    public let symlinkCount: Int
     public let errorCount: Int
 
     public init(
@@ -18,6 +21,9 @@ public struct ScanSnapshot: Identifiable, Hashable, Sendable {
         totalLogicalSize: Int64,
         totalAllocatedSize: Int64,
         nodeCount: Int,
+        fileCount: Int = 0,
+        directoryCount: Int = 0,
+        symlinkCount: Int = 0,
         errorCount: Int
     ) {
         self.id = id
@@ -27,6 +33,9 @@ public struct ScanSnapshot: Identifiable, Hashable, Sendable {
         self.totalLogicalSize = totalLogicalSize
         self.totalAllocatedSize = totalAllocatedSize
         self.nodeCount = nodeCount
+        self.fileCount = fileCount
+        self.directoryCount = directoryCount
+        self.symlinkCount = symlinkCount
         self.errorCount = errorCount
     }
 }

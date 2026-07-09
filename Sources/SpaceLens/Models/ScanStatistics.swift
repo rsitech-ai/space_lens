@@ -33,9 +33,9 @@ public struct ScanStatistics: Hashable, Sendable {
         errorCount = snapshot.errorCount
         totalAllocatedBytes = snapshot.totalAllocatedSize
 
-        var fileCount = 0
-        var directoryCount = 0
-        var symlinkCount = 0
+        var retainedFileCount = 0
+        var retainedDirectoryCount = 0
+        var retainedSymlinkCount = 0
         var queueableCount = 0
         var queueableBytes: Int64 = 0
         var reviewCount = 0
@@ -49,12 +49,12 @@ public struct ScanStatistics: Hashable, Sendable {
 
         for item in items {
             if item.node.isDirectory {
-                directoryCount += 1
+                retainedDirectoryCount += 1
             } else {
-                fileCount += 1
+                retainedFileCount += 1
             }
             if item.node.isSymlink {
-                symlinkCount += 1
+                retainedSymlinkCount += 1
             }
 
             let level = item.classification.level
@@ -86,9 +86,9 @@ public struct ScanStatistics: Hashable, Sendable {
             }
         }
 
-        self.fileCount = fileCount
-        self.directoryCount = directoryCount
-        self.symlinkCount = symlinkCount
+        self.fileCount = snapshot.fileCount > 0 ? snapshot.fileCount : retainedFileCount
+        self.directoryCount = snapshot.directoryCount > 0 ? snapshot.directoryCount : retainedDirectoryCount
+        self.symlinkCount = snapshot.symlinkCount > 0 ? snapshot.symlinkCount : retainedSymlinkCount
         self.queueableCount = queueableCount
         self.queueableBytes = queueableBytes
         self.reviewCount = reviewCount

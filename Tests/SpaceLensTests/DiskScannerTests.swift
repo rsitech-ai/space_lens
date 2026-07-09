@@ -31,6 +31,31 @@ final class DiskScannerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(result.root.logicalSize, 160)
     }
 
+    func testScannerBoundsRetainedChildrenWithoutStoppingFullTraversal() async throws {
+        var expectedLogicalSize: Int64 = 0
+        for index in 1...12 {
+            let size = Int64(index * 1_000_000)
+            let file = temporaryRoot.appendingPathComponent(String(format: "file-%02d.bin", index))
+            FileManager.default.createFile(atPath: file.path, contents: nil)
+            let handle = try FileHandle(forWritingTo: file)
+            try handle.truncate(atOffset: UInt64(size))
+            try handle.close()
+            expectedLogicalSize += size
+        }
+
+        let result = await DiskScanner().scan(
+            root: temporaryRoot,
+            options: ScanOptions(maxRetainedChildrenPerDirectory: 3)
+        )
+
+        XCTAssertEqual(result.snapshot.nodeCount, 13)
+        XCTAssertEqual(result.snapshot.fileCount, 12)
+        XCTAssertEqual(result.snapshot.directoryCount, 1)
+        XCTAssertEqual(result.root.children.map(\.name), ["file-12.bin", "file-11.bin", "file-10.bin"])
+        XCTAssertEqual(result.root.children.count, 3)
+        XCTAssertGreaterThanOrEqual(result.root.logicalSize, expectedLogicalSize)
+    }
+
     func testScannerRecordsMissingRootAsError() async throws {
         let missing = temporaryRoot.appendingPathComponent("missing")
         let result = await DiskScanner().scan(root: missing)

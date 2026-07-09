@@ -81,10 +81,21 @@ final class AppSessionStoreTests: XCTestCase {
         firstLaunch.addToCleanupQueue(node: cacheNode)
         XCTAssertEqual(firstLaunch.cleanupQueue.map(\.fileNode.path), [cacheFolderPath])
 
-        let restoredLaunch = AppState(sessionStore: store, restoreOnLaunch: true)
+        let restoredLaunch = AppState(
+            sessionStore: store,
+            restoreOnLaunch: true,
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+        )
+        XCTAssertFalse(restoredLaunch.isScanning)
+        XCTAssertNil(restoredLaunch.rootNode)
+
+        restoredLaunch.smartScan()
         try await waitForScanToFinish(restoredLaunch)
 
-        XCTAssertEqual(restoredLaunch.cleanupQueue.map(\.fileNode.path), [cacheFolderPath])
+        XCTAssertEqual(
+            restoredLaunch.cleanupQueue.first.map { URL(fileURLWithPath: $0.fileNode.path).resolvingSymlinksInPath().path },
+            URL(fileURLWithPath: cacheFolderPath).resolvingSymlinksInPath().path
+        )
         XCTAssertEqual(restoredLaunch.cleanupStatusMessage, "Restored 1 cleanup queued items")
     }
 
@@ -110,7 +121,15 @@ final class AppSessionStoreTests: XCTestCase {
             )
         )
 
-        let restoredLaunch = AppState(sessionStore: store, restoreOnLaunch: true)
+        let restoredLaunch = AppState(
+            sessionStore: store,
+            restoreOnLaunch: true,
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+        )
+        XCTAssertFalse(restoredLaunch.isScanning)
+        XCTAssertNil(restoredLaunch.rootNode)
+
+        restoredLaunch.smartScan()
         try await waitForScanToFinish(restoredLaunch)
 
         XCTAssertEqual(restoredLaunch.cleanupQueue.count, 1)

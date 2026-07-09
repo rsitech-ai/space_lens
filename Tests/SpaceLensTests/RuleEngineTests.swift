@@ -21,7 +21,7 @@ final class RuleEngineTests: XCTestCase {
     }
 
     func testApplicationSupportDatabaseNeedsReview() {
-        let node = node(path: "/Users/s1kor/Library/Application Support/Cursor/User/globalStorage/state.vscdb")
+        let node = node(path: "/Users/s1kor/Library/Application Support/ExampleApp/state.sqlite")
         let classification = rules.classify(node)
 
         XCTAssertEqual(classification.level, .unknownReview)
@@ -48,8 +48,46 @@ final class RuleEngineTests: XCTestCase {
         let node = node(path: "/Users/s1kor/dev/trading/rsibot/quants-lab/app/data/cache/lob", isDirectory: true)
         let classification = rules.classify(node)
 
-        XCTAssertEqual(classification.level, .largeButValuable)
+        XCTAssertEqual(classification.level, .unknownReview)
+        XCTAssertEqual(classification.category, "Trading research cache")
         XCTAssertFalse(classification.level.isQueueable)
+    }
+
+    func testSmartScanSafeCachePathsAreQueueable() {
+        let simulatorCache = node(path: "/Library/Developer/CoreSimulator/Caches", isDirectory: true)
+        let wallpaperVideos = node(
+            path: "/Users/s1kor/Library/Application Support/com.apple.wallpaper/aerials/videos",
+            isDirectory: true
+        )
+
+        XCTAssertEqual(rules.classify(simulatorCache).level, .rebuildableCache)
+        XCTAssertEqual(rules.classify(wallpaperVideos).level, .safeTemp)
+    }
+
+    func testSmartScanReviewFirstPathsAreNotQueueable() {
+        let condaPackages = node(path: "/Users/s1kor/anaconda3/pkgs", isDirectory: true)
+        let codexSessions = node(path: "/Users/s1kor/.codex/sessions", isDirectory: true)
+        let cursorHistory = node(
+            path: "/Users/s1kor/Library/Application Support/Cursor/User/History",
+            isDirectory: true
+        )
+        let androidDevice = node(path: "/Users/s1kor/.android/avd/Medium_Phone.avd", isDirectory: true)
+
+        for candidate in [condaPackages, codexSessions, cursorHistory, androidDevice] {
+            XCTAssertEqual(rules.classify(candidate).level, .unknownReview)
+            XCTAssertFalse(rules.classify(candidate).level.isQueueable)
+        }
+    }
+
+    func testSmartScanDoNotRawDeletePathsStayProtected() {
+        let virtualMemory = node(path: "/System/Volumes/VM", isDirectory: true)
+        let researchLibrary = node(
+            path: "/Users/s1kor/dev/new/alpha-vistula/risercz/python/universal/downloads/library",
+            isDirectory: true
+        )
+
+        XCTAssertEqual(rules.classify(virtualMemory).level, .systemCritical)
+        XCTAssertEqual(rules.classify(researchLibrary).level, .largeButValuable)
     }
 
     func testCrashpadDumpInTempIsSafeCandidate() {

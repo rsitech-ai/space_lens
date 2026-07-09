@@ -23,7 +23,9 @@ final class AppStateScanTests: XCTestCase {
         try FileManager.default.createDirectory(at: buildFolder, withIntermediateDirectories: true)
         try Data(repeating: 1, count: 256).write(to: buildFolder.appendingPathComponent("artifact.o"))
 
-        let appState = AppState()
+        let appState = AppState(
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+        )
         appState.startScan(root: temporaryRoot)
 
         for _ in 0..<100 where appState.isScanning {
@@ -37,5 +39,68 @@ final class AppStateScanTests: XCTestCase {
         XCTAssertNotNil(appState.scanIntelligenceSummary)
         XCTAssertGreaterThan(appState.scanStatistics?.queueableCount ?? 0, 0)
         XCTAssertGreaterThan(appState.scanIntelligenceSummary?.recoverableBytes ?? 0, 0)
+    }
+
+    @MainActor
+    func testRescanKeepsQueuedPathEvenWhenDisplayTreePrunesIt() async throws {
+        let buildFolder = temporaryRoot.appendingPathComponent(".build", isDirectory: true)
+        try FileManager.default.createDirectory(at: buildFolder, withIntermediateDirectories: true)
+        try Data([1]).write(to: buildFolder.appendingPathComponent("artifact.o"))
+
+        for index in 0..<300 {
+            let file = temporaryRoot.appendingPathComponent("large-\(index).bin")
+            FileManager.default.createFile(atPath: file.path, contents: nil)
+            let handle = try FileHandle(forWritingTo: file)
+            try handle.truncate(atOffset: 1_000_000)
+            try handle.close()
+        }
+
+        let queuedNode = FileNode(
+            url: buildFolder,
+            isDirectory: true,
+            logicalSize: 1,
+            allocatedSize: 1
+        )
+        let appState = AppState(
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+        )
+        appState.cleanupQueue = [
+            CleanupCandidate(
+                fileNode: queuedNode,
+                classification: appState.ruleEngine.classify(queuedNode),
+                estimatedRecoverableBytes: queuedNode.effectiveSize,
+                action: .queueForFutureTrash
+            )
+        ]
+
+        appState.startScan(root: temporaryRoot)
+
+        for _ in 0..<100 where appState.isScanning {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertFalse(appState.isScanning)
+        XCTAssertEqual(appState.cleanupQueue.map { $0.fileNode.path }, [buildFolder.path])
+    }
+
+    @MainActor
+    func testSmartScanPublishesVisibleCleanupCandidates() async throws {
+        let buildFolder = temporaryRoot.appendingPathComponent("Project/.build", isDirectory: true)
+        try FileManager.default.createDirectory(at: buildFolder, withIntermediateDirectories: true)
+        try Data(repeating: 1, count: 512).write(to: buildFolder.appendingPathComponent("artifact.o"))
+
+        let appState = AppState(
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+        )
+        appState.startSmartScan(root: temporaryRoot)
+
+        for _ in 0..<100 where appState.isScanning {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertFalse(appState.isScanning)
+        XCTAssertEqual(appState.scanMode, .smart)
+        XCTAssertEqual(appState.visibleNodes.map(\.node.name), [".build"])
+        XCTAssertGreaterThan(appState.visibleCleanupReadyCount, 0)
     }
 }

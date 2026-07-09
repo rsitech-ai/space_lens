@@ -25,6 +25,13 @@ struct ContentView: View {
                 }
 
                 Button {
+                    appState.smartScan()
+                } label: {
+                    Label("Smart Scan", systemImage: "sparkle.magnifyingglass")
+                }
+                .help("Find safe caches and review-worthy generated files without scanning every file first")
+
+                Button {
                     appState.rescan()
                 } label: {
                     Label("Rescan", systemImage: "arrow.clockwise")

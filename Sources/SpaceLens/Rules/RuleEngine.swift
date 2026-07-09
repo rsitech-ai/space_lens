@@ -20,6 +20,17 @@ public struct RuleEngine: Sendable {
             )
         }
 
+        if isSystemVirtualMemory(path: path) {
+            return SafetyClassification(
+                level: .systemCritical,
+                confidence: 0.99,
+                category: "macOS virtual memory",
+                summary: "This is macOS swap or virtual memory state.",
+                evidence: ["Matched /System/Volumes/VM.", "Manual deletion can destabilize macOS."],
+                recommendedAction: "Do not delete manually. Close heavy apps or reboot if swap is high."
+            )
+        }
+
         if isDockerStorage(path: path, name: name) {
             return SafetyClassification(
                 level: .activeOrInUse,
@@ -28,6 +39,116 @@ public struct RuleEngine: Sendable {
                 summary: "This appears to be Docker-owned VM or container storage.",
                 evidence: ["Matched Docker Desktop storage path or Docker.raw.", "Manual deletion can break containers and volumes."],
                 recommendedAction: "Use Docker cleanup or compaction tools, then rescan."
+            )
+        }
+
+        if isAppleWallpaperAerials(path: path) {
+            return SafetyClassification(
+                level: .safeTemp,
+                confidence: 0.92,
+                category: "Apple wallpaper downloads",
+                summary: "These are downloaded Apple aerial wallpaper videos.",
+                evidence: ["Matched the Apple wallpaper aerial video cache.", "macOS can redownload wallpapers later."],
+                recommendedAction: "Queue for review, then move to the Bin if you do not use these wallpapers."
+            )
+        }
+
+        if isCoreSimulatorCache(path: path) {
+            return SafetyClassification(
+                level: .rebuildableCache,
+                confidence: 0.94,
+                category: "Simulator cache",
+                summary: "This is Xcode Simulator cache data.",
+                evidence: ["Matched CoreSimulator cache storage.", "Xcode and Simulator can rebuild cache files."],
+                recommendedAction: "Queue for review; close Simulator and Xcode before cleanup."
+            )
+        }
+
+        if isAndroidEmulatorDevice(path: path) {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.82,
+                category: "Android emulator device",
+                summary: "This looks like an Android virtual device image.",
+                evidence: ["Matched an .android/avd device path.", "Deleting it removes that emulator device state."],
+                recommendedAction: "Reveal and delete only if you do not need this emulator."
+            )
+        }
+
+        if isRustToolchainStore(path: path) {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.82,
+                category: "Rust toolchains",
+                summary: "This stores installed Rust toolchains.",
+                evidence: ["Matched rustup toolchain storage.", "Unused old toolchains are removable, but active stable/nightly toolchains may be needed."],
+                recommendedAction: "Use rustup to remove specific unused toolchains."
+            )
+        }
+
+        if isCondaPackageCache(path: path) {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.86,
+                category: "Conda package cache",
+                summary: "This is Conda package cache data.",
+                evidence: ["Matched anaconda3/pkgs.", "Conda has its own cleanup tooling."],
+                recommendedAction: "Prefer conda clean before raw deletion."
+            )
+        }
+
+        if isCodexSessions(path: path) {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.8,
+                category: "Codex sessions",
+                summary: "These are local Codex session transcripts and continuity data.",
+                evidence: ["Matched .codex/sessions.", "Old sessions may be disposable, but they can contain useful history."],
+                recommendedAction: "Review retention needs before deleting old sessions."
+            )
+        }
+
+        if isNotionLocalState(path: path) {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.78,
+                category: "Notion local state",
+                summary: "This appears to be Notion local cache or synced state.",
+                evidence: ["Matched Notion Partitions storage.", "Notion may need to re-sync after cleanup."],
+                recommendedAction: "Close Notion and review before cleanup."
+            )
+        }
+
+        if isCursorHistory(path: path) {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.8,
+                category: "Cursor history",
+                summary: "This is Cursor local history or global extension state.",
+                evidence: ["Matched Cursor User storage.", "Some content may be useful project or agent history."],
+                recommendedAction: "Review inside Cursor before deleting local history or global storage."
+            )
+        }
+
+        if isTradingResearchCache(path: path) {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.84,
+                category: "Trading research cache",
+                summary: "This looks generated, but it belongs to trading research.",
+                evidence: ["Matched quants-lab cache/backtest paths.", "Large generated data may still be needed for reproducibility."],
+                recommendedAction: "Archive or delete only after confirming the run/data is reproducible or obsolete."
+            )
+        }
+
+        if isDownloadedResearchLibrary(path: path) {
+            return SafetyClassification(
+                level: .largeButValuable,
+                confidence: 0.9,
+                category: "Research corpus",
+                summary: "This looks like a downloaded research/library corpus.",
+                evidence: ["Matched the risercz downloaded library path.", "The content is user/project data, not a disposable cache."],
+                recommendedAction: "Do not delete unless you explicitly decide this corpus is disposable."
             )
         }
 
@@ -132,7 +253,7 @@ public struct RuleEngine: Sendable {
     }
 
     private func isSystemCritical(path: String) -> Bool {
-        path.hasPrefix("/system/")
+        (path.hasPrefix("/system/") && !path.hasPrefix("/system/volumes/vm"))
             || path.hasPrefix("/bin/")
             || path.hasPrefix("/sbin/")
             || path.hasPrefix("/usr/bin/")
@@ -141,10 +262,63 @@ public struct RuleEngine: Sendable {
             || path.hasPrefix("/library/apple/")
     }
 
+    private func isSystemVirtualMemory(path: String) -> Bool {
+        path.hasPrefix("/system/volumes/vm")
+    }
+
     private func isDockerStorage(path: String, name: String) -> Bool {
         name == "docker.raw"
             || path.contains("/library/containers/com.docker.docker/data/vms/")
             || path.contains("/docker/volumes/")
+    }
+
+    private func isAppleWallpaperAerials(path: String) -> Bool {
+        path.contains("/library/application support/com.apple.wallpaper/aerials/videos")
+    }
+
+    private func isCoreSimulatorCache(path: String) -> Bool {
+        path == "/library/developer/coresimulator/caches"
+            || path.hasSuffix("/library/developer/coresimulator/caches")
+    }
+
+    private func isAndroidEmulatorDevice(path: String) -> Bool {
+        path.contains("/.android/avd/")
+            || path.hasSuffix("/.android/avd")
+    }
+
+    private func isRustToolchainStore(path: String) -> Bool {
+        path.contains("/.rustup/toolchains/")
+            || path.hasSuffix("/.rustup/toolchains")
+    }
+
+    private func isCondaPackageCache(path: String) -> Bool {
+        path.contains("/anaconda3/pkgs/")
+            || path.hasSuffix("/anaconda3/pkgs")
+            || path.contains("/miniconda3/pkgs/")
+            || path.hasSuffix("/miniconda3/pkgs")
+    }
+
+    private func isCodexSessions(path: String) -> Bool {
+        path.contains("/.codex/sessions/")
+            || path.hasSuffix("/.codex/sessions")
+    }
+
+    private func isNotionLocalState(path: String) -> Bool {
+        path.contains("/library/application support/notion/partitions")
+    }
+
+    private func isCursorHistory(path: String) -> Bool {
+        path.contains("/library/application support/cursor/user/history")
+            || path.contains("/library/application support/cursor/user/globalstorage")
+    }
+
+    private func isTradingResearchCache(path: String) -> Bool {
+        path.contains("/dev/trading/rsibot/quants-lab/app/data/cache/lob")
+            || path.contains("/dev/trading/rsibot/quants-lab/output/backtests")
+    }
+
+    private func isDownloadedResearchLibrary(path: String) -> Bool {
+        path.contains("/dev/new/alpha-vistula/risercz/python/universal/downloads/library")
     }
 
     private func isAIModelStore(path: String) -> Bool {
