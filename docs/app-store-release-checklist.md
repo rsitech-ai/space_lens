@@ -18,9 +18,9 @@ Use `verified`, `blocked`, or `not applicable` for each item.
 | Distribution signing configured | verified | Export summary shows Apple Distribution certificate `CB291196A6A812553A4E69C9ABF9FC265FAE1765` and installer signing succeeded. |
 | Provisioning profile valid | verified | Export summary shows `Mac Team Store Provisioning Profile: com.andrzej.spacelens`, UUID `56a29891-3085-421e-a1c3-6212c65020fa`, expires `29/06/2027`. |
 | App Sandbox enabled | verified | `Config/SpaceLens.entitlements` includes `com.apple.security.app-sandbox=true`. |
-| Entitlements minimized and reviewed | verified | Only sandbox and user-selected read/write file access are configured. |
+| Entitlements minimized and reviewed | verified | Sandbox, user-selected read/write file access, and app-scoped bookmark persistence are configured. |
 | Hardened runtime/distribution settings reviewed | verified | `ENABLE_HARDENED_RUNTIME=YES` in `project.yml`; unsigned local builds disable it as expected. |
-| `codesign` inspection captured | verified | Temporary ad-hoc sandbox signing inspection showed sandbox and user-selected read/write entitlements. |
+| `codesign` inspection captured | verified | Temporary ad-hoc sandbox signing inspection showed sandbox, user-selected read/write, and app-scoped bookmark entitlements. |
 
 ## Privacy
 

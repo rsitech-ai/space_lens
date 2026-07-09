@@ -31,7 +31,7 @@ final class SmartCleanupScannerTests: XCTestCase {
 
         let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: temporaryRoot)
 
-        XCTAssertEqual(result.root.children.map(\.name), [".build", "dist"])
+        XCTAssertEqual(result.root.children.map(\.displayName), ["Build Artifacts (.build)", "Distribution Output"])
         XCTAssertEqual(result.root.children.flatMap(\.children).count, 0)
         XCTAssertGreaterThanOrEqual(result.snapshot.totalLogicalSize, 20_000_000)
         XCTAssertFalse(result.root.children.contains { $0.path.contains("/data/raw") })
@@ -44,8 +44,23 @@ final class SmartCleanupScannerTests: XCTestCase {
 
         let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: temporaryRoot)
 
-        XCTAssertTrue(result.root.children.contains { $0.path.hasSuffix(".gradle/caches") })
+        XCTAssertTrue(result.root.children.contains { $0.displayName == "Gradle Caches" })
         XCTAssertGreaterThanOrEqual(result.snapshot.totalLogicalSize, 5_000_000)
+    }
+
+    func testSmartScanUsesExplicitCandidateNames() async throws {
+        let derivedData = temporaryRoot.appendingPathComponent("Library/Developer/Xcode/DerivedData/App", isDirectory: true)
+        let codexSessions = temporaryRoot.appendingPathComponent(".codex/sessions", isDirectory: true)
+        try FileManager.default.createDirectory(at: derivedData, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: codexSessions, withIntermediateDirectories: true)
+        try writeSparseFile(derivedData.appendingPathComponent("build.db"), size: 4_000_000)
+        try writeSparseFile(codexSessions.appendingPathComponent("session.jsonl"), size: 2_000_000)
+
+        let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: temporaryRoot)
+        let displayNames = Set(result.root.children.map(\.displayName))
+
+        XCTAssertTrue(displayNames.contains("Xcode DerivedData"))
+        XCTAssertTrue(displayNames.contains("Codex Sessions"))
     }
 
     func testSmartScanFindsNodeModulesCacheWithoutScanningAllNodeModules() async throws {

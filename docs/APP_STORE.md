@@ -17,8 +17,8 @@ SwiftPM development lane.
 
 - `project.yml`: XcodeGen source of truth for `SpaceLens.xcodeproj`.
 - `Config/Info.plist`: App Store bundle metadata, version, category, and icon.
-- `Config/SpaceLens.entitlements`: App Sandbox plus user-selected read/write
-  file access.
+- `Config/SpaceLens.entitlements`: App Sandbox, user-selected read/write file
+  access, and app-scoped security bookmark persistence.
 - `Config/ExportOptions-AppStore.plist`: App Store Connect archive export
   settings.
 - `Resources/PrivacyInfo.xcprivacy`: privacy manifest declaring no collected

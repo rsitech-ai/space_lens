@@ -42,3 +42,53 @@ public struct CleanupCandidate: Identifiable, Hashable, Sendable {
         self.action = action
     }
 }
+
+public enum CleanupProgressPhase: String, Sendable {
+    case preparing
+    case deleting
+    case finished
+
+    public var displayName: String {
+        switch self {
+        case .preparing:
+            "Preparing"
+        case .deleting:
+            "Deleting"
+        case .finished:
+            "Finished"
+        }
+    }
+}
+
+public struct CleanupProgress: Equatable, Sendable {
+    public let phase: CleanupProgressPhase
+    public let currentPath: String
+    public let completedItemCount: Int
+    public let totalItemCount: Int
+    public let completedBytes: Int64
+    public let totalBytes: Int64
+
+    public init(
+        phase: CleanupProgressPhase,
+        currentPath: String,
+        completedItemCount: Int,
+        totalItemCount: Int,
+        completedBytes: Int64,
+        totalBytes: Int64
+    ) {
+        self.phase = phase
+        self.currentPath = currentPath
+        self.completedItemCount = completedItemCount
+        self.totalItemCount = totalItemCount
+        self.completedBytes = completedBytes
+        self.totalBytes = totalBytes
+    }
+
+    public var fractionCompleted: Double {
+        guard totalItemCount > 0 else {
+            return 0
+        }
+
+        return min(1, Double(completedItemCount) / Double(totalItemCount))
+    }
+}

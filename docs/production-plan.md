@@ -97,7 +97,8 @@
 
 - Bundle ID: `com.andrzej.spacelens`.
 - Signing team used for verified App Store export: `2NY8A789TN`.
-- Sandbox/entitlements: App Sandbox plus user-selected read/write file access.
+- Sandbox/entitlements: App Sandbox plus user-selected read/write file access
+  and app-scoped security bookmark persistence.
 - Privacy manifest: present at `Resources/PrivacyInfo.xcprivacy`.
 - Privacy labels: draft as no collected data; local selected-folder metadata
   processing only.
