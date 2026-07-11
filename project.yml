@@ -30,6 +30,8 @@ targets:
       properties:
         CFBundleDisplayName: SpaceLens
         CFBundleIconName: AppIcon
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.utilities
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         NSHumanReadableCopyright: Copyright © 2026 Rafal Sikor. All rights reserved.

@@ -1,5 +1,7 @@
 # SpaceLens SwiftUI Polish Audit
 
+> Historical note: this audit predates the Store 1.0 safety hardening. Permanent deletion was removed before release; current truth lives in `docs/release/1.0/RELEASE_STATUS.md`.
+
 Date: 2026-06-29
 Branch: `feat/andrzej_swiftui-polish-audit`
 Readiness label: `Polish-ready`

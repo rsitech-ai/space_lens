@@ -7,7 +7,7 @@ SwiftPM development lane.
 
 - Active Apple Developer Program membership.
 - Xcode 26.5 or newer.
-- XcodeGen installed: `brew install xcodegen`.
+- XcodeGen 2.45.4 installed. Release scripts fail closed on version drift.
 - App Store Connect app record for bundle ID `com.andrzej.spacelens`.
 - Apple Distribution signing certificate installed in the login keychain.
 - App Store provisioning handled automatically by Xcode, or already available
@@ -64,12 +64,16 @@ Prepare these before submitting for review:
 - App name: `SpaceLens`
 - Bundle ID: `com.andrzej.spacelens`
 - Category: Utilities
-- Privacy Policy URL:
-  `https://github.com/s1korrrr/space_lens/blob/main/docs/PRIVACY.md`
-- Support URL:
-  `https://github.com/s1korrrr/space_lens/blob/main/docs/SUPPORT.md`
+- Privacy Policy URL: blocked until the owner publishes `docs/PRIVACY.md` at a
+  durable public HTTPS URL that returns HTTP 200 without authentication.
+- Support URL: blocked until the owner publishes `docs/SUPPORT.md` with an
+  actual contact method at a durable public HTTPS URL.
 - App privacy answers: local filesystem metadata is processed on device; no
   file contents or metadata are sent to external services by SpaceLens.
 - Review notes: SpaceLens scans only user-selected folders, classifies cleanup
   risk locally, and gates destructive cleanup behind confirmation.
-- Screenshots from the current macOS build.
+- Screenshots from the current macOS build at an Apple-accepted 16:10 size.
+
+`./script/build_and_run.sh --verify` creates a local SwiftPM development smoke
+bundle. It is not the sandboxed, signed App Store artifact. Release runtime
+proof must use the current Xcode Release/archive app.

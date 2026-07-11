@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "product": "SpaceLens",
+  "platform": "macOS",
+  "version": "1.0",
+  "build": "1",
+  "bundleIdentifier": "com.andrzej.spacelens",
+  "minimumSystemVersion": "14.0",
+  "currentDate": "2026-07-11",
+  "sourceRevision": "PENDING_CLEAN_RELEASE_COMMIT",
+  "branch": "feat/andrzej_agent_sota_lab",
+  "productionToolchain": {
+    "xcode": "26.5 (17F42)",
+    "sdk": "macOS 26.5",
+    "swift": "6.3.2"
+  },
+  "verdict": "BLOCKED",
+  "archive": {
+    "status": "NOT YET VERIFIED AT CLEAN COMMIT",
+    "path": "build/AppStore/SpaceLens.xcarchive",
+    "exportPath": "build/AppStore/export",
+    "packageSHA256": null
+  },
+  "os27Compatibility": {
+    "status": "BLOCKED",
+    "reason": "Xcode 27 and macOS 27 SDK/runtime are not installed"
+  },
+  "artifacts": [
+    "RELEASE_STATUS.md",
+    "APP_STORE_CHECKLIST.md",
+    "TEST_EVIDENCE.md",
+    "PRIVACY_DATA_MAP.md",
+    "SECURITY_STATUS.md",
+    "APP_REVIEW_NOTES.md",
+    "RELEASE_NOTES.md",
+    "BLOCKERS.md",
+    "screenshots/SpaceLens-macOS-dark-empty-1280x800.jpeg"
+  ]
+}

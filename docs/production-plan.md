@@ -7,9 +7,9 @@
 - Primary job: scan a user-selected folder, explain what is consuming space,
   classify cleanup risk, and queue safe cleanup candidates.
 - Core workflow: select folder -> watch scan progress -> sort/filter/review
-  findings -> queue cleanup-ready items -> confirm Move to Bin or Delete
-  Forever.
-- Business model: free utility with visible optional support link.
+  findings -> queue cleanup-ready items -> review exact paths -> confirm Move
+  to Bin.
+- Business model: free utility with no in-app purchase or external tipping link.
 - Supported macOS versions: macOS 14+.
 - Offline behavior: fully local and offline for scanning, classification,
   persistence, and cleanup.
@@ -44,7 +44,7 @@
 - Project type: SwiftPM primary with XcodeGen-backed Xcode project for App
   Store packaging.
 - Build command: `swift build` or `swift build -c release`.
-- Run command: `./script/build_and_run.sh --verify`.
+- Development run command: `./script/build_and_run.sh --verify`.
 - `script/build_and_run.sh` status: verified.
 - Codex Run action status: `.codex/environments/environment.toml` runs
   `./script/build_and_run.sh --verify`.
@@ -71,8 +71,8 @@
   queue, support links, session store.
 - Integration tests or mocks: real temporary filesystem scans and cleanup
   actions; session restore integration test using a temporary store file.
-- UI/manual smoke: packaged app launch through `script/build_and_run.sh
-  --verify`; screenshots captured under `docs/screenshots/`.
+- UI/manual smoke: development launch through `script/build_and_run.sh
+  --verify`; release proof uses the current Xcode Release/archive app.
 - Release smoke: `script/validate_app_store_readiness.sh`, Xcode app
   build/test, signed archive/export, sandbox entitlement inspection, and a
   controlled relaunch restore smoke.
@@ -80,7 +80,7 @@
   - `swift test`
   - `swift build -c release`
   - `xcodebuild -project SpaceLens.xcodeproj -scheme SpaceLens -configuration Debug -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test`
-- `./script/build_and_run.sh --verify`
+- `./script/build_and_run.sh --verify` (development smoke only)
 - `./script/validate_app_store_readiness.sh`
   - `SPACE_LENS_DEVELOPMENT_TEAM=2NY8A789TN ./script/archive_app_store.sh`
 
@@ -103,10 +103,10 @@
 - Privacy labels: draft as no collected data; local selected-folder metadata
   processing only.
 - Assets: App icon asset catalog present.
-- Metadata: privacy/support URLs present in repo docs.
+- Metadata: local privacy/support drafts are present; public HTTPS URLs remain blocked.
 - Review notes: app scans only user-selected folders, performs local risk
   classification, and gates destructive cleanup behind confirmation.
-- Verified export: `build/AppStore/export/SpaceLens.pkg`.
+- Historical export exists; a final current-source export remains pending.
 - Known blockers: App Store Connect app record confirmation, final metadata,
   screenshots, privacy labels, age rating, and upload/submission.
 
