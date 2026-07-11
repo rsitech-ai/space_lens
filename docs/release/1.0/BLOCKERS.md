@@ -7,6 +7,7 @@
 | App Store Connect app record not confirmed | Account owner | Create or confirm the macOS app record for `com.andrzej.spacelens` |
 | Build number availability unknown | Account owner | Confirm whether version 1.0 build 1 already exists; increment the build before upload if it does |
 | Developer Program membership/role unconfirmed | Account owner | Confirm active membership and a role permitted to upload and submit builds |
+| GitHub Actions cannot start | GitHub account/billing owner | Resolve the failed payment or increase the spending limit; rerun PR #8 CI |
 | App privacy answers not confirmed | Account/privacy owner | Confirm repository data map matches all real operations, then enter answers in App Store Connect |
 | Updated age rating unanswered | Account/content owner | Complete current age-rating questionnaire |
 | DSA trader status unknown | Legal/account owner | Make truthful trader/non-trader declaration for EU distribution |

@@ -67,3 +67,8 @@ No cleanup confirmation was accepted during runtime QA. The disposable fixture r
 - Accepted-size dark empty-state candidate: `screenshots/SpaceLens-macOS-dark-empty-1280x800.jpeg` (1280x800, SHA-256 `521e092fde912d3e39e098cf1a319bfc0ea94c72d0c453afcd3e3fdfc5367999`).
 - Source capture is retained beside it. The accepted-size derivative crops 3 vertical pixels from the live capture and scales it to Apple’s 1280x800 slot; no UI content was composited or generated.
 - Additional feature-state and Light appearance screenshots remain an owner/marketing action before submission.
+
+## GitHub Evidence
+
+- Draft PR: <https://github.com/s1korrrr/space_lens/pull/8>
+- CI run `29165029326`: `BLOCKED`; no runner/step started. GitHub annotation reports failed account payments or an insufficient spending limit. The account/billing owner must resolve it and rerun CI.

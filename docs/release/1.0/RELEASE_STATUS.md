@@ -46,7 +46,7 @@ All currently available local code, build, test, security, privacy-manifest, and
 | Mac screenshots | PASS (minimum) | Actual 1280x800 dark empty-state capture | `screenshots/` | Marketing owner | Add truthful feature/light captures if desired |
 | Metadata and review notes | PASS (draft) / BLOCKED (owner fields) | Repository copy review | `APP_REVIEW_NOTES.md` | Marketing/account/legal owners | Approve copy and complete owner-controlled fields |
 | Age rating / DSA / legal / pricing | BLOCKED | Owner/account decisions unavailable | `BLOCKERS.md` | Account/legal/business owners | Complete in App Store Connect |
-| GitHub PR and CI | NOT YET VERIFIED | Release branch local; workflow added | `TEST_EVIDENCE.md` | Release lead | Push, open draft PR, inspect checks |
+| GitHub PR and CI | BLOCKED | Draft PR #8 opened; run `29165029326` had zero steps and a GitHub billing annotation | PR #8 / `BLOCKERS.md` | GitHub account/billing owner | Resolve payment/spending limit and rerun CI |
 
 ## Tests And Runtime Evidence
 
@@ -84,7 +84,9 @@ All currently available local code, build, test, security, privacy-manifest, and
 
 The release branch removes unsafe cleanup heuristics/permanent deletion, enforces folder authorization, adds session deletion, masks logs, removes external tipping, centralizes version expansion, pins XcodeGen behavior, adds CI, hardens archive/export validation, updates product/privacy/App Store documentation, and adds regression coverage.
 
-Release commits: `81bc766` (product safety), `12182e1` (release gates), and `fc280c7` (final package verification). PR URL and CI result will be appended after publication.
+Release commits: `81bc766` (product safety), `12182e1` (release gates), and `fc280c7` (final package verification). Draft PR: <https://github.com/s1korrrr/space_lens/pull/8>.
+
+GitHub Actions run `29165029326` did not allocate a runner or execute any step. GitHub attached: “The job was not started because recent account payments have failed or your spending limit needs to be increased.” This is an external account blocker; it is not a source/test failure. Local CI-equivalent tests, Xcode builds, project parity, and metadata assertions pass.
 
 Independent code, signing/package, and security/privacy reviews were completed. Their actionable findings were addressed; final reviewers reported no attacker-exploitable finding.
 
