@@ -218,20 +218,9 @@ public final class SmartCleanupScanner: @unchecked Sendable {
     private func candidatePathTemplates() -> [String] {
         [
             "/Library/Developer/CoreSimulator/Caches",
-            "~/Library/Application Support/com.apple.wallpaper/aerials/videos",
             "~/.gradle/caches",
-            "~/.android/avd",
-            "~/.rustup/toolchains",
             "~/Library/Developer/Xcode/DerivedData",
-            "~/anaconda3/pkgs",
-            "~/.codex/sessions",
-            "~/Library/Application Support/Notion/Partitions",
-            "~/Library/Application Support/Cursor/User/History",
-            "~/Library/Application Support/Cursor/User/globalStorage",
-            "~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw",
-            "~/dev/trading/rsibot/quants-lab/app/data/cache/lob",
-            "~/dev/trading/rsibot/quants-lab/output/backtests",
-            "~/dev/new/alpha-vistula/risercz/python/universal/downloads/library"
+            "~/anaconda3/pkgs"
         ]
     }
 
@@ -271,15 +260,9 @@ public final class SmartCleanupScanner: @unchecked Sendable {
             return true
         }
 
-        if ["build", "dist", "target"].contains(name) {
-            return true
-        }
-
         if path.contains("/node_modules/.cache")
             || path.contains("/library/caches/")
             || path.contains("/.gradle/caches")
-            || path.contains("/data/cache/lob")
-            || path.contains("/output/backtests")
         {
             return true
         }
@@ -295,23 +278,8 @@ public final class SmartCleanupScanner: @unchecked Sendable {
         if path.hasSuffix("/library/developer/coresimulator/caches") {
             return "Xcode Simulator Caches"
         }
-        if path.hasSuffix("/library/application support/com.apple.wallpaper/aerials/videos") {
-            return "Apple Aerial Wallpaper Videos"
-        }
         if path.hasSuffix("/.gradle/caches") {
             return "Gradle Caches"
-        }
-        if path.hasSuffix("/.android/avd") {
-            return "Android Virtual Devices"
-        }
-        if lowercasedName.hasSuffix(".avd"), path.contains("/.android/avd/") {
-            return "Android Emulator: \(name.replacingOccurrences(of: ".avd", with: ""))"
-        }
-        if path.hasSuffix("/.rustup/toolchains") {
-            return "Rust Toolchains"
-        }
-        if path.contains("/.rustup/toolchains/") {
-            return "Rust Toolchain: \(name)"
         }
         if path.hasSuffix("/library/developer/xcode/deriveddata") {
             return "Xcode DerivedData"
@@ -319,44 +287,11 @@ public final class SmartCleanupScanner: @unchecked Sendable {
         if path.hasSuffix("/anaconda3/pkgs") || path.hasSuffix("/miniconda3/pkgs") {
             return "Conda Package Cache"
         }
-        if path.hasSuffix("/.codex/sessions") {
-            return "Codex Sessions"
-        }
-        if path.hasSuffix("/library/application support/notion/partitions") {
-            return "Notion Local Cache"
-        }
-        if path.hasSuffix("/library/application support/cursor/user/history") {
-            return "Cursor Local History"
-        }
-        if path.hasSuffix("/library/application support/cursor/user/globalstorage") {
-            return "Cursor Global Storage"
-        }
-        if lowercasedName == "docker.raw" {
-            return "Docker Disk Image"
-        }
-        if path.hasSuffix("/app/data/cache/lob") {
-            return "Trading LOB Cache"
-        }
-        if path.hasSuffix("/output/backtests") {
-            return "Backtest Outputs"
-        }
-        if path.hasSuffix("/downloads/library") {
-            return "Research PDF Library"
-        }
         if path.hasSuffix("/node_modules/.cache") {
             return "Node Package Cache"
         }
         if lowercasedName == ".build" {
             return "Build Artifacts (.build)"
-        }
-        if lowercasedName == "build" {
-            return "Build Output"
-        }
-        if lowercasedName == "dist" {
-            return "Distribution Output"
-        }
-        if lowercasedName == "target" {
-            return "Rust Target Build Output"
         }
         if lowercasedName == ".dart_tool" {
             return "Dart Tool Cache"

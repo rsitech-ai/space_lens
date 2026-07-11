@@ -15,14 +15,12 @@ rules, and queues review candidates before cleanup.
   protected system paths, active tool-owned storage, and valuable user data.
 - Sortable table headers, search, filters, multi-select, Select All, and Select
   Safe.
-- Cleanup queue plus confirmation-gated Move to Bin and typed-confirmation
-  Delete Forever for cleanup-ready items only.
+- Cleanup queue plus confirmation-gated Move to Bin for cleanup-ready items.
 - Persistent last scan restore using security-scoped folder access and a durable
   cleanup queue, so closing or restarting the app keeps your review context.
 - Local intelligence summaries and per-item evidence without sending file
   contents or metadata to external services.
-- Visible Settings and Support entry points in the toolbar, sidebar, menu bar,
-  and Settings window.
+- Visible Settings, privacy, and saved-session controls.
 
 ## Run
 
@@ -52,8 +50,8 @@ SpaceLens includes a reproducible Xcode/App Store packaging lane:
 SPACE_LENS_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./script/archive_app_store.sh
 ```
 
-The latest local App Store export was verified with team `2NY8A789TN` and
-produced `build/AppStore/export/SpaceLens.pkg`.
+Existing local App Store exports are stale and are not current release
+evidence. Generate a fresh archive only after the release-hardening gate passes.
 
 See [docs/APP_STORE.md](docs/APP_STORE.md) for signing, archive, upload, and
 App Store Connect metadata steps.
@@ -66,16 +64,16 @@ and [docs/app-store-release-checklist.md](docs/app-store-release-checklist.md).
 - Click table headers to sort scanned files.
 - Use search and the filter segmented control to narrow visible results.
 - Use Select All or Select Safe to build a multi-selection.
-- Use the bottom action bar to queue, move to Bin, or permanently delete only
-  cleanup-ready items.
+- Use the bottom action bar to queue or move cleanup-ready items to the Bin.
 - Restart SpaceLens to restore the last selected scan root and cleanup queue.
-- Open Settings or Support from the toolbar or the bottom sidebar action strip.
+- Open Settings from the toolbar or the bottom sidebar action strip.
 
 ## Safety
 
-Cleanup is safety-gated. SpaceLens enables Move to Bin and Delete Forever only
-for items classified as safe temp, rebuildable cache, or generated output. Move
-to Bin asks for confirmation; Delete Forever requires typing `DELETE`.
+Cleanup is safety-gated. SpaceLens enables Move to Bin only for items
+classified as safe temp, rebuildable cache, or generated output. The
+confirmation lists every target path. Permanent deletion is not exposed in
+SpaceLens 1.0.
 
 ## Performance Notes
 
@@ -89,11 +87,10 @@ to Bin asks for confirmation; Delete Forever requires typing `DELETE`.
 
 ## Support
 
-If SpaceLens saves you time or disk space, you can support development here:
-
-<https://buymeacoffee.com/s1korrrr>
-
-Privacy and support:
+Privacy and support drafts:
 
 - [Privacy Policy](docs/PRIVACY.md)
 - [Support](docs/SUPPORT.md)
+
+The public privacy-policy and support URLs required by App Store Connect remain
+external release blockers until they return HTTP 200 without authentication.

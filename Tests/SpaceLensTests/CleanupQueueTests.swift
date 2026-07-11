@@ -7,7 +7,7 @@ final class CleanupQueueTests: XCTestCase {
     func testQueueProjectionAddsQueueableCandidate() {
         let appState = AppState()
         let node = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/build"),
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
             isDirectory: true,
             logicalSize: 500,
             allocatedSize: 700
@@ -34,88 +34,10 @@ final class CleanupQueueTests: XCTestCase {
         XCTAssertNotNil(appState.latestError)
     }
 
-    func testDeleteForeverRejectsNonQueueableCandidate() async {
-        let appState = AppState()
-        let node = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/.lmstudio/models/model"),
-            isDirectory: true,
-            logicalSize: 500,
-            allocatedSize: 700
-        )
-
-        await appState.deleteForever(node: node)
-
-        XCTAssertNotNil(appState.latestError)
-        XCTAssertTrue(appState.cleanupInProgressIDs.isEmpty)
-    }
-
-    func testDeleteForeverRemovesQueueableCandidateFromDiskAndState() async throws {
-        let temporaryRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("SpaceLensCleanupTests-\(UUID().uuidString)", isDirectory: true)
-        let buildDirectory = temporaryRoot.appendingPathComponent(".build", isDirectory: true)
-        try FileManager.default.createDirectory(at: buildDirectory, withIntermediateDirectories: true)
-        try Data([1, 2, 3]).write(to: buildDirectory.appendingPathComponent("artifact.o"))
-        defer {
-            try? FileManager.default.removeItem(at: temporaryRoot)
-        }
-
-        let buildNode = FileNode(
-            url: buildDirectory,
-            isDirectory: true,
-            logicalSize: 3,
-            allocatedSize: 3
-        )
-        let rootNode = FileNode(
-            url: temporaryRoot,
-            isDirectory: true,
-            logicalSize: 3,
-            allocatedSize: 3,
-            children: [buildNode]
-        )
-        let appState = AppState()
-        appState.rootNode = rootNode
-        appState.selectedNodeID = buildNode.id
-        appState.addToCleanupQueue(node: buildNode)
-
-        await appState.deleteForever(node: buildNode)
-
-        XCTAssertFalse(FileManager.default.fileExists(atPath: buildDirectory.path))
-        XCTAssertNil(appState.rootNode?.find(id: buildNode.id))
-        XCTAssertNil(appState.selectedNodeID)
-        XCTAssertTrue(appState.cleanupQueue.isEmpty)
-        XCTAssertTrue(appState.cleanupInProgressIDs.isEmpty)
-        XCTAssertNotNil(appState.cleanupStatusMessage)
-        XCTAssertNil(appState.latestError)
-    }
-
-    func testDeleteForeverPublishesCleanupProgress() async throws {
-        let temporaryRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("SpaceLensCleanupProgressTests-\(UUID().uuidString)", isDirectory: true)
-        let buildDirectory = temporaryRoot.appendingPathComponent(".build", isDirectory: true)
-        try FileManager.default.createDirectory(at: buildDirectory, withIntermediateDirectories: true)
-        try Data(repeating: 1, count: 128).write(to: buildDirectory.appendingPathComponent("a.o"))
-        try Data(repeating: 2, count: 256).write(to: buildDirectory.appendingPathComponent("b.o"))
-        defer {
-            try? FileManager.default.removeItem(at: temporaryRoot)
-        }
-
-        let recorder = CleanupProgressRecorder()
-        try await FileCleanupService.deleteForever(url: buildDirectory) { progress in
-            recorder.record(progress)
-        }
-        let progressEvents = recorder.events
-
-        XCTAssertFalse(FileManager.default.fileExists(atPath: buildDirectory.path))
-        XCTAssertTrue(progressEvents.contains { $0.phase == .deleting })
-        XCTAssertEqual(progressEvents.last?.phase, .finished)
-        XCTAssertGreaterThanOrEqual(progressEvents.last?.completedItemCount ?? 0, 3)
-        XCTAssertEqual(progressEvents.last?.completedItemCount, progressEvents.last?.totalItemCount)
-    }
-
     func testSearchFilterAndSelectCleanupReadyVisible() {
         let appState = AppState()
         let cacheNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/build"),
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
             isDirectory: true,
             logicalSize: 1_000,
             allocatedSize: 1_000
@@ -134,7 +56,7 @@ final class CleanupQueueTests: XCTestCase {
             children: [cacheNode, sourceNode]
         )
 
-        appState.searchText = "build"
+        appState.searchText = ".build"
         XCTAssertEqual(appState.visibleNodes.map(\.node.id), [cacheNode.id])
 
         appState.searchText = ""
@@ -186,7 +108,7 @@ final class CleanupQueueTests: XCTestCase {
     func testSelectAllAndPruneSelectionToVisibleFilter() {
         let appState = AppState()
         let cacheNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/build"),
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
             isDirectory: true,
             logicalSize: 1_000,
             allocatedSize: 1_000

@@ -30,19 +30,25 @@ and help you decide what to review.
 
 SpaceLens does not upload file contents or file metadata to external servers.
 
+## Local Storage And Retention
+
+SpaceLens stores the last folder you selected as an app-scoped security
+bookmark, together with saved cleanup queue paths and a save timestamp, in the
+app's local Application Support directory. This information stays on your Mac
+and is used only to restore your review context after relaunch.
+
+Use **Settings > General > Forget Saved Folder and Queue** to remove the saved
+bookmark and queue. Removing SpaceLens app data also removes this local state.
+
 ## Cleanup Actions
 
-SpaceLens can move cleanup-ready files to the Bin or delete them forever only
-after you confirm the action. Cleanup actions are limited by local safety
-classification rules and your explicit selection.
-
-## External Links
-
-SpaceLens includes links to support development through Buy Me a Coffee. Opening
-that link leaves SpaceLens and is governed by the linked site's own privacy
-policy.
+SpaceLens 1.0 can move cleanup-ready files to the Bin only after you confirm
+the exact target paths. Permanent deletion is not available in the Store v1
+interface. Cleanup actions are limited by local safety classification rules and
+your explicit selection.
 
 ## Contact
 
-For privacy or support questions, use the support information in
-`docs/SUPPORT.md` in this repository.
+The public support contact required for App Store submission is not yet
+configured. The release blocker must be closed with a durable public support
+page before this policy is submitted to App Store Connect.

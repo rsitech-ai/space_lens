@@ -5,12 +5,12 @@ import XCTest
 final class RuleEngineTests: XCTestCase {
     private let rules = RuleEngine()
 
-    func testBuildFolderIsGeneratedOutput() {
+    func testGenericBuildFolderNeedsReview() {
         let node = node(path: "/Users/s1kor/dev/flutter/usafe/mobile/build", isDirectory: true)
         let classification = rules.classify(node)
 
-        XCTAssertEqual(classification.level, .generatedOutput)
-        XCTAssertEqual(classification.category, "Generated output")
+        XCTAssertEqual(classification.level, .largeButValuable)
+        XCTAssertFalse(classification.level.isQueueable)
     }
 
     func testPackageCacheIsRebuildable() {

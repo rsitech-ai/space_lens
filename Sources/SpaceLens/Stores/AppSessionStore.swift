@@ -88,12 +88,7 @@ public final class AppSessionStore {
             }
         }
 
-        guard let rootPath = session.rootPath else {
-            return nil
-        }
-
-        let url = URL(fileURLWithPath: rootPath, isDirectory: true)
-        return fileManager.fileExists(atPath: url.path) ? url : nil
+        return nil
     }
 
     public func clear() throws {

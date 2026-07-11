@@ -185,17 +185,6 @@ public struct RuleEngine: Sendable {
             )
         }
 
-        if isGeneratedBuildOutput(name: name, components: pathComponents) {
-            return SafetyClassification(
-                level: .generatedOutput,
-                confidence: 0.88,
-                category: "Generated output",
-                summary: "This looks like generated build output.",
-                evidence: ["Matched a build output directory name.", "Generated outputs are usually reproducible from source."],
-                recommendedAction: "Queue for review if the project is not currently building."
-            )
-        }
-
         if isCrashDump(path: path, fileExtension: fileExtension) {
             let isTemp = isTemporaryLocation(path: path)
             return SafetyClassification(
@@ -344,18 +333,6 @@ public struct RuleEngine: Sendable {
             || path.contains("/.gradle/caches")
             || path.contains("/library/caches/")
             || (name == ".cache" && components.contains("node_modules"))
-    }
-
-    private func isGeneratedBuildOutput(name: String, components: [String]) -> Bool {
-        let generatedNames = ["build", "dist", "target"]
-        if !generatedNames.contains(name) && components.allSatisfy({ !generatedNames.contains($0) }) {
-            return false
-        }
-
-        return components.contains("dev")
-            || components.contains("workspace")
-            || components.contains("sources")
-            || components.contains("users")
     }
 
     private func isCrashDump(path: String, fileExtension: String) -> Bool {

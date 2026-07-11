@@ -62,6 +62,36 @@ final class AppSessionStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testSessionStoreDoesNotTreatRawPathAsRestoredAuthorization() throws {
+        let sessionURL = temporaryRoot.appendingPathComponent("session.json")
+        let store = AppSessionStore(fileURL: sessionURL)
+        let session = PersistedAppSession(
+            rootPath: temporaryRoot.path,
+            rootBookmarkData: nil,
+            cleanupPaths: []
+        )
+
+        XCTAssertNil(store.resolveRootURL(from: session))
+    }
+
+    @MainActor
+    func testSandboxedScanStopsWhenSecurityScopeCannotBeAcquired() {
+        let appState = AppState(
+            requiresSecurityScopedAccess: true,
+            startSecurityScopedAccess: { _ in false }
+        )
+
+        appState.startScan(root: temporaryRoot)
+
+        XCTAssertFalse(appState.isScanning)
+        XCTAssertNil(appState.currentAuthorizedScanRoot)
+        XCTAssertEqual(
+            appState.latestError,
+            "SpaceLens could not access that folder. Select it again to refresh permission."
+        )
+    }
+
+    @MainActor
     func testAppStateRestoresCleanupQueueAfterRelaunch() async throws {
         let sessionURL = temporaryRoot.appendingPathComponent("session.json")
         let store = AppSessionStore(fileURL: sessionURL)
@@ -100,7 +130,7 @@ final class AppSessionStoreTests: XCTestCase {
     }
 
     @MainActor
-    func testAppStateRestoresCleanupQueueFromCanonicalPathVariant() async throws {
+    func testAppStateRequiresReselectionWhenSavedSessionHasNoBookmark() throws {
         let sessionURL = temporaryRoot.appendingPathComponent("session.json")
         let store = AppSessionStore(fileURL: sessionURL)
         let cacheFolder = temporaryRoot
@@ -121,24 +151,15 @@ final class AppSessionStoreTests: XCTestCase {
             )
         )
 
-        let restoredLaunch = AppState(
-            sessionStore: store,
-            restoreOnLaunch: true,
-            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
-        )
+        let restoredLaunch = AppState(sessionStore: store, restoreOnLaunch: true)
         XCTAssertFalse(restoredLaunch.isScanning)
         XCTAssertNil(restoredLaunch.rootNode)
-
-        restoredLaunch.smartScan()
-        try await waitForScanToFinish(restoredLaunch)
-
-        XCTAssertEqual(restoredLaunch.cleanupQueue.count, 1)
-        XCTAssertEqual(restoredLaunch.cleanupQueue.first?.fileNode.displayName, "package-cache")
+        XCTAssertNil(restoredLaunch.authorizedSmartScanRoot)
+        XCTAssertTrue(restoredLaunch.cleanupQueue.isEmpty)
         XCTAssertEqual(
-            restoredLaunch.cleanupQueue.first.map { URL(fileURLWithPath: $0.fileNode.path).resolvingSymlinksInPath().path },
-            URL(fileURLWithPath: cacheFolder.path).resolvingSymlinksInPath().path
+            restoredLaunch.latestError,
+            "SpaceLens could not restore the last folder. Select it again to refresh saved access."
         )
-        XCTAssertEqual(restoredLaunch.cleanupStatusMessage, "Restored 1 cleanup queued items")
     }
 
     @MainActor
@@ -151,5 +172,46 @@ final class AppSessionStoreTests: XCTestCase {
         }
 
         XCTFail("Timed out waiting for scan")
+    }
+
+    @MainActor
+    func testForgetSavedSessionClearsPersistedFolderAndCleanupQueue() throws {
+        let sessionURL = temporaryRoot.appendingPathComponent("session.json")
+        let store = AppSessionStore(fileURL: sessionURL)
+        let selectedRoot = temporaryRoot.appendingPathComponent("Selected", isDirectory: true)
+        let buildFolder = selectedRoot.appendingPathComponent(".build", isDirectory: true)
+        try FileManager.default.createDirectory(at: buildFolder, withIntermediateDirectories: true)
+        let node = FileNode(url: buildFolder, isDirectory: true, logicalSize: 1, allocatedSize: 1)
+        try store.save(rootURL: selectedRoot, cleanupQueue: [
+            CleanupCandidate(
+                fileNode: node,
+                classification: RuleEngine().classify(node),
+                estimatedRecoverableBytes: 1,
+                action: .queueForFutureTrash
+            )
+        ])
+
+        let appState = AppState(sessionStore: store)
+        appState.rootNode = FileNode(
+            url: selectedRoot,
+            isDirectory: true,
+            logicalSize: 1,
+            allocatedSize: 1,
+            children: [node]
+        )
+        appState.cleanupQueue = [
+            CleanupCandidate(
+                fileNode: node,
+                classification: RuleEngine().classify(node),
+                estimatedRecoverableBytes: 1,
+                action: .queueForFutureTrash
+            )
+        ]
+
+        appState.forgetSavedSession()
+
+        XCTAssertNil(store.load())
+        XCTAssertNil(appState.rootNode)
+        XCTAssertTrue(appState.cleanupQueue.isEmpty)
     }
 }

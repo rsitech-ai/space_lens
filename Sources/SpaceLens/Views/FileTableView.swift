@@ -7,7 +7,6 @@ struct FileTableView: View {
     ]
     @State private var sortedVisibleNodes: [FlattenedFileNode] = []
     @State private var binSelectionConfirmation = false
-    @State private var deleteSelectionConfirmation = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -28,8 +27,7 @@ struct FileTableView: View {
 
                     BulkActionBar(
                         layout: layout,
-                        moveToBinConfirmation: $binSelectionConfirmation,
-                        deleteForeverConfirmation: $deleteSelectionConfirmation
+                        moveToBinConfirmation: $binSelectionConfirmation
                     )
                 }
             }
@@ -45,19 +43,15 @@ struct FileTableView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("\(ByteFormat.string(appState.selectedRecoverableBytes)) will be moved to the Bin.")
+            Text(moveToBinConfirmationMessage)
         }
-        .sheet(isPresented: $deleteSelectionConfirmation) {
-            BulkDeleteConfirmationView(
-                itemCount: appState.selectedCleanupEligibleNodes.count,
-                byteCount: appState.selectedRecoverableBytes
-            ) {
-                Task {
-                    await appState.deleteSelectedForever()
-                }
-                deleteSelectionConfirmation = false
-            }
-        }
+    }
+
+    private var moveToBinConfirmationMessage: String {
+        let paths = appState.selectedCleanupEligibleNodes
+            .map(\.path)
+            .joined(separator: "\n")
+        return "\(ByteFormat.string(appState.selectedRecoverableBytes)) will be moved to the Bin. Review every target:\n\n\(paths)"
     }
 
     private var visibleSelectionFingerprint: [UUID] {
@@ -410,7 +404,6 @@ private struct BulkActionBar: View {
     @EnvironmentObject private var appState: AppState
     let layout: FileTableLayout
     @Binding var moveToBinConfirmation: Bool
-    @Binding var deleteForeverConfirmation: Bool
 
     var body: some View {
         let selectedCount = appState.selectedNodeIDs.count
@@ -501,14 +494,6 @@ private struct BulkActionBar: View {
             .buttonStyle(AnimatedBulkButtonStyle(color: .green, isProminent: true))
             .disabled(!hasCleanupReadySelection || appState.cleanupProgress != nil)
 
-            Button(role: .destructive) {
-                deleteForeverConfirmation = true
-            } label: {
-                AdaptiveActionLabel("Delete Forever", systemImage: "trash.slash", isCompact: layout.isCompact)
-            }
-            .accessibilityLabel("Delete selected cleanup-ready items forever")
-            .buttonStyle(AnimatedBulkButtonStyle(color: .red, isProminent: true))
-            .disabled(!hasCleanupReadySelection || appState.cleanupProgress != nil)
         }
     }
 }
@@ -557,50 +542,6 @@ private struct AnimatedBulkButtonStyle: ButtonStyle {
             .shadow(color: color.opacity(configuration.isPressed && isProminent ? 0.24 : 0), radius: 10, y: 3)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.22, dampingFraction: 0.72), value: configuration.isPressed)
-    }
-}
-
-private struct BulkDeleteConfirmationView: View {
-    let itemCount: Int
-    let byteCount: Int64
-    let onConfirm: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var confirmationText = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("Delete Selected Forever", systemImage: "trash.slash")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.red)
-
-            Text("This permanently removes \(itemCount) cleanup-ready items without moving them to the Bin.")
-                .font(.callout)
-
-            LabeledContent("Recoverable size", value: ByteFormat.string(byteCount))
-                .font(.callout.monospacedDigit())
-
-            TextField("Type DELETE to confirm", text: $confirmationText)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
-                Button("Cancel") {
-                    dismiss()
-                }
-                .keyboardShortcut(.cancelAction)
-
-                Spacer()
-
-                Button("Delete Forever", role: .destructive) {
-                    onConfirm()
-                    dismiss()
-                }
-                .disabled(confirmationText != "DELETE" || itemCount == 0)
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(24)
-        .frame(width: 460)
     }
 }
 

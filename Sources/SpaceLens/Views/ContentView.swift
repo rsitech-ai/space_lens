@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 struct ContentView: View {
@@ -60,12 +59,6 @@ struct ContentView: View {
                 }
                 .help("Open SpaceLens settings")
 
-                Button {
-                    NSWorkspace.shared.open(SupportLinks.buyMeACoffee)
-                } label: {
-                    Label("Support", systemImage: "heart.fill")
-                }
-                .help("Support SpaceLens")
             }
         }
     }

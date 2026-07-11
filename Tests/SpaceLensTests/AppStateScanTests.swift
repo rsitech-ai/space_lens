@@ -103,4 +103,13 @@ final class AppStateScanTests: XCTestCase {
         XCTAssertEqual(appState.visibleNodes.map(\.node.displayName), ["Build Artifacts (.build)"])
         XCTAssertGreaterThan(appState.visibleCleanupReadyCount, 0)
     }
+
+    @MainActor
+    func testFreshAppDoesNotAssumeHomeDirectoryIsAuthorizedForSmartScan() {
+        let appState = AppState(
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+        )
+
+        XCTAssertNil(appState.authorizedSmartScanRoot)
+    }
 }
