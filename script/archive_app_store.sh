@@ -105,6 +105,7 @@ codesign --verify --deep --strict --verbose=2 "$EXPORTED_APP"
 SIGNING_DETAILS="$(codesign -dv --verbose=4 "$EXPORTED_APP" 2>&1)"
 grep -Eq "Authority=Apple Distribution: .+ \($SPACE_LENS_DEVELOPMENT_TEAM\)" <<<"$SIGNING_DETAILS"
 grep -Fq "TeamIdentifier=$SPACE_LENS_DEVELOPMENT_TEAM" <<<"$SIGNING_DETAILS"
+grep -Eq '^CodeDirectory .*flags=.*\(runtime\)' <<<"$SIGNING_DETAILS"
 
 ENTITLEMENTS_PLIST="$EXPANSION_ROOT/entitlements.plist"
 codesign -d --entitlements :- "$EXPORTED_APP" > "$ENTITLEMENTS_PLIST" 2>/dev/null
@@ -114,6 +115,7 @@ for entitlement in \
   com.apple.security.files.bookmarks.app-scope; do
   test "$(/usr/libexec/PlistBuddy -c "Print :$entitlement" "$ENTITLEMENTS_PLIST")" = "true"
 done
+test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.get-task-allow' "$ENTITLEMENTS_PLIST" 2>/dev/null || true)" != "true"
 
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXPORTED_APP/Contents/Info.plist")" = "$EXPECTED_BUNDLE_ID"
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$EXPORTED_APP/Contents/Info.plist")" = "$EXPECTED_VERSION"
@@ -123,7 +125,8 @@ test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$EXPORTED_AP
 EXPORTED_PRIVACY="$EXPORTED_APP/Contents/Resources/PrivacyInfo.xcprivacy"
 plutil -lint "$EXPORTED_PRIVACY"
 cmp Resources/PrivacyInfo.xcprivacy "$EXPORTED_PRIVACY"
-if xattr -lr "$EXPORTED_APP" 2>/dev/null | grep -Fq 'com.apple.quarantine'; then
+QUARANTINED_PATH="$(find "$EXPORTED_APP" -exec sh -c 'xattr -p com.apple.quarantine "$1" >/dev/null 2>&1' _ {} \; -print -quit)"
+if [[ -n "$QUARANTINED_PATH" ]]; then
   echo "Exported app contains a quarantine attribute." >&2
   exit 2
 fi
@@ -131,14 +134,20 @@ fi
 ARCHS="$(lipo -archs "$EXPORTED_BINARY")"
 grep -qw arm64 <<<"$ARCHS"
 grep -qw x86_64 <<<"$ARCHS"
-diff \
-  <(dwarfdump --uuid "$ARCHIVE_PATH/dSYMs/SpaceLens.app.dSYM" | awk '{ print $2 }' | sort) \
-  <(dwarfdump --uuid "$EXPORTED_BINARY" | awk '{ print $2 }' | sort)
+DSYM_UUIDS="$(dwarfdump --uuid "$ARCHIVE_PATH/dSYMs/SpaceLens.app.dSYM" | awk '{ print $2 }' | sort)"
+BINARY_UUIDS="$(dwarfdump --uuid "$EXPORTED_BINARY" | awk '{ print $2 }' | sort)"
+test -n "$DSYM_UUIDS"
+test -n "$BINARY_UUIDS"
+test "$DSYM_UUIDS" = "$BINARY_UUIDS"
 
 PROFILE_PLIST="$EXPANSION_ROOT/profile.plist"
 security cms -D -i "$EXPORTED_APP/Contents/embedded.provisionprofile" > "$PROFILE_PLIST"
 test "$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST")" = "$SPACE_LENS_DEVELOPMENT_TEAM"
 test "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.application-identifier' "$PROFILE_PLIST")" = "$SPACE_LENS_DEVELOPMENT_TEAM.$EXPECTED_BUNDLE_ID"
+test "$(/usr/libexec/PlistBuddy -c 'Print :Platform:0' "$PROFILE_PLIST")" = "OSX"
+PROFILE_EXPIRATION="$(plutil -extract ExpirationDate raw -o - "$PROFILE_PLIST")"
+NOW_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+[[ "$PROFILE_EXPIRATION" > "$NOW_UTC" ]]
 
 echo "Archive: $ARCHIVE_PATH"
 echo "Export: $EXPORT_PATH"
