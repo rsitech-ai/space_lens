@@ -9,7 +9,7 @@ Checked against official Apple sources on 2026-07-11.
 | Version 1.0 build 1 | PASS | `project.yml` and `Config/Info.plist` |
 | Utilities category | PASS | `LSApplicationCategoryType` |
 | macOS 14.0 minimum | PASS | SwiftPM and XcodeGen configuration |
-| 1024px app icon source | PASS | Source asset present and compiled `AppIcon.icns`/`Assets.car` verified in package rehearsal; final archive recheck required |
+| 1024px app icon source | PASS | Source asset present and compiled `AppIcon.icns`/`Assets.car` verified in the final clean-source package |
 | Mac screenshots | PASS (minimum) | Actual dark empty-state capture prepared at 1280x800; additional feature/light captures remain marketing work. Apple source: <https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/> |
 | Subtitle | NOT YET VERIFIED | Draft in `APP_REVIEW_NOTES.md`; owner approves final marketing copy |
 | Promotional text | NOT YET VERIFIED | Draft in `APP_REVIEW_NOTES.md` |

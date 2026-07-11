@@ -7,7 +7,7 @@
   "bundleIdentifier": "com.andrzej.spacelens",
   "minimumSystemVersion": "14.0",
   "currentDate": "2026-07-11",
-  "sourceRevision": "PENDING_CLEAN_RELEASE_COMMIT",
+  "sourceRevision": "fc280c7f0559c39eebf819187fa629dd854692c8",
   "branch": "feat/andrzej_agent_sota_lab",
   "productionToolchain": {
     "xcode": "26.5 (17F42)",
@@ -16,10 +16,10 @@
   },
   "verdict": "BLOCKED",
   "archive": {
-    "status": "NOT YET VERIFIED AT CLEAN COMMIT",
+    "status": "PASS",
     "path": "build/AppStore/SpaceLens.xcarchive",
     "exportPath": "build/AppStore/export",
-    "packageSHA256": null
+    "packageSHA256": "b2f1e5509e1954216a60f9425718902aa5bddc727dabe4075283ffc11e6063b2"
   },
   "os27Compatibility": {
     "status": "BLOCKED",

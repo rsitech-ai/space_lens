@@ -39,8 +39,8 @@ All currently available local code, build, test, security, privacy-manifest, and
 | Performance and leaks | PASS (bounded) | CPU/RSS samples; hardened-process `leaks` attempt | `TEST_EVIDENCE.md` | Release lead | Instruments/leak attachment optional; monitor distributed build |
 | Security and supply chain | PASS | Repository scan, final diff scan, secret search, script/CI review | `SECURITY_STATUS.md` | Security owner | Re-scan final diff if code changes |
 | Privacy manifest and data map | PASS (repository) / BLOCKED (declaration) | Source/manifest/log/persistence reconciliation | `PRIVACY_DATA_MAP.md` | Privacy/account owner | Confirm and enter truthful App Store answers |
-| Signing and entitlements | PASS (rehearsal) | Archive/export signature, profile, entitlement, resource inspection | `TEST_EVIDENCE.md` | Release lead | Re-run hardened archive script at clean commit |
-| Mac App Store archive/export | NOT YET VERIFIED | Package rehearsal is stale after final source hardening | `TEST_EVIDENCE.md` | Release lead | Commit source, archive clean commit, record digest |
+| Signing and entitlements | PASS | Final archive/export signature, profile, entitlement, resource inspection | `TEST_EVIDENCE.md` | Release lead | Revalidate only if shipping source changes |
+| Mac App Store archive/export | PASS | Clean-source hardened archive/export script at `fc280c7` | `TEST_EVIDENCE.md` | Release lead | Validate/upload when account authorization exists |
 | App Store validation/upload | BLOCKED | No App Store Connect auth/record/authorization | `BLOCKERS.md` | Account owner | Confirm record/role, validate and upload |
 | App icon | PASS | Source and compiled archive resources inspected | `APP_STORE_CHECKLIST.md` | Release lead | Recheck final package |
 | Mac screenshots | PASS (minimum) | Actual 1280x800 dark empty-state capture | `screenshots/` | Marketing owner | Add truthful feature/light captures if desired |
@@ -76,13 +76,15 @@ All currently available local code, build, test, security, privacy-manifest, and
 
 ## Signing, Archive, And Upload
 
-- Package rehearsal succeeded with Apple Distribution app signing, Mac App Store installer signing, hardened runtime, TeamIdentifier `2NY8A789TN`, universal architectures, App Sandbox, user-selected read/write, app-scoped bookmarks, matching privacy manifest, and version 1.0 (1).
-- That rehearsal is deliberately not final evidence because source changed afterward. The hardened archive script now refuses dirty trees and verifies the final exported payload/profile/resources/dSYM before reporting success.
+- The final clean-source package at `fc280c7f0559c39eebf819187fa629dd854692c8` passed Apple Distribution app signing, Mac App Store installer signing, hardened runtime, TeamIdentifier `2NY8A789TN`, universal architectures, App Sandbox, user-selected read/write, app-scoped bookmarks, no `get-task-allow`, matching privacy manifest, matching dSYM UUIDs, macOS Store profile validity, recursive quarantine inspection, and version 1.0 (1).
+- Package SHA-256: `b2f1e5509e1954216a60f9425718902aa5bddc727dabe4075283ffc11e6063b2`.
 - App Store Connect validation, upload, processing, TestFlight install, and TestFlight smoke are `BLOCKED` by unavailable account authorization/state.
 
 ## Changes, Review, And CI
 
-The release branch removes unsafe cleanup heuristics/permanent deletion, enforces folder authorization, adds session deletion, masks logs, removes external tipping, centralizes version expansion, pins XcodeGen behavior, adds CI, hardens archive/export validation, updates product/privacy/App Store documentation, and adds regression coverage. Exact commits, PR URL, and CI result will be appended after the branch is published.
+The release branch removes unsafe cleanup heuristics/permanent deletion, enforces folder authorization, adds session deletion, masks logs, removes external tipping, centralizes version expansion, pins XcodeGen behavior, adds CI, hardens archive/export validation, updates product/privacy/App Store documentation, and adds regression coverage.
+
+Release commits: `81bc766` (product safety), `12182e1` (release gates), and `fc280c7` (final package verification). PR URL and CI result will be appended after publication.
 
 Independent code, signing/package, and security/privacy reviews were completed. Their actionable findings were addressed; final reviewers reported no attacker-exploitable finding.
 

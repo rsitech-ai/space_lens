@@ -54,13 +54,13 @@ No cleanup confirmation was accepted during runtime QA. The disposable fixture r
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Archive/export command | PASS (pre-final commit) | `SPACE_LENS_DEVELOPMENT_TEAM=2NY8A789TN ./script/archive_app_store.sh`; archive and export succeeded |
+| Archive/export command | PASS | Clean source `fc280c7f0559c39eebf819187fa629dd854692c8`; `SPACE_LENS_DEVELOPMENT_TEAM=2NY8A789TN ./script/archive_app_store.sh`; archive, export, and all payload assertions succeeded |
 | Archive app | PASS | Development-signed, hardened runtime, team `2NY8A789TN`, strict code-sign verification passed |
 | Exported payload | PASS | Apple Distribution: Rafal Sikora (`2NY8A789TN`); strict code-sign verification passed |
 | Installer package | PASS | 3rd Party Mac Developer Installer: Rafal Sikora (`2NY8A789TN`); signature valid to 2027-06-29 |
 | Entitlements | PASS | App Sandbox, user-selected read/write, and app-scoped bookmarks only |
 | Bundle payload | PASS | 1.0 (1), universal `x86_64 arm64`, AppIcon, Assets.car, and PrivacyInfo.xcprivacy |
-| Package digest | PASS (pre-final commit) | SHA-256 `1cfd1055009e479e0c378f79cfd5090058455230ea96e5b1b7b6d9dc2df25f40`; rerun after final commit is required |
+| Package digest | PASS | SHA-256 `b2f1e5509e1954216a60f9425718902aa5bddc727dabe4075283ffc11e6063b2` |
 
 ## Screenshot Evidence
 
