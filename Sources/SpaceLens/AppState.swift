@@ -296,7 +296,7 @@ final class AppState: ObservableObject {
         let ruleEngine = ruleEngine
         let intelligenceService = intelligenceService
 
-        scanTask = Task {
+        scanTask = Task { [weak self] in
             let result = await DiskScanner().scan(root: root) { [weak self] progress in
                 Task { @MainActor [weak self] in
                     guard let self, self.isScanning, self.activeScanID == scanID else {
@@ -372,7 +372,7 @@ final class AppState: ObservableObject {
         let intelligenceService = intelligenceService
         let smartCleanupScanner = smartCleanupScanner
 
-        scanTask = Task {
+        scanTask = Task { [weak self] in
             let result = await smartCleanupScanner.scan(root: root) { [weak self] progress in
                 Task { @MainActor [weak self] in
                     guard let self, self.isScanning, self.activeScanID == scanID else {
