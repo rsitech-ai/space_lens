@@ -50,8 +50,8 @@ your explicit selection.
 ## Contact
 
 For privacy questions, email [info@rsitech.ai](mailto:info@rsitech.ai) or visit
-the SpaceLens support page at <https://rsitech.ai/spacelens/support>.
+the SpaceLens support page at <https://www.rsitech.ai/spacelens/support>.
 
 The public copy of this policy is prepared for
-<https://rsitech.ai/spacelens/privacy>. The URL is submission-ready only after
+<https://www.rsitech.ai/spacelens/privacy>. The URL is submission-ready only after
 the website change is deployed and verified from a signed-out browser.

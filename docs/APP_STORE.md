@@ -64,10 +64,11 @@ Prepare these before submitting for review:
 - App name: `SpaceLens`
 - Bundle ID: `com.rsitech.spacelens`
 - Category: Utilities
-- Privacy Policy URL: blocked until the owner publishes `docs/PRIVACY.md` at a
-  durable public HTTPS URL that returns HTTP 200 without authentication.
-- Support URL: blocked until the owner publishes `docs/SUPPORT.md` with an
-  actual contact method at a durable public HTTPS URL.
+- Privacy Policy URL: prepared at
+  `https://www.rsitech.ai/spacelens/privacy`; blocked until deployment returns
+  HTTP 200 without authentication.
+- Support URL: prepared at `https://www.rsitech.ai/spacelens/support`; blocked
+  until deployment returns HTTP 200 without authentication.
 - App privacy answers: local filesystem metadata is processed on device; no
   file contents or metadata are sent to external services by SpaceLens.
 - Review notes: SpaceLens scans only user-selected folders, classifies cleanup

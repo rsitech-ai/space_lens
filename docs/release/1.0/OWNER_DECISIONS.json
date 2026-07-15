@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "statusDate": "2026-07-15",
+  "confirmed": {
+    "legalName": "Rafal Sikora",
+    "publicSupportEmail": "info@rsitech.ai",
+    "reviewContact": {
+      "name": "Rafal Sikora",
+      "email": "info@rsitech.ai",
+      "phone": "private contact stored only in App Store Connect"
+    },
+    "price": "FREE",
+    "territories": "ALL_AVAILABLE",
+    "releaseMethod": "AUTOMATIC",
+    "agreementsTaxBankingMembershipCurrent": true,
+    "accountCanUploadAndSubmit": true
+  },
+  "repositoryVerifiedProductFacts": {
+    "bundleIdentifier": "com.rsitech.spacelens",
+    "requiresLogin": false,
+    "backendAvailable": false,
+    "inAppProducts": [],
+    "usesRestrictedEncryption": false,
+    "medicalApp": false,
+    "collectedData": []
+  },
+  "recommendedPendingOwnerConfirmation": {
+    "appPrivacy": "DATA_NOT_COLLECTED",
+    "ageRatingQuestionnaire": "ALL_CONTENT_FREQUENCIES_NONE_AND_ACCEPT_LOWEST_RESULTING_RATING",
+    "exportCompliance": "NO_RESTRICTED_ENCRYPTION",
+    "contentRights": "YES_ONLY_IF_OWNER_CONFIRMS_ALL_NAMES_ASSETS_COPY_AND_LICENSES",
+    "accessibilityLabels": "DECLARE_ONLY_AFTER_HUMAN_PROOF"
+  },
+  "mustRemainOwnerControlled": {
+    "digitalServicesActTraderStatus": null,
+    "contentRightsConfirmed": null,
+    "appPrivacyAnswersConfirmed": null,
+    "ageRatingComplete": null,
+    "exportComplianceConfirmed": null,
+    "accessibilityLabelsConfirmed": null
+  }
+}

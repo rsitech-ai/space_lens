@@ -1,7 +1,7 @@
 # SpaceLens Support
 
 The public SpaceLens support page is prepared for
-<https://rsitech.ai/spacelens/support>. It becomes a valid App Store Support URL
+<https://www.rsitech.ai/spacelens/support>. It becomes a valid App Store Support URL
 after the website change is deployed and verified from a signed-out browser.
 
 For help, email [info@rsitech.ai](mailto:info@rsitech.ai).

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "accessibility": {
+    "voiceOver": null,
+    "voiceControl": null,
+    "largerText": null,
+    "reducedMotion": null,
+    "sufficientContrast": null
+  },
+  "commonTaskEvidence": [],
+  "ageRatingComplete": null,
+  "exportCompliance": null,
+  "digitalServicesAct": null,
+  "contentRightsConfirmed": null,
+  "medicalDeclaration": null,
+  "privacyAnswersConfirmed": null,
+  "accountDeletionVerified": null,
+  "reviewerAccess": {
+    "requiresLogin": false,
+    "demoCredentialsReference": null,
+    "backendAvailable": false
+  },
+  "existingProductIDsConfirmed": true
+}
