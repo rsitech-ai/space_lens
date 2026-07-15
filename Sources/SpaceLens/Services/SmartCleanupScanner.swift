@@ -255,20 +255,30 @@ public final class SmartCleanupScanner: @unchecked Sendable {
 
     private func isDiscoveredCandidate(_ url: URL) -> Bool {
         let name = url.lastPathComponent.lowercased()
-        let path = url.path.lowercased()
 
         if [".build", ".dart_tool", ".pytest_cache", ".mypy_cache", ".ruff_cache", "deriveddata"].contains(name) {
             return true
         }
 
+        let path = url.path.lowercased()
         if path.contains("/node_modules/.cache")
-            || path.contains("/library/caches/")
+            || isUserLibraryCache(url)
             || path.contains("/.gradle/caches")
         {
             return true
         }
 
         return false
+    }
+
+    private func isUserLibraryCache(_ url: URL) -> Bool {
+        let cachesPath = homeDirectory
+            .appendingPathComponent("Library/Caches", isDirectory: true)
+            .standardizedFileURL
+            .path
+            .lowercased()
+        let candidatePath = url.standardizedFileURL.path.lowercased()
+        return candidatePath == cachesPath || candidatePath.hasPrefix(cachesPath + "/")
     }
 
     private func explicitDisplayName(for url: URL) -> String? {

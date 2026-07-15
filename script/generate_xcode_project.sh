@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-EXPECTED_XCODEGEN_VERSION="${SPACE_LENS_XCODEGEN_VERSION:-2.45.4}"
+EXPECTED_XCODEGEN_VERSION="2.45.4"
 
 if ! command -v xcodegen >/dev/null 2>&1; then
     echo "xcodegen is required. Install it with: brew install xcodegen" >&2

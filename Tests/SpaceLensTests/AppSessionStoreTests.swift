@@ -141,17 +141,21 @@ final class AppSessionStoreTests: XCTestCase {
         let sessionURL = temporaryRoot.appendingPathComponent("session.json")
         let store = AppSessionStore(fileURL: sessionURL)
         let cacheFolder = temporaryRoot
-            .appendingPathComponent("Library", isDirectory: true)
-            .appendingPathComponent("Caches", isDirectory: true)
-            .appendingPathComponent("package-cache", isDirectory: true)
+            .appendingPathComponent(".build", isDirectory: true)
         try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
         try Data(repeating: 1, count: 512).write(to: cacheFolder.appendingPathComponent("artifact.o"))
 
-        let firstLaunch = AppState(sessionStore: store, requiresSecurityScopedAccess: false)
-        firstLaunch.startScan(root: temporaryRoot)
+        let firstLaunch = AppState(
+            sessionStore: store,
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot),
+            requiresSecurityScopedAccess: false
+        )
+        firstLaunch.startSmartScan(root: temporaryRoot)
         try await waitForScanToFinish(firstLaunch)
 
-        let cacheNode = try XCTUnwrap(firstLaunch.visibleNodes.first { $0.node.displayName == "package-cache" }?.node)
+        let cacheNode = try XCTUnwrap(
+            firstLaunch.rootNode?.flattened().first { $0.node.path == cacheFolder.path }?.node
+        )
         let cacheFolderPath = cacheNode.path
         firstLaunch.addToCleanupQueue(node: cacheNode)
         XCTAssertEqual(firstLaunch.cleanupQueue.map(\.fileNode.path), [cacheFolderPath])

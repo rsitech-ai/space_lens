@@ -1,13 +1,43 @@
 import Foundation
 
 public struct RuleEngine: Sendable {
-    public init() {}
+    private let userLibraryCachesPath: String
+
+    public init(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) {
+        userLibraryCachesPath = homeDirectory
+            .appendingPathComponent("Library/Caches", isDirectory: true)
+            .standardizedFileURL
+            .path
+            .lowercased()
+    }
 
     public func classify(_ node: FileNode) -> SafetyClassification {
         let path = node.path.lowercased()
         let name = node.name.lowercased()
         let pathComponents = node.url.pathComponents.map { $0.lowercased() }
         let fileExtension = node.url.pathExtension.lowercased()
+
+        if node.isSymlink {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.99,
+                category: "Symbolic link",
+                summary: "SpaceLens does not offer symbolic links for cleanup.",
+                evidence: ["The scanned item is a symbolic link.", "Its destination may differ from the visible path."],
+                recommendedAction: "Reveal and inspect the link manually."
+            )
+        }
+
+        if let scanError = node.scanError {
+            return SafetyClassification(
+                level: .unknownReview,
+                confidence: 0.99,
+                category: "Incomplete scan",
+                summary: "SpaceLens could not inspect this item completely.",
+                evidence: ["The scan reported an error: \(scanError)"],
+                recommendedAction: "Resolve the access or filesystem error, then rescan before cleanup."
+            )
+        }
 
         if isSystemCritical(path: path) {
             return SafetyClassification(
@@ -331,7 +361,8 @@ public struct RuleEngine: Sendable {
             || path.contains("/node_modules/.cache")
             || path.contains("/library/developer/xcode/deriveddata")
             || path.contains("/.gradle/caches")
-            || path.contains("/library/caches/")
+            || path == userLibraryCachesPath
+            || path.hasPrefix(userLibraryCachesPath + "/")
             || (name == ".cache" && components.contains("node_modules"))
     }
 

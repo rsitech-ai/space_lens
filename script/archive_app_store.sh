@@ -22,12 +22,41 @@ if ! security find-identity -p basic -v | grep -Eq "\"3rd Party Mac Developer In
 fi
 
 ARCHIVE_DIR="${SPACE_LENS_ARCHIVE_ROOT:-$ROOT_DIR/build/AppStore}"
+if [[ "$ARCHIVE_DIR" != /* ]]; then
+  echo "SPACE_LENS_ARCHIVE_ROOT must be an absolute path." >&2
+  exit 2
+fi
+if [[ -L "$ARCHIVE_DIR" ]]; then
+  echo "Refusing to use a symbolic link as the archive root: $ARCHIVE_DIR" >&2
+  exit 2
+fi
+
+mkdir -p "$ARCHIVE_DIR"
+ARCHIVE_DIR="$(cd "$ARCHIVE_DIR" && pwd -P)"
+if [[ "$ARCHIVE_DIR" == "/" || "$ARCHIVE_DIR" == "/private" || "$ARCHIVE_DIR" == "/private/tmp" || "$ARCHIVE_DIR" == "$ROOT_DIR" ]]; then
+  echo "Refusing unsafe archive root: $ARCHIVE_DIR" >&2
+  exit 2
+fi
+
+ARCHIVE_MARKER="$ARCHIVE_DIR/.spacelens-archive-root"
+EXPECTED_MARKER="SpaceLens archive root for $ROOT_DIR"
+if [[ -e "$ARCHIVE_MARKER" ]]; then
+  if [[ "$(cat "$ARCHIVE_MARKER")" != "$EXPECTED_MARKER" ]]; then
+    echo "Archive root marker does not match this repository: $ARCHIVE_MARKER" >&2
+    exit 2
+  fi
+elif [[ -n "$(find "$ARCHIVE_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+  echo "Refusing an unmarked non-empty archive root: $ARCHIVE_DIR" >&2
+  echo "Use a new empty directory for SPACE_LENS_ARCHIVE_ROOT." >&2
+  exit 2
+else
+  printf '%s\n' "$EXPECTED_MARKER" > "$ARCHIVE_MARKER"
+fi
+
 ARCHIVE_PATH="$ARCHIVE_DIR/SpaceLens.xcarchive"
 EXPORT_PATH="$ARCHIVE_DIR/export"
 LOCK_DIR="$ARCHIVE_DIR.lock"
 EXPANSION_ROOT=""
-
-mkdir -p "$(dirname "$ARCHIVE_DIR")"
 
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "Another SpaceLens archive operation is using $ARCHIVE_DIR." >&2
@@ -43,10 +72,11 @@ trap cleanup EXIT
 
 ./script/generate_xcode_project.sh
 
-if [[ "${SPACE_LENS_ALLOW_DIRTY_ARCHIVE:-0}" != "1" ]] && [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
-  echo "Refusing to archive a dirty source tree. Commit the release source or set SPACE_LENS_ALLOW_DIRTY_ARCHIVE=1 for a non-final diagnostic build." >&2
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "Refusing to archive a dirty source tree. Commit the exact release source first." >&2
   exit 2
 fi
+SOURCE_REVISION="$(git rev-parse HEAD)"
 
 rm -rf "$ARCHIVE_PATH" "$EXPORT_PATH"
 mkdir -p "$ARCHIVE_DIR"
@@ -149,9 +179,14 @@ PROFILE_EXPIRATION="$(plutil -extract ExpirationDate raw -o - "$PROFILE_PLIST")"
 NOW_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 [[ "$PROFILE_EXPIRATION" > "$NOW_UTC" ]]
 
+if [[ "$(git rev-parse HEAD)" != "$SOURCE_REVISION" ]] || [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "Source changed while the archive was being produced; discarding release provenance." >&2
+  exit 2
+fi
+
 echo "Archive: $ARCHIVE_PATH"
 echo "Export: $EXPORT_PATH"
-echo "Source: $(git rev-parse HEAD)"
+echo "Source: $SOURCE_REVISION"
 echo "Version: $EXPECTED_VERSION ($EXPECTED_BUILD)"
 shasum -a 256 "$EXPORTED_PACKAGE"
 echo

@@ -96,6 +96,17 @@ final class SmartCleanupScannerTests: XCTestCase {
         XCTAssertTrue(result.root.children.isEmpty)
     }
 
+    func testSmartScanDoesNotTreatNestedLibraryCachesAsUserCache() async throws {
+        let valuableDirectory = temporaryRoot
+            .appendingPathComponent("Documents/Project/Library/Caches/Photos", isDirectory: true)
+        try FileManager.default.createDirectory(at: valuableDirectory, withIntermediateDirectories: true)
+        try writeSparseFile(valuableDirectory.appendingPathComponent("originals.bin"), size: 6_000_000)
+
+        let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: temporaryRoot)
+
+        XCTAssertFalse(result.root.children.contains { $0.path == valuableDirectory.path })
+    }
+
     private func writeSparseFile(_ url: URL, size: UInt64) throws {
         FileManager.default.createFile(atPath: url.path, contents: nil)
         let handle = try FileHandle(forWritingTo: url)
