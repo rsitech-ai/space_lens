@@ -1,12 +1,12 @@
 # SpaceLens 1.0 Release Status
 
-## Final Verdict
+## Verdict
 
-`BLOCKED`
+`BLOCKED — REPO-READY FOR FINAL SECURITY SCAN`
 
 Status date: 2026-07-15
 
-SpaceLens is being re-verified as `repo-ready`, but it is no longer `package-ready`: the prior package predates both the sandboxed Open Panel access fix and the migration to `com.rsitech.spacelens`. Submission remains blocked by a new Apple identifier/profile and App Store Connect record, public URL deployment, owner-controlled declarations, Apple server-side validation and processing, a processed-build install, minimum-macOS runtime proof, and final human accessibility/appearance checks.
+All currently runnable non-security repository gates pass at product source `6d9f314`. SpaceLens is not package-ready and cannot yet be uploaded: the new Apple identifier/profile/App Store Connect record, public page deployment, owner-controlled declarations, final security scan, macOS 14 and human accessibility checks, Apple validation/processing and processed-build install remain.
 
 ## Release Identity
 
@@ -14,69 +14,44 @@ SpaceLens is being re-verified as `repo-ready`, but it is no longer `package-rea
 - Bundle identifier: `com.rsitech.spacelens`
 - Version/build: 1.0 (1)
 - Minimum macOS: 14.0
-- Shipping source: `791fe6c53ba74e68a46eafbbca8d9df2ecd52b0f`
+- Product source: `6d9f314eb7a92a54de94e6c88b50542f5398ac1b`
 - Release branch: `feat/andrzej_spacelens-release-final`
-- Production toolchain: Xcode 26.6 (17F113), macOS 26.5 SDK, Swift 6.3.3
-- Compatibility toolchain: Xcode 27 beta 3 (27A5218g), macOS 27 SDK; universal warnings-as-errors build passed
-- iOS/TestFlight for iOS: not applicable; this repository ships a macOS app only
+- Legal owner: Rafal Sikora
+- Public support: `info@rsitech.ai`
+- Pricing/territories/release: free, all available territories, automatic
 
 ## Gate Summary
 
 | Gate | Status | Evidence / next action |
 | --- | --- | --- |
-| Repository inventory and clean source | PASS | Final product source commit `791fe6c`; release-only documentation follows it |
-| SwiftPM tests | PASS | 49 tests, 0 failures, warnings as errors |
-| Xcode tests | PASS | 49 tests, 0 failures; `/private/tmp/SpaceLens-final-791fe6c-tests.xcresult` |
+| Repository/config | PASS | Clean committed product source; XcodeGen parity; `com.rsitech.spacelens`; export key false |
+| SwiftPM/Xcode tests | PASS | 50/50 in warnings-as-errors and signed Xcode lanes |
 | Static analysis | PASS | Universal Release analyze succeeded |
-| Address/Thread Sanitizers | PASS | Fresh SwiftPM ASan and TSan suites, 49/49 each |
-| Xcode 27 compatibility | PASS (build) | Beta 3 universal build passed with warnings as errors; runtime QA remains bounded to the current host |
-| Runtime smoke | PASS (bounded) | Launch, navigation, Settings/About, destructive cancel path, idle CPU and memory observed; no cleanup executed |
-| Final sandboxed workflow | BLOCKED (manual) | Real folder picker/scan, confirmation/cancel, Light/min-window/focus and VoiceOver still require final human QA |
-| Minimum macOS 14 runtime | BLOCKED | No macOS 14 hardware/VM proof |
-| Security | PASS | Formal repository scan and exact final branch diff report; no reportable attacker vulnerability |
-| Privacy manifest/data map | PASS (repo) / BLOCKED (declaration) | Local-only behavior reconciled; account owner must confirm App Store answers |
-| Signing and entitlements | BLOCKED (new identity) | Distribution identities exist, but the only installed Store profile is for the retired bundle ID |
-| Mac App Store archive/export | BLOCKED | Prior package is stale; rebuild after `com.rsitech.spacelens` and its profile exist |
-| App Store Connect validation/upload | BLOCKED | Requires account role, record, build availability and explicit external action |
-| Processed/TestFlight install | BLOCKED | No Apple-processed build exists |
-| Metadata/assets | PASS (draft/minimum) | Copy and one truthful screenshot prepared; owner approval and public URLs remain |
-| Legal/business/accessibility declarations | BLOCKED | Owner-controlled fields are deliberately unset |
-| GitHub CI | BLOCKED (external) | Draft PR #9 run `29418223217`, job `87361686258`: no runner, zero steps; GitHub reports failed account payments or an insufficient spending limit |
+| Address/Thread Sanitizers | PASS | Fresh 50/50 suites |
+| Universal Release | PASS | `x86_64 arm64`, warnings as errors |
+| Runtime workflow | PASS (bounded) | Synthetic sandboxed picker/scan/queue/exact-dialog/cancel, unchanged hashes and bookmark restore |
+| Layout/accessibility | PARTIAL | Automated AX labels and 820x620 pass; Light, focus and VoiceOver human proof remain |
+| Minimum macOS 14 | BLOCKED | No compatible runtime proof |
+| Security | PENDING | Owner requested scan after all other fixes; previous reports are historical only |
+| Privacy/metadata | PASS (repo) / BLOCKED (owner/deploy) | Drafts, contacts, URLs and recommendations prepared; owner declarations and HTTP 200 remain |
+| GitHub CI | BLOCKED (external exception) | Run `29418432116`, job `87362390763`, zero steps due billing/spending; local equivalents pass |
+| Signing/package | BLOCKED | No identifier/profile for current bundle; no current Store package |
+| App Store validation/upload | BLOCKED | Requires current package and exact external authorization |
+| Processed install | BLOCKED | No Apple-processed build exists |
 
-## Stale Package — Do Not Upload
+## Stale Package — Never Upload
 
-- The package at `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg` and SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a` belongs to the retired `com.andrzej.spacelens` identity and source before the sandbox-access fix.
-- It must not be uploaded, validated as the current candidate, or used for processed-build QA.
-- A new archive/package digest will replace this section only after the new identifier and matching profile exist.
+`/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg` and SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a` belong to the retired `com.andrzej.spacelens` identity and pre-fix source. They are not a release candidate.
 
-`spctl -a -t install` rejects a Mac App Store package before App Store distribution. That is expected for this export path and is not a substitute for App Store Connect validation.
+## Next Sequence
 
-## Security And Privacy
+1. Commit this final non-security dossier.
+2. Run the requested final security scan against the exact branch state and fix any validated release blocker.
+3. With exact external authorization, publish the RSI Tech pages and verify both URLs return signed-out HTTP 200.
+4. With separate exact authorization, create the Apple identifier/profile/App Store Connect record and confirm build 1 availability.
+5. Produce a current signed Store archive/package; inspect and record its digest.
+6. Validate/upload only that approved digest; wait for Apple processing.
+7. Install the processed build and repeat the critical workflow.
+8. Complete owner declarations and human macOS 14/Light/focus/VoiceOver checks before Submit for Review.
 
-- Formal repository scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md`
-- Final source/release diff scan through dossier commit `023f09b`: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md`. The later CI-evidence commit changes documentation only.
-- No reportable Critical, High, Medium, or Low attacker vulnerability remains.
-- No network service, account, analytics, ads, tracking SDK, or third-party package dependency was found.
-- Filesystem metadata and saved authorization/session state stay on device.
-- Privacy manifest declares no collection or tracking and uses required-reason API code `3B52.1` for timestamps inside user-granted folders.
-- Residual product-safety risk remains if a same-user process replaces a filesystem path after the final identity check but before Foundation moves it to the Bin. The app has no elevated privilege, requires exact-path confirmation, and performs recoverable Trash-only cleanup.
-
-## Submission Boundary
-
-No upload, App Store Connect mutation, TestFlight mutation, submission, merge, or tag is authorized by this release pass. The exact next release sequence is:
-
-1. Resolve every owner/external and manual QA item in `BLOCKERS.md`.
-2. Confirm that version 1.0 build 1 is available in App Store Connect.
-3. Validate and upload the recorded package through an authorized account.
-4. Wait for Apple processing and review every warning.
-5. Install the processed build with a clean account/TestFlight path and repeat the critical workflow.
-6. Complete metadata, privacy, age-rating, DSA, export, rights, pricing, territory, accessibility, and review-contact fields.
-7. Obtain separate explicit approval before clicking **Submit for Review**.
-
-## Residual Risks
-
-- Same-user filesystem replacement can occur between the last identity check and Trash operation; the confirmation dialog and recoverable Bin destination remain important controls.
-- No macOS 14 runtime evidence exists.
-- Final sandboxed real-folder, Light appearance, minimum-window, keyboard-focus, and human VoiceOver evidence is incomplete.
-- The screenshot set is truthful but minimal and still needs owner/marketing freshness approval.
-- App Store server validation, processing, and clean-account installation have not occurred.
+No deployment, branch push, Apple account mutation, upload, TestFlight mutation, submission, merge, tag or public release is authorized by this local pass.

@@ -1,83 +1,69 @@
 # SpaceLens 1.0 Test Evidence
 
-Fresh evidence captured on 2026-07-15 from product source `791fe6c53ba74e68a46eafbbca8d9df2ecd52b0f`.
+Fresh non-security evidence captured on 2026-07-15 from product source `6d9f314eb7a92a54de94e6c88b50542f5398ac1b`.
 
 ## Environment
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Product source | PASS | Clean commit `791fe6c`; branch `feat/andrzej_spacelens-release-final` |
+| Product source | PASS | Clean commit `6d9f314`; branch `feat/andrzej_spacelens-release-final` |
 | Shipping platform | PASS | macOS only; iOS is not applicable |
 | Production toolchain | PASS | Xcode 26.6 (17F113), macOS 26.5 SDK, Swift 6.3.3 |
-| Compatibility toolchain | PASS (build) | Xcode 27 beta 3 (27A5218g), macOS 27 SDK |
-| Host | INFO | Apple M3 Max, macOS 27 beta build 26A5378j |
-| XcodeGen | PASS | 2.45.4, release scripts pin/verify the version |
-| Signing identities | PASS | Apple Development, Apple Distribution and Mac installer identities for team `2NY8A789TN` |
+| Host | INFO | Apple M3 Max, current macOS 27 beta host |
+| XcodeGen | PASS | 2.45.4; generated-project parity validated |
 | Dependencies | PASS | No third-party Swift package dependencies or `Package.resolved` |
 
 ## Automated Verification
 
 | Gate | Result | Command / artifact |
 | --- | --- | --- |
-| SwiftPM tests | PASS | `swift test -Xswiftc -warnings-as-errors`; 49 tests, 0 failures |
-| Repository readiness validator | PASS | `SPACE_LENS_VALIDATION_DERIVED_DATA=/private/tmp/SpaceLens-final-validation-791fe6c ./script/validate_app_store_readiness.sh`; 49/49, generated-project parity, unsigned Xcode Debug, bundle 1.0 (1), privacy manifest |
-| Signed Xcode tests | PASS | 49/49; `/private/tmp/SpaceLens-final-791fe6c-tests.xcresult` |
-| Xcode Release analyze | PASS | Universal target, warnings as errors; `/private/tmp/SpaceLens-final-analyze-791fe6c`; `ANALYZE SUCCEEDED` |
-| Universal Xcode 26 Release | PASS | Analyzer output contains `x86_64 arm64` |
-| Xcode 27 beta compatibility build | PASS | Universal target build with `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`; `/private/tmp/SpaceLens-final-xcode27-werror-a6c839d`; `BUILD SUCCEEDED` |
-| Address Sanitizer | PASS | `swift test --sanitize=address -Xswiftc -warnings-as-errors`; 49/49 |
-| Thread Sanitizer | PASS | `swift test --sanitize=thread -Xswiftc -warnings-as-errors`; 49/49 |
+| SwiftPM warnings-as-errors | PASS | `swift test -Xswiftc -warnings-as-errors`; 50 tests, 0 failures |
+| Repository readiness validator | PASS | `SPACE_LENS_VALIDATION_DERIVED_DATA=/private/tmp/SpaceLens-presecurity-validation-6d9f314 ./script/validate_app_store_readiness.sh`; 50/50 plus unsigned Xcode Debug and project parity |
+| Signed Xcode tests | PASS | 50/50; `/private/tmp/SpaceLens-presecurity-6d9f314-tests.xcresult` |
+| Universal Xcode Release | PASS | Warnings as errors; `/private/tmp/SpaceLens-presecurity-release-6d9f314`; `x86_64 arm64` |
+| Bundle identity/export key | PASS | Built app reports `com.rsitech.spacelens` and `ITSAppUsesNonExemptEncryption=false` |
+| Xcode Release analyze | PASS | `/private/tmp/SpaceLens-presecurity-analyze-6d9f314`; `ANALYZE SUCCEEDED` |
+| Address Sanitizer | PASS | `swift test --sanitize=address -Xswiftc -warnings-as-errors`; 50/50 |
+| Thread Sanitizer | PASS | `swift test --sanitize=thread -Xswiftc -warnings-as-errors`; 50/50 |
+| Development bundle smoke | PASS | `./script/build_and_run.sh --verify`; `dist/SpaceLens.app` built, ad-hoc signed and launched |
+| Release CLI inspection | PASS | Doctor: Xcode 26.6; scheme `SpaceLens`; bundle `com.rsitech.spacelens`; team `2NY8A789TN`; archive rebuild required |
 
-Two Xcode scheme-level universal-build attempts and one Xcode ASan scheme attempt stalled during Xcode package loading before compilation and were interrupted. The direct Xcode target builds succeeded, and the final sanitizer evidence is the fresh SwiftPM ASan/TSan suites above; no Xcode sanitizer result bundle is claimed.
+The first universal-build invocation failed before compilation because Xcode requires `-scheme` when `-derivedDataPath` is supplied. Adding the repository scheme resolved the command-contract issue; the corrected universal build and analyzer both passed. This was not a source failure.
 
 ## Runtime Evidence
 
 | Check | Result | Evidence / limitation |
 | --- | --- | --- |
-| Unsandboxed Release launch | PASS | Built and launched on the current Mac; evidence under `/private/tmp/SpaceLens-AgentB` |
-| Main navigation and controls | PASS (bounded) | Navigation, Settings, About and destructive confirmation cancel path exercised |
-| Destructive-action policy | PASS | No cleanup accepted; app exposes Move to Bin, exact-path confirmation, and no permanent deletion |
-| Responsiveness | PASS (bounded) | App remained responsive for an 11-minute observation |
-| Idle resources | PASS (bounded) | Idle CPU 0%; RSS approximately 69–72 MiB |
-| Final sandboxed real-folder flow | BLOCKED (manual) | Folder picker, real scan, confirmation/cancel and no-destructive-execution proof still required |
-| Appearance/layout | BLOCKED (manual) | Dark was observed; Light, minimum window and final layout sweep remain |
-| Keyboard/VoiceOver | BLOCKED (manual) | Final focus-order and human VoiceOver checks remain |
-| Minimum macOS 14 | BLOCKED | No compatible hardware/VM evidence |
+| Sandboxed folder picker and scan | PASS (synthetic fixture) | Selected a disposable fixture; scan completed with 6 items and 0 errors |
+| Queue and exact-path confirmation | PASS | Queued disposable `.build`; Move to Bin dialog listed the exact target; canceled |
+| No unintended mutation | PASS | Fixture hashes were unchanged after cancel |
+| Bookmark restore | PASS | Selected folder restored after relaunch |
+| Main controls and accessibility tree | PASS (automated) | Main controls expose labels/help in the macOS accessibility tree |
+| Dark appearance | PASS | Current app observed in Dark appearance |
+| Minimum window | PASS | Resized to 820x620; no clipping or unusable controls observed |
+| Light appearance | BLOCKED (human/system setting) | Current app remained Dark; changing the system appearance requires a separate interactive action |
+| Keyboard/VoiceOver | BLOCKED (human/system setting) | Automated labels pass; system keyboard-navigation and human VoiceOver proof remain |
+| Minimum macOS 14 | BLOCKED | No macOS 14 hardware/VM evidence |
 
-## Signing And Package Evidence
+## Signing And Package Boundary
 
-Archive/export command:
+No current Store package was produced because the Apple identifier and matching provisioning profile for `com.rsitech.spacelens` do not yet exist locally.
 
-```text
-SPACE_LENS_ARCHIVE_ROOT=/private/tmp/SpaceLens-final-AppStore-791fe6c
-SPACE_LENS_DEVELOPMENT_TEAM=2NY8A789TN
-./script/archive_app_store.sh
-```
-
-| Check | Result | Evidence |
-| --- | --- | --- |
-| Clean-source invariant | PASS | Script captured `791fe6c53ba74e68a46eafbbca8d9df2ecd52b0f` and rechecked SHA/tree after export |
-| Archive | PASS | `/private/tmp/SpaceLens-final-AppStore-791fe6c/SpaceLens.xcarchive` |
-| Installer package | PASS | `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg` |
-| Package digest/size | PASS | SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a`; 1,420,625 bytes |
-| Exported payload signature | PASS | Strict/deep verification; Apple Distribution: Rafal Sikora (`2NY8A789TN`) |
-| Installer signature | PASS | 3rd Party Mac Developer Installer: Rafal Sikora (`2NY8A789TN`); certificate expires 2027-06-29 |
-| Provisioning | PASS | Mac Team Store profile, team match, expiry 2027-06-29 |
-| Entitlements | PASS | Sandbox, user-selected read/write, app-scoped bookmarks; no `get-task-allow` |
-| Bundle | PASS | 1.0 (1), `x86_64 arm64`, hardened runtime, privacy manifest |
-| Privacy manifest | PASS | No collection/tracking; timestamp reason `3B52.1` |
-| Gatekeeper install assessment | EXPECTED REJECTION | Mac App Store package is not independently notarized/distributed; App Store Connect validation is still required |
+The old package at `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg`, SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a`, is quarantined evidence for the retired `com.andrzej.spacelens` identity and must not be uploaded.
 
 ## Screenshot Evidence
 
-- Candidate: `screenshots/SpaceLens-macOS-dark-empty-1280x800.jpeg`.
-- It is a truthful app capture at an accepted Mac screenshot size, not a generated or composited feature state.
-- Final freshness, feature-state coverage and marketing approval remain owner/manual gates.
+- Selected candidate: `screenshots/SpaceLens-macOS-dark-feature-1280x800.jpeg`.
+- It is a truthful feature-state app capture at an accepted 1280x800 Mac screenshot size.
+- Owner/marketing approval remains external.
 
 ## External CI
 
 - Draft PR: <https://github.com/s1korrrr/space_lens/pull/9>
-- Workflow run `29418223217`, job `87361686258`: `BLOCKED`; the job completed in three seconds with no runner, no logs and zero steps.
-- GitHub annotation: the job did not start because recent account payments failed or the spending limit must be increased.
+- Latest remote run: `29418432116`, job `87362390763`, head `eceb406`.
+- The job completed with zero steps. GitHub reports recent account-payment failure or an insufficient spending limit.
+- Owner-approved exception: proceed with fresh local CI-equivalent evidence while keeping this external gate red. This exception does not validate the remote workflow or cover unpushed commits.
 
-This is external account state, not a source/test failure. Local CI-equivalent tests, project regeneration/parity, analyzer, universal builds and packaging pass. After the account owner resolves billing/spending state, rerun this workflow.
+## Security Boundary
+
+Security is deliberately not claimed here. `SECURITY_STATUS.md` remains `PENDING_RESCAN` until the requested final scan runs against the completed non-security branch state.

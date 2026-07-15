@@ -7,15 +7,15 @@
   "bundleIdentifier": "com.rsitech.spacelens",
   "minimumSystemVersion": "14.0",
   "statusDate": "2026-07-15",
-  "verdict": "BLOCKED",
+  "verdict": "BLOCKED_REPO_READY_FOR_SECURITY_SCAN",
   "readiness": {
-    "repository": "repo-ready",
+    "repository": "repo-ready-presecurity",
     "package": "stale-rebuild-required",
     "releaseCandidate": false,
     "appStoreSubmission": false
   },
   "source": {
-    "productRevision": "791fe6c53ba74e68a46eafbbca8d9df2ecd52b0f",
+    "productRevision": "6d9f314eb7a92a54de94e6c88b50542f5398ac1b",
     "branch": "feat/andrzej_spacelens-release-final",
     "baseRevision": "d6ef7e4075fe4852cf8d8f289d9d646085355c69"
   },
@@ -28,67 +28,89 @@
     "compatibility": {
       "xcode": "27 beta 3 (27A5218g)",
       "sdk": "macOS 27",
-      "status": "PASS_BUILD"
+      "status": "HISTORICAL_PASS_BUILD_METADATA_ONLY_CHANGES_SINCE"
     },
     "xcodegen": "2.45.4"
   },
   "tests": {
-    "swiftpmWarningsAsErrors": "PASS_49_OF_49",
-    "xcode": "PASS_49_OF_49",
-    "xcodeResult": "/private/tmp/SpaceLens-final-791fe6c-tests.xcresult",
+    "swiftpmWarningsAsErrors": "PASS_50_OF_50",
+    "xcode": "PASS_50_OF_50",
+    "xcodeResult": "/private/tmp/SpaceLens-presecurity-6d9f314-tests.xcresult",
+    "validator": "PASS_50_OF_50",
+    "validatorDerivedData": "/private/tmp/SpaceLens-presecurity-validation-6d9f314",
     "analyze": "PASS",
+    "analyzeDerivedData": "/private/tmp/SpaceLens-presecurity-analyze-6d9f314",
     "universalRelease": "PASS_X86_64_ARM64",
-    "xcode27WarningsAsErrors": "PASS_X86_64_ARM64",
-    "addressSanitizerSwiftPM": "PASS_49_OF_49",
-    "threadSanitizerSwiftPM": "PASS_49_OF_49"
+    "releaseDerivedData": "/private/tmp/SpaceLens-presecurity-release-6d9f314",
+    "addressSanitizerSwiftPM": "PASS_50_OF_50",
+    "threadSanitizerSwiftPM": "PASS_50_OF_50",
+    "developmentBundleSmoke": "PASS"
+  },
+  "runtime": {
+    "sandboxedSyntheticWorkflow": "PASS_CANCEL_ONLY",
+    "bookmarkRestore": "PASS",
+    "fixtureMutationAfterCancel": "NONE",
+    "automatedAccessibilityLabels": "PASS",
+    "minimumWindow820x620": "PASS",
+    "darkAppearance": "PASS",
+    "lightAppearance": "PENDING_HUMAN",
+    "keyboardFocus": "PENDING_HUMAN",
+    "voiceOver": "PENDING_HUMAN",
+    "macOS14": "PENDING_RUNTIME"
   },
   "package": {
     "status": "STALE_REBUILD_REQUIRED",
     "archivePath": null,
     "installerPath": null,
     "sha256": null,
-    "bytes": null,
     "architectures": ["x86_64", "arm64"],
     "teamIdentifier": "2NY8A789TN",
-    "hardenedRuntime": null,
-    "sandboxed": null,
-    "getTaskAllow": null,
-    "reason": "Existing package predates the sandbox-access fix and migration to com.rsitech.spacelens"
+    "reason": "The current bundle identifier has no matching Apple identifier/profile; the only existing package is for the retired bundle identity"
   },
   "security": {
-    "status": "PASS",
-    "repositoryReport": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md",
-    "finalDiffReport": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md",
-    "reportableFindings": 0,
-    "residualRisk": "Same-user pathname replacement after final identity check and before recoverable Trash operation"
+    "status": "PENDING_RESCAN",
+    "repositoryReport": null,
+    "finalDiffReport": null,
+    "historicalRepositoryReport": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md",
+    "historicalFinalDiffReport": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md",
+    "reportableFindings": null
   },
   "externalCI": {
-    "status": "BLOCKED_EXTERNAL",
+    "status": "BLOCKED_EXTERNAL_EXCEPTION_RECORDED",
     "pullRequest": "https://github.com/s1korrrr/space_lens/pull/9",
-    "runId": 29418223217,
-    "jobId": 87361686258,
+    "runId": 29418432116,
+    "jobId": 87362390763,
+    "remoteHead": "eceb406f730027a51ef595eb468f9b2f1c1a2e0d",
     "stepsExecuted": 0,
-    "reason": "GitHub reports failed recent account payments or an insufficient spending limit"
+    "reason": "GitHub reports failed recent account payments or an insufficient spending limit",
+    "exception": "Proceed using fresh local CI-equivalent evidence while preserving the external failure"
+  },
+  "ownerConfirmed": {
+    "legalName": "Rafal Sikora",
+    "publicSupportEmail": "info@rsitech.ai",
+    "price": "FREE",
+    "territories": "ALL_AVAILABLE",
+    "releaseMethod": "AUTOMATIC"
   },
   "blockers": [
-    "EXT-001", "EXT-002", "EXT-003", "EXT-004", "EXT-005", "EXT-006",
-    "EXT-007", "EXT-008", "EXT-009", "EXT-010", "EXT-011", "EXT-012",
-    "EXT-013", "EXT-014", "EXT-015", "EXT-016",
-    "QA-001", "QA-002", "QA-003", "QA-004", "QA-005"
+    "EXT-001", "EXT-002", "EXT-003", "EXT-004", "EXT-006", "EXT-007",
+    "EXT-008", "EXT-009", "EXT-010", "EXT-013", "EXT-014", "EXT-015",
+    "EXT-016", "QA-001", "QA-003", "QA-004", "QA-005", "SEC-001"
   ],
   "authorityBoundary": {
-    "allowed": ["local fixes", "local verification", "commit", "branch push", "draft pull request"],
-    "notAuthorized": ["merge", "tag", "App Store upload", "TestFlight mutation", "Submit for Review", "public release", "legal or account declarations"]
+    "allowed": ["local fixes", "local verification", "local commits"],
+    "notAuthorized": ["branch push", "website deployment", "Apple identifier/profile/record creation", "App Store upload", "TestFlight mutation", "Submit for Review", "merge", "tag", "public release", "legal or account declarations"]
   },
   "releaseArtifacts": [
     "APP_REVIEW_NOTES.md",
     "APP_STORE_CHECKLIST.md",
     "BLOCKERS.md",
+    "OWNER_DECISIONS.json",
     "PRIVACY_DATA_MAP.md",
     "RELEASE_NOTES.md",
     "RELEASE_STATUS.md",
     "SECURITY_STATUS.md",
     "TEST_EVIDENCE.md",
-    "screenshots/SpaceLens-macOS-dark-empty-1280x800.jpeg"
+    "screenshots/SpaceLens-macOS-dark-feature-1280x800.jpeg"
   ]
 }

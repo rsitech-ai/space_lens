@@ -1,29 +1,18 @@
 # SpaceLens 1.0 Security Status
 
-Status: `PASS` for repository and final release diff, with release blockers tracked separately.
+Status: `PENDING_RESCAN`
 
-## Reports
+The owner requested that the security scan run after all other locally actionable release fixes. The prior reports are historical evidence only because the source, sandbox authorization behavior, bundle identity, export metadata, public URLs and release dossier changed after the final report.
 
-- Formal repository scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md`
-- Final exact source/release diff scan through `023f09b`: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md`. The subsequent CI-status commit is documentation-only.
+## Historical Reports — Not Current Approval
 
-No reportable Critical, High, Medium, or Low attacker vulnerability remains. The scan scope covers user-selected filesystem traversal, security-scoped bookmarks, scan classification, cleanup authorization, move-to-Bin behavior, local persistence, logging, entitlements, build/release scripts, dependencies, secret material and privacy-sensitive data flows.
+- Repository scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md`
+- Earlier final-diff scan through `023f09b`: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md`
 
-## Controls Verified
+Those reports found no reportable attacker vulnerability in their recorded scope, but they must not be presented as the security disposition of the current branch.
 
-- Only the configured `~/Library/Caches` location is recognized; nested lookalikes fail classification.
-- Scan errors, symlinks and identity mismatches fail closed and cannot become cleanup-ready.
-- Authorized roots are canonicalized, and device/inode/type identity is rechecked before Trash.
-- Cleanup requires a complete exact-path confirmation and moves items to the Bin only; permanent deletion is absent.
-- Restored access requires a valid security-scoped bookmark; raw stored paths are not permission.
-- Session clear removes active and quarantined corrupt copies; corrupt-file retention is uniquely named and capped.
-- Archive/export captures the source SHA, refuses unsafe/unmarked output roots, and rechecks source SHA/tree after export.
-- XcodeGen is version-pinned; release-time environment override is not accepted.
-- Private persistence errors are hash-masked; repository searches found no credentials, keys, profiles or secret material.
-- No third-party package dependency or runtime network/analytics/tracking SDK is present.
+## Required Final Gate
 
-## Residual Product-Safety Risk
+After the non-security release dossier is committed, run a fresh repository/diff security scan against the exact final branch state. Record its report path, source SHA, findings and residual risk here before considering a release candidate.
 
-A same-user process could replace a path in the narrow interval after the final `lstat` identity check and before Foundation performs `trashItem`. This does not cross a privilege boundary: SpaceLens is sandboxed, operates only inside user-authorized scope, requires exact-path confirmation, and moves to the recoverable Bin. The condition is retained as residual product-safety risk rather than reported as an attacker-exploitable vulnerability.
-
-Any source or release-script change after the final diff report invalidates this status and requires a new diff scan.
+The next scan must cover user-selected filesystem traversal, security-scoped bookmarks, implicit Open Panel access, classification and cleanup authorization, same-user path replacement, move-to-Bin behavior, local persistence, logging, entitlements, export metadata, build/release scripts, dependency and secret material, and privacy-sensitive data flows.
