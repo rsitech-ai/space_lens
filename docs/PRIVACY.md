@@ -1,6 +1,6 @@
 # SpaceLens Privacy Policy
 
-Effective date: 2026-06-26
+Effective date: 2026-07-15
 
 SpaceLens is a local-first macOS disk intelligence app. It scans folders that
 you explicitly select, calculates file and folder metadata, and classifies
@@ -49,6 +49,9 @@ your explicit selection.
 
 ## Contact
 
-The public support contact required for App Store submission is not yet
-configured. The release blocker must be closed with a durable public support
-page before this policy is submitted to App Store Connect.
+For privacy questions, email [info@rsitech.ai](mailto:info@rsitech.ai) or visit
+the SpaceLens support page at <https://rsitech.ai/spacelens/support>.
+
+The public copy of this policy is prepared for
+<https://rsitech.ai/spacelens/privacy>. The URL is submission-ready only after
+the website change is deployed and verified from a signed-out browser.

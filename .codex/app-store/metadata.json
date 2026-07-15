@@ -10,12 +10,12 @@
   },
   "primaryCategory": "UTILITIES",
   "secondaryCategory": null,
-  "supportURL": null,
+  "supportURL": "https://rsitech.ai/spacelens/support",
   "marketingURL": null,
-  "privacyURL": null,
+  "privacyURL": "https://rsitech.ai/spacelens/privacy",
   "screenshots": [
     {
-      "path": "docs/release/1.0/screenshots/SpaceLens-macOS-dark-empty-1280x800.jpeg",
+      "path": "docs/release/1.0/screenshots/SpaceLens-macOS-dark-feature-1280x800.jpeg",
       "locale": "en-US",
       "containsPrivateContent": false
     }
@@ -25,8 +25,8 @@
   "existingProductIDs": [],
   "remoteProductIDs": null,
   "reviewInformation": {
-    "contactName": "",
-    "contactEmail": "",
+    "contactName": "Rafal Sikora",
+    "contactEmail": "info@rsitech.ai",
     "notes": "No login, backend, purchase, subscription, or demo credentials are required. Select a disposable folder through the macOS folder picker, inspect the local safety classifications, and use generated test data when exercising the exact-path Move to Bin confirmation. Cancel or move only the disposable fixture.",
     "requiresLogin": false,
     "demoCredentialsReference": null,

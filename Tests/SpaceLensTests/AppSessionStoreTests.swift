@@ -121,12 +121,13 @@ final class AppSessionStoreTests: XCTestCase {
 
     @MainActor
     func testSandboxedScanStopsWhenSecurityScopeCannotBeAcquired() {
+        let inaccessibleRoot = temporaryRoot.appendingPathComponent("not-authorized", isDirectory: true)
         let appState = AppState(
             requiresSecurityScopedAccess: true,
             startSecurityScopedAccess: { _ in false }
         )
 
-        appState.startScan(root: temporaryRoot)
+        appState.startScan(root: inaccessibleRoot)
 
         XCTAssertFalse(appState.isScanning)
         XCTAssertNil(appState.currentAuthorizedScanRoot)
@@ -134,6 +135,27 @@ final class AppSessionStoreTests: XCTestCase {
             appState.latestError,
             "SpaceLens could not access that folder. Select it again to refresh permission."
         )
+    }
+
+    @MainActor
+    func testSandboxedScanAcceptsImplicitOpenPanelAccessWithoutStoppingUnstartedScope() async throws {
+        try Data("selected through NSOpenPanel".utf8)
+            .write(to: temporaryRoot.appendingPathComponent("selected.txt"))
+        let appState = AppState(
+            requiresSecurityScopedAccess: true,
+            startSecurityScopedAccess: { _ in false },
+            stopSecurityScopedAccess: { _ in
+                XCTFail("Implicit Open Panel access must not stop an unstarted security scope")
+            }
+        )
+
+        appState.startScan(root: temporaryRoot)
+
+        XCTAssertNil(appState.latestError)
+        try await waitForScanToFinish(appState)
+        XCTAssertEqual(appState.currentAuthorizedScanRoot, temporaryRoot.standardizedFileURL)
+        XCTAssertEqual(appState.rootNode?.url, temporaryRoot.standardizedFileURL)
+        appState.forgetSavedSession()
     }
 
     @MainActor

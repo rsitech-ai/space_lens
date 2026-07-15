@@ -36,7 +36,7 @@
 - Consumes: repository configuration, official Apple requirements, local toolchain/account evidence.
 - Produces: one canonical gate matrix and evidence paths used by every later task.
 
-- [ ] Record version `1.0`, build `1`, bundle ID `com.andrzej.spacelens`, deployment target `14.0`, installed Xcode/SDK, and official-source check date `2026-07-11`.
+- [ ] Record version `1.0`, build `1`, bundle ID `com.rsitech.spacelens`, deployment target `14.0`, installed Xcode/SDK, and official-source check date `2026-07-11`.
 - [ ] Add every mission gate with only `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE`, or `NOT YET VERIFIED`, plus command/evidence/owner/next action.
 - [ ] Validate JSON syntax with `plutil -lint` or `python3 -m json.tool docs/release/1.0/RELEASE_MANIFEST.json` and expect exit 0.
 

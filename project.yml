@@ -1,6 +1,6 @@
 name: SpaceLens
 options:
-  bundleIdPrefix: com.andrzej
+  bundleIdPrefix: com.rsitech
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "26.6"
@@ -35,7 +35,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.utilities
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        NSHumanReadableCopyright: Copyright © 2026 Rafal Sikor. All rights reserved.
+        NSHumanReadableCopyright: Copyright © 2026 Rafal Sikora. All rights reserved.
         NSPrincipalClass: NSApplication
         NSSupportsAutomaticGraphicsSwitching: true
     entitlements:
@@ -46,7 +46,7 @@ targets:
         com.apple.security.files.bookmarks.app-scope: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.andrzej.spacelens
+        PRODUCT_BUNDLE_IDENTIFIER: com.rsitech.spacelens
         PRODUCT_NAME: SpaceLens
         PRODUCT_MODULE_NAME: SpaceLens
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -63,7 +63,7 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.andrzej.spacelens.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.rsitech.spacelens.tests
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/SpaceLens.app/Contents/MacOS/SpaceLens
         BUNDLE_LOADER: $(TEST_HOST)
 schemes:

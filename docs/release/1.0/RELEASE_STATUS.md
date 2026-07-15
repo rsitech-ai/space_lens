@@ -6,12 +6,12 @@
 
 Status date: 2026-07-15
 
-SpaceLens is `repo-ready` and `package-ready`, but it is not yet a release candidate and is not ready for App Store submission. All completed automated source, build, test, security, privacy-manifest, signing, archive, and export gates pass. Submission remains blocked by App Store Connect state and declarations, public URLs, owner-controlled legal/business decisions, Apple server-side validation and processing, a processed-build install, minimum-macOS runtime proof, and final human accessibility/appearance checks.
+SpaceLens is being re-verified as `repo-ready`, but it is no longer `package-ready`: the prior package predates both the sandboxed Open Panel access fix and the migration to `com.rsitech.spacelens`. Submission remains blocked by a new Apple identifier/profile and App Store Connect record, public URL deployment, owner-controlled declarations, Apple server-side validation and processing, a processed-build install, minimum-macOS runtime proof, and final human accessibility/appearance checks.
 
 ## Release Identity
 
 - Product: SpaceLens for macOS
-- Bundle identifier: `com.andrzej.spacelens`
+- Bundle identifier: `com.rsitech.spacelens`
 - Version/build: 1.0 (1)
 - Minimum macOS: 14.0
 - Shipping source: `791fe6c53ba74e68a46eafbbca8d9df2ecd52b0f`
@@ -35,26 +35,19 @@ SpaceLens is `repo-ready` and `package-ready`, but it is not yet a release candi
 | Minimum macOS 14 runtime | BLOCKED | No macOS 14 hardware/VM proof |
 | Security | PASS | Formal repository scan and exact final branch diff report; no reportable attacker vulnerability |
 | Privacy manifest/data map | PASS (repo) / BLOCKED (declaration) | Local-only behavior reconciled; account owner must confirm App Store answers |
-| Signing and entitlements | PASS | Distribution payload, Store profile, hardened runtime, sandbox, bookmark and user-selected-folder entitlements verified |
-| Mac App Store archive/export | PASS | Clean-source package produced and independently inspected |
+| Signing and entitlements | BLOCKED (new identity) | Distribution identities exist, but the only installed Store profile is for the retired bundle ID |
+| Mac App Store archive/export | BLOCKED | Prior package is stale; rebuild after `com.rsitech.spacelens` and its profile exist |
 | App Store Connect validation/upload | BLOCKED | Requires account role, record, build availability and explicit external action |
 | Processed/TestFlight install | BLOCKED | No Apple-processed build exists |
 | Metadata/assets | PASS (draft/minimum) | Copy and one truthful screenshot prepared; owner approval and public URLs remain |
 | Legal/business/accessibility declarations | BLOCKED | Owner-controlled fields are deliberately unset |
 | GitHub CI | BLOCKED (external) | Draft PR #9 run `29418223217`, job `87361686258`: no runner, zero steps; GitHub reports failed account payments or an insufficient spending limit |
 
-## Final Package
+## Stale Package — Do Not Upload
 
-- Archive: `/private/tmp/SpaceLens-final-AppStore-791fe6c/SpaceLens.xcarchive`
-- Installer: `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg`
-- SHA-256: `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a`
-- Size: 1,420,625 bytes
-- Exported app signing: Apple Distribution: Rafal Sikora (`2NY8A789TN`)
-- Installer signing: 3rd Party Mac Developer Installer: Rafal Sikora (`2NY8A789TN`)
-- Architectures: `x86_64 arm64`
-- Hardened runtime: enabled
-- Entitlements: App Sandbox, user-selected read/write, app-scoped bookmarks; no `get-task-allow`
-- Embedded Mac Team Store profile expires 2027-06-29 and matches team `2NY8A789TN`
+- The package at `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg` and SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a` belongs to the retired `com.andrzej.spacelens` identity and source before the sandbox-access fix.
+- It must not be uploaded, validated as the current candidate, or used for processed-build QA.
+- A new archive/package digest will replace this section only after the new identifier and matching profile exist.
 
 `spctl -a -t install` rejects a Mac App Store package before App Store distribution. That is expected for this export path and is not a substitute for App Store Connect validation.
 

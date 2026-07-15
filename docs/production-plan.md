@@ -86,7 +86,7 @@
 
 ## Observability
 
-- Logger subsystem: `com.andrzej.spacelens`.
+- Logger subsystem: `com.rsitech.spacelens`.
 - Categories: `session` currently logs persistence failures.
 - Key lifecycle/action events: session restore/persistence failures are logged;
   scan/cleanup state is visible in UI.
@@ -95,7 +95,7 @@
 
 ## App Store Readiness
 
-- Bundle ID: `com.andrzej.spacelens`.
+- Bundle ID: `com.rsitech.spacelens`.
 - Signing team used for verified App Store export: `2NY8A789TN`.
 - Sandbox/entitlements: App Sandbox plus user-selected read/write file access
   and app-scoped security bookmark persistence.

@@ -4,13 +4,13 @@
   "platform": "macOS",
   "version": "1.0",
   "build": "1",
-  "bundleIdentifier": "com.andrzej.spacelens",
+  "bundleIdentifier": "com.rsitech.spacelens",
   "minimumSystemVersion": "14.0",
   "statusDate": "2026-07-15",
   "verdict": "BLOCKED",
   "readiness": {
     "repository": "repo-ready",
-    "package": "package-ready",
+    "package": "stale-rebuild-required",
     "releaseCandidate": false,
     "appStoreSubmission": false
   },
@@ -43,16 +43,17 @@
     "threadSanitizerSwiftPM": "PASS_49_OF_49"
   },
   "package": {
-    "status": "PASS",
-    "archivePath": "/private/tmp/SpaceLens-final-AppStore-791fe6c/SpaceLens.xcarchive",
-    "installerPath": "/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg",
-    "sha256": "a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a",
-    "bytes": 1420625,
+    "status": "STALE_REBUILD_REQUIRED",
+    "archivePath": null,
+    "installerPath": null,
+    "sha256": null,
+    "bytes": null,
     "architectures": ["x86_64", "arm64"],
     "teamIdentifier": "2NY8A789TN",
-    "hardenedRuntime": true,
-    "sandboxed": true,
-    "getTaskAllow": false
+    "hardenedRuntime": null,
+    "sandboxed": null,
+    "getTaskAllow": null,
+    "reason": "Existing package predates the sandbox-access fix and migration to com.rsitech.spacelens"
   },
   "security": {
     "status": "PASS",

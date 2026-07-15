@@ -8,10 +8,10 @@ SwiftPM development lane.
 - Active Apple Developer Program membership.
 - Xcode 26.6 or newer for the production release lane.
 - XcodeGen 2.45.4 installed. Release scripts fail closed on version drift.
-- App Store Connect app record for bundle ID `com.andrzej.spacelens`.
+- App Store Connect app record for bundle ID `com.rsitech.spacelens`.
 - Apple Distribution signing certificate installed in the login keychain.
 - App Store provisioning handled automatically by Xcode, or already available
-  for `com.andrzej.spacelens`.
+  for `com.rsitech.spacelens`.
 
 ## Repo-Owned Release Assets
 
@@ -62,7 +62,7 @@ Upload the exported package using one of Apple's supported paths:
 Prepare these before submitting for review:
 
 - App name: `SpaceLens`
-- Bundle ID: `com.andrzej.spacelens`
+- Bundle ID: `com.rsitech.spacelens`
 - Category: Utilities
 - Privacy Policy URL: blocked until the owner publishes `docs/PRIVACY.md` at a
   durable public HTTPS URL that returns HTTP 200 without authentication.

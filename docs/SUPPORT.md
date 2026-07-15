@@ -1,11 +1,10 @@
 # SpaceLens Support
 
-This repository document is the source draft for SpaceLens support content. It
-is not currently a valid App Store Support URL because the repository is not
-publicly reachable without authentication.
+The public SpaceLens support page is prepared for
+<https://rsitech.ai/spacelens/support>. It becomes a valid App Store Support URL
+after the website change is deployed and verified from a signed-out browser.
 
-Before submission, the owner must publish a durable HTTPS support page with a
-real contact method and verify that it returns HTTP 200 in a signed-out browser.
+For help, email [info@rsitech.ai](mailto:info@rsitech.ai).
 
 ## Before Reporting A Problem
 

@@ -380,7 +380,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.andrzej.spacelens.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rsitech.spacelens.tests;
 				SDKROOT = macosx;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SpaceLens.app/Contents/MacOS/SpaceLens";
 			};
@@ -398,7 +398,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.andrzej.spacelens;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rsitech.spacelens;
 				PRODUCT_MODULE_NAME = SpaceLens;
 				PRODUCT_NAME = SpaceLens;
 				SDKROOT = macosx;
@@ -550,7 +550,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.andrzej.spacelens;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rsitech.spacelens;
 				PRODUCT_MODULE_NAME = SpaceLens;
 				PRODUCT_NAME = SpaceLens;
 				SDKROOT = macosx;
@@ -568,7 +568,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.andrzej.spacelens.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rsitech.spacelens.tests;
 				SDKROOT = macosx;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SpaceLens.app/Contents/MacOS/SpaceLens";
 			};

@@ -6,7 +6,7 @@ import SwiftUI
 
 @MainActor
 final class AppState: ObservableObject {
-    private static let logger = Logger(subsystem: "com.andrzej.spacelens", category: "session")
+    private static let logger = Logger(subsystem: "com.rsitech.spacelens", category: "session")
 
     private nonisolated static func hasAppSandboxEntitlement() -> Bool {
         guard let task = SecTaskCreateFromSelf(nil) else {
@@ -760,7 +760,12 @@ final class AppState: ObservableObject {
 
         stopAccessingSecurityScopedRoot()
         let startedAccess = startSecurityScopedAccess(standardizedURL)
-        guard startedAccess || !requiresSecurityScopedAccess else {
+        let alreadyHasAccess = (try? FileManager.default.contentsOfDirectory(
+            at: standardizedURL,
+            includingPropertiesForKeys: nil,
+            options: []
+        )) != nil
+        guard startedAccess || alreadyHasAccess || !requiresSecurityScopedAccess else {
             return false
         }
 
