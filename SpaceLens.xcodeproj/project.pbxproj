@@ -30,6 +30,7 @@
 		A09F751310EFB258CC5A8E8A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9689D8FA85667D5535A297 /* SettingsView.swift */; };
 		A2E596BD0B8637DEA5B2D9EC /* SafetyLevelStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBEA7E4730BAACCC968736E /* SafetyLevelStyle.swift */; };
 		A42541BE68735688C13FB605 /* AppSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8876217183B9DB15813A9C /* AppSessionStore.swift */; };
+		BDBCB5B13DCA2355B57FFB08 /* FileCleanupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFF89A3FB912CD3C64A53CF4 /* FileCleanupServiceTests.swift */; };
 		C0AF31902C9395EB7E68A3AB /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69655696786DE27D50B869CE /* InspectorView.swift */; };
 		C9641C2AC31707C8934C72D0 /* SmartCleanupScannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508F8A963D4FF22CB7C62566 /* SmartCleanupScannerTests.swift */; };
 		CBA27592647C09EBD62FC5BA /* RuleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5D81CC213DD67132BBA0B6 /* RuleEngine.swift */; };
@@ -80,6 +81,7 @@
 		9D9689D8FA85667D5535A297 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A06D90A79A7558019265149D /* ScanSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSnapshot.swift; sourceTree = "<group>"; };
 		ABFC6C372BBB07464E935B6C /* CleanupQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupQueueTests.swift; sourceTree = "<group>"; };
+		BFF89A3FB912CD3C64A53CF4 /* FileCleanupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCleanupServiceTests.swift; sourceTree = "<group>"; };
 		C883A63DE1DA47C45B07AEE6 /* SpaceLens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpaceLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1A1C6EB0493C2312FC66E1D /* SafetyClassification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafetyClassification.swift; sourceTree = "<group>"; };
 		D238F9714A46A9C80BE7B5D2 /* IntelligenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceService.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				D9B6CE94D3FB1BB0FA09F974 /* ByteFormatTests.swift */,
 				ABFC6C372BBB07464E935B6C /* CleanupQueueTests.swift */,
 				DABA29696B3BD1D8ACAB1CEF /* DiskScannerTests.swift */,
+				BFF89A3FB912CD3C64A53CF4 /* FileCleanupServiceTests.swift */,
 				72D06CF49B654377B2E8EE73 /* IntelligenceServiceTests.swift */,
 				DD86503021601A17851A540A /* RuleEngineTests.swift */,
 				508F8A963D4FF22CB7C62566 /* SmartCleanupScannerTests.swift */,
@@ -263,7 +266,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2650;
+				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					51120894A6286D9D8E0D553F = {
 						DevelopmentTeam = 2NY8A789TN;
@@ -347,6 +350,7 @@
 				D07084A33438E5E386D07081 /* ByteFormatTests.swift in Sources */,
 				8137222782ECB9261713A06B /* CleanupQueueTests.swift in Sources */,
 				EC029A709237E2F2E64F0EC2 /* DiskScannerTests.swift in Sources */,
+				BDBCB5B13DCA2355B57FFB08 /* FileCleanupServiceTests.swift in Sources */,
 				7A5049BF6C0E0BEBBB7444ED /* IntelligenceServiceTests.swift in Sources */,
 				117C78C7B61C31308FCF8E25 /* RuleEngineTests.swift in Sources */,
 				C9641C2AC31707C8934C72D0 /* SmartCleanupScannerTests.swift in Sources */,
@@ -439,6 +443,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 2NY8A789TN;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -501,6 +506,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 2NY8A789TN;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;

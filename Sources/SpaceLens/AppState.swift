@@ -519,14 +519,30 @@ final class AppState: ObservableObject {
     }
 
     func moveToBin(node: FileNode) async {
+        guard let authorizedRoot = authorizedSmartScanRoot else {
+            latestError = "Select and scan a folder before cleaning up files."
+            return
+        }
         await performCleanup(node: node, operationName: "Moved to Bin") { progress in
-            try await FileCleanupService.moveToBin(url: node.url, progress: progress)
+            try await FileCleanupService.moveToBin(
+                node: node,
+                authorizedRoot: authorizedRoot,
+                progress: progress
+            )
         }
     }
 
     func moveSelectedToBin() async {
+        guard let authorizedRoot = authorizedSmartScanRoot else {
+            latestError = "Select and scan a folder before cleaning up files."
+            return
+        }
         await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Moved to Bin") { node, progress in
-            try await FileCleanupService.moveToBin(url: node.url, progress: progress)
+            try await FileCleanupService.moveToBin(
+                node: node,
+                authorizedRoot: authorizedRoot,
+                progress: progress
+            )
         }
     }
 

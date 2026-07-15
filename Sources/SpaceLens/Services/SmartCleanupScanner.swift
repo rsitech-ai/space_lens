@@ -204,6 +204,7 @@ public final class SmartCleanupScanner: @unchecked Sendable {
             allocatedSize: node.allocatedSize,
             modifiedAt: node.modifiedAt,
             createdAt: node.createdAt,
+            fileIdentity: node.fileIdentity,
             children: node.children,
             scanError: node.scanError
         )

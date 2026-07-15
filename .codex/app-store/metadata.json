@@ -1,0 +1,35 @@
+{
+  "localizations": {
+    "en-US": {
+      "name": "SpaceLens",
+      "subtitle": "Smarter storage. Safer cleanup",
+      "description": "SpaceLens is a local-first disk intelligence utility for macOS. Choose a folder, inspect what consumes space, and review clear safety classifications before taking action.\n\nSmart Scan finds common rebuildable caches and generated outputs without treating valuable documents or project data as disposable. SpaceLens keeps file contents and metadata on your Mac, provides evidence for every recommendation, and requires explicit confirmation before cleanup.\n\nKey capabilities:\n\n- Scan user-selected folders and summarize disk usage.\n- Find common caches and generated build outputs with Smart Scan.\n- Filter, sort, inspect, and queue cleanup candidates.\n- Move cleanup-ready items to the Bin after reviewing every target path.\n- Restore the last authorized scan context locally.\n- Work fully offline with no account, analytics, or tracking SDK.",
+      "keywords": "disk,storage,cleanup,files,space,cache,developer,utility",
+      "releaseNotes": "Initial release."
+    }
+  },
+  "primaryCategory": "UTILITIES",
+  "secondaryCategory": null,
+  "supportURL": null,
+  "marketingURL": null,
+  "privacyURL": null,
+  "screenshots": [
+    {
+      "path": "docs/release/1.0/screenshots/SpaceLens-macOS-dark-empty-1280x800.jpeg",
+      "locale": "en-US",
+      "containsPrivateContent": false
+    }
+  ],
+  "collectedData": [],
+  "ageRatingDeclared": false,
+  "existingProductIDs": [],
+  "remoteProductIDs": null,
+  "reviewInformation": {
+    "contactName": "",
+    "contactEmail": "",
+    "notes": "No login, backend, purchase, subscription, or demo credentials are required. Select a disposable folder and use generated test data when exercising cleanup.",
+    "requiresLogin": false,
+    "demoCredentialsReference": null,
+    "backendAvailable": false
+  }
+}

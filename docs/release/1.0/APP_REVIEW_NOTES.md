@@ -3,7 +3,7 @@
 ## Metadata Draft
 
 - Name: SpaceLens
-- Subtitle: Understand disk usage. Clean safely.
+- Subtitle: Smarter storage. Safer cleanup
 - Promotional text: Find large files, explain cleanup risk, and review recoverable space locally on your Mac.
 - Primary category: Utilities
 - Keywords: disk,storage,cleanup,files,space,cache,developer,utility
@@ -41,4 +41,4 @@ Do not use personal reviewer data for destructive testing. A disposable folder i
 
 ## Owner-Controlled Fields
 
-Review contact, copyright owner confirmation, pricing, territories, release method, age rating, DSA trader status, export compliance, content rights, and final privacy answers require the account owner.
+Review contact, copyright owner confirmation (including the current `Rafal Sikor` bundle string versus the `Rafal Sikora` signing identity), pricing, territories, release method, age rating, DSA trader status, export compliance, content rights, public Support/Privacy URLs, and final privacy answers require the account owner. These deliberately remain unset in `.codex/app-store/metadata.json` so local validation fails visibly instead of inventing declarations.

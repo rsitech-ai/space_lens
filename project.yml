@@ -3,12 +3,13 @@ options:
   bundleIdPrefix: com.andrzej
   deploymentTarget:
     macOS: "14.0"
-  xcodeVersion: "26.5"
+  xcodeVersion: "26.6"
 settings:
   base:
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: "2NY8A789TN"
+    ENABLE_APP_SANDBOX: YES
     ENABLE_HARDENED_RUNTIME: YES
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     MARKETING_VERSION: "1.0"

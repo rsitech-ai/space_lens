@@ -62,6 +62,51 @@ final class AppSessionStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testClearRemovesActiveAndQuarantinedSessionFiles() throws {
+        let sessionURL = temporaryRoot.appendingPathComponent("session.json")
+        let store = AppSessionStore(fileURL: sessionURL)
+        try store.save(
+            PersistedAppSession(
+                rootPath: "/private/example",
+                rootBookmarkData: Data([1, 2, 3]),
+                cleanupPaths: ["/private/example/.build"]
+            )
+        )
+        try Data("old corrupt session".utf8).write(
+            to: temporaryRoot.appendingPathComponent("session.corrupt-1.json")
+        )
+        try Data("new corrupt session".utf8).write(
+            to: temporaryRoot.appendingPathComponent("session.corrupt-2.json")
+        )
+
+        try store.clear()
+
+        let remainingSessionFiles = try FileManager.default.contentsOfDirectory(
+            at: temporaryRoot,
+            includingPropertiesForKeys: nil
+        ).filter { $0.lastPathComponent == "session.json" || $0.lastPathComponent.hasPrefix("session.corrupt-") }
+        XCTAssertTrue(remainingSessionFiles.isEmpty)
+    }
+
+    @MainActor
+    func testCorruptSessionQuarantineKeepsOnlyThreeNewestCopies() throws {
+        let sessionURL = temporaryRoot.appendingPathComponent("session.json")
+        let store = AppSessionStore(fileURL: sessionURL)
+
+        for index in 0..<5 {
+            try Data("not json \(index)".utf8).write(to: sessionURL, options: .atomic)
+            XCTAssertNil(store.load())
+        }
+
+        let quarantinedFiles = try FileManager.default.contentsOfDirectory(
+            at: temporaryRoot,
+            includingPropertiesForKeys: nil
+        ).filter { $0.lastPathComponent.hasPrefix("session.corrupt-") && $0.pathExtension == "json" }
+        XCTAssertEqual(quarantinedFiles.count, 3)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: sessionURL.path))
+    }
+
+    @MainActor
     func testSessionStoreDoesNotTreatRawPathAsRestoredAuthorization() throws {
         let sessionURL = temporaryRoot.appendingPathComponent("session.json")
         let store = AppSessionStore(fileURL: sessionURL)

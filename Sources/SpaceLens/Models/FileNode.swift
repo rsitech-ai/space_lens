@@ -1,4 +1,28 @@
+import Darwin
 import Foundation
+
+public struct FileIdentity: Hashable, Sendable {
+    public let deviceID: UInt64
+    public let fileID: UInt64
+    public let fileType: UInt32
+
+    public static func capture(at url: URL) -> FileIdentity? {
+        var metadata = Darwin.stat()
+        guard lstat(url.path, &metadata) == 0 else {
+            return nil
+        }
+
+        return FileIdentity(
+            deviceID: UInt64(metadata.st_dev),
+            fileID: UInt64(metadata.st_ino),
+            fileType: UInt32(metadata.st_mode & mode_t(S_IFMT))
+        )
+    }
+
+    public var isSymbolicLink: Bool {
+        fileType == UInt32(S_IFLNK)
+    }
+}
 
 public struct FileNode: Identifiable, Hashable, Sendable {
     public let id: UUID
@@ -11,6 +35,7 @@ public struct FileNode: Identifiable, Hashable, Sendable {
     public let allocatedSize: Int64
     public let modifiedAt: Date?
     public let createdAt: Date?
+    public let fileIdentity: FileIdentity?
     public let children: [FileNode]
     public let scanError: String?
 
@@ -25,6 +50,7 @@ public struct FileNode: Identifiable, Hashable, Sendable {
         allocatedSize: Int64,
         modifiedAt: Date? = nil,
         createdAt: Date? = nil,
+        fileIdentity: FileIdentity? = nil,
         children: [FileNode] = [],
         scanError: String? = nil
     ) {
@@ -38,6 +64,7 @@ public struct FileNode: Identifiable, Hashable, Sendable {
         self.allocatedSize = allocatedSize
         self.modifiedAt = modifiedAt
         self.createdAt = createdAt
+        self.fileIdentity = fileIdentity ?? FileIdentity.capture(at: url)
         self.children = children
         self.scanError = scanError
     }
@@ -103,6 +130,7 @@ public extension FileNode {
             allocatedSize: isDirectory ? allocatedSize : self.allocatedSize,
             modifiedAt: modifiedAt,
             createdAt: createdAt,
+            fileIdentity: fileIdentity,
             children: updatedChildren,
             scanError: scanError
         )

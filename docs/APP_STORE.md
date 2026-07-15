@@ -6,7 +6,7 @@ SwiftPM development lane.
 ## Prerequisites
 
 - Active Apple Developer Program membership.
-- Xcode 26.5 or newer.
+- Xcode 26.6 or newer for the production release lane.
 - XcodeGen 2.45.4 installed. Release scripts fail closed on version drift.
 - App Store Connect app record for bundle ID `com.andrzej.spacelens`.
 - Apple Distribution signing certificate installed in the login keychain.
