@@ -62,8 +62,12 @@
     "residualRisk": "Same-user pathname replacement after final identity check and before recoverable Trash operation"
   },
   "externalCI": {
-    "status": "PENDING",
-    "historicalRisk": "A prior workflow did not allocate a runner because of account billing or spending-limit state"
+    "status": "BLOCKED_EXTERNAL",
+    "pullRequest": "https://github.com/s1korrrr/space_lens/pull/9",
+    "runId": 29418223217,
+    "jobId": 87361686258,
+    "stepsExecuted": 0,
+    "reason": "GitHub reports failed recent account payments or an insufficient spending limit"
   },
   "blockers": [
     "EXT-001", "EXT-002", "EXT-003", "EXT-004", "EXT-005", "EXT-006",

@@ -41,7 +41,7 @@ SpaceLens is `repo-ready` and `package-ready`, but it is not yet a release candi
 | Processed/TestFlight install | BLOCKED | No Apple-processed build exists |
 | Metadata/assets | PASS (draft/minimum) | Copy and one truthful screenshot prepared; owner approval and public URLs remain |
 | Legal/business/accessibility declarations | BLOCKED | Owner-controlled fields are deliberately unset |
-| GitHub CI | PENDING | A prior workflow could not allocate a runner because of account billing/spending limits; check the new draft PR before treating that historical condition as current |
+| GitHub CI | BLOCKED (external) | Draft PR #9 run `29418223217`, job `87361686258`: no runner, zero steps; GitHub reports failed account payments or an insufficient spending limit |
 
 ## Final Package
 
@@ -61,7 +61,7 @@ SpaceLens is `repo-ready` and `package-ready`, but it is not yet a release candi
 ## Security And Privacy
 
 - Formal repository scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md`
-- Final branch diff scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md`
+- Final source/release diff scan through dossier commit `023f09b`: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md`. The later CI-evidence commit changes documentation only.
 - No reportable Critical, High, Medium, or Low attacker vulnerability remains.
 - No network service, account, analytics, ads, tracking SDK, or third-party package dependency was found.
 - Filesystem metadata and saved authorization/session state stay on device.

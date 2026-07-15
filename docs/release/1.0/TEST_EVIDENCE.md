@@ -76,4 +76,8 @@ SPACE_LENS_DEVELOPMENT_TEAM=2NY8A789TN
 
 ## External CI
 
-The most recent historical GitHub Actions attempt did not allocate a runner because GitHub reported an account payment/spending-limit issue. Local CI-equivalent tests, project regeneration/parity, analyzer, universal builds and packaging pass. A new draft PR should be checked after publication; GitHub account remediation remains external if the same annotation recurs.
+- Draft PR: <https://github.com/s1korrrr/space_lens/pull/9>
+- Workflow run `29418223217`, job `87361686258`: `BLOCKED`; the job completed in three seconds with no runner, no logs and zero steps.
+- GitHub annotation: the job did not start because recent account payments failed or the spending limit must be increased.
+
+This is external account state, not a source/test failure. Local CI-equivalent tests, project regeneration/parity, analyzer, universal builds and packaging pass. After the account owner resolves billing/spending state, rerun this workflow.

@@ -21,7 +21,7 @@ All completed automated and package gates pass. The items below require account 
 | EXT-013 | Accessibility nutrition labels incomplete | Accessibility/account owner | Complete human QA and enter truthful labels |
 | EXT-014 | Apple validation, upload and processing not performed | Account owner | After approval, validate/upload the recorded package and review processing warnings |
 | EXT-015 | Processed clean-account/TestFlight install absent | QA/account owner | Install Apple-processed build and repeat the critical workflow |
-| EXT-016 | GitHub Actions runner allocation is pending; a prior PR was blocked by billing/spending state | GitHub account owner | Check the new draft PR; resolve account payment/spending state only if the historical failure recurs |
+| EXT-016 | GitHub Actions cannot allocate a runner | GitHub account owner | Resolve failed account payments or increase the spending limit, then rerun PR #9 workflow `29418223217`; job `87361686258` executed zero steps |
 
 ## Manual / Runtime QA
 

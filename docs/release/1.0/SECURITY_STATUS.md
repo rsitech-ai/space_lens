@@ -5,7 +5,7 @@ Status: `PASS` for repository and final release diff, with release blockers trac
 ## Reports
 
 - Formal repository scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md`
-- Final exact-branch diff scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md`
+- Final exact source/release diff scan through `023f09b`: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md`. The subsequent CI-status commit is documentation-only.
 
 No reportable Critical, High, Medium, or Low attacker vulnerability remains. The scan scope covers user-selected filesystem traversal, security-scoped bookmarks, scan classification, cleanup authorization, move-to-Bin behavior, local persistence, logging, entitlements, build/release scripts, dependencies, secret material and privacy-sensitive data flows.
 
