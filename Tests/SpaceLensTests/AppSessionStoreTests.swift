@@ -147,7 +147,7 @@ final class AppSessionStoreTests: XCTestCase {
         try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
         try Data(repeating: 1, count: 512).write(to: cacheFolder.appendingPathComponent("artifact.o"))
 
-        let firstLaunch = AppState(sessionStore: store)
+        let firstLaunch = AppState(sessionStore: store, requiresSecurityScopedAccess: false)
         firstLaunch.startScan(root: temporaryRoot)
         try await waitForScanToFinish(firstLaunch)
 
@@ -159,7 +159,8 @@ final class AppSessionStoreTests: XCTestCase {
         let restoredLaunch = AppState(
             sessionStore: store,
             restoreOnLaunch: true,
-            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot),
+            requiresSecurityScopedAccess: false
         )
         XCTAssertFalse(restoredLaunch.isScanning)
         XCTAssertNil(restoredLaunch.rootNode)

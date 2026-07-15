@@ -62,6 +62,7 @@ targets:
       - target: SpaceLens
     settings:
       base:
+        GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.andrzej.spacelens.tests
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/SpaceLens.app/Contents/MacOS/SpaceLens
         BUNDLE_LOADER: $(TEST_HOST)

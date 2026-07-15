@@ -24,7 +24,8 @@ final class AppStateScanTests: XCTestCase {
         try Data(repeating: 1, count: 256).write(to: buildFolder.appendingPathComponent("artifact.o"))
 
         let appState = AppState(
-            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot),
+            requiresSecurityScopedAccess: false
         )
         appState.startScan(root: temporaryRoot)
 
@@ -62,7 +63,8 @@ final class AppStateScanTests: XCTestCase {
             allocatedSize: 1
         )
         let appState = AppState(
-            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot),
+            requiresSecurityScopedAccess: false
         )
         appState.cleanupQueue = [
             CleanupCandidate(
@@ -90,7 +92,8 @@ final class AppStateScanTests: XCTestCase {
         try Data(repeating: 1, count: 512).write(to: buildFolder.appendingPathComponent("artifact.o"))
 
         let appState = AppState(
-            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
+            smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot),
+            requiresSecurityScopedAccess: false
         )
         appState.startSmartScan(root: temporaryRoot)
 
