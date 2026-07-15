@@ -1,32 +1,36 @@
 # SpaceLens 1.0 App Store Checklist
 
-Checked against official Apple sources on 2026-07-11.
+Checked against Apple documentation on 2026-07-15.
 
 | Item | Status | Evidence / owner action |
 | --- | --- | --- |
-| App name `SpaceLens` | PASS | Repository bundle display name |
-| Bundle ID `com.andrzej.spacelens` | PASS | `project.yml` and profile inventory |
-| Version 1.0 build 1 | PASS | `project.yml` and `Config/Info.plist` |
+| App name `SpaceLens` | PASS | Built bundle and metadata draft |
+| Bundle ID `com.andrzej.spacelens` | PASS | Project configuration, profile and signed payload |
+| Version 1.0 build 1 | PASS (local) / BLOCKED (ASC) | Built package verified; owner must confirm build availability |
 | Utilities category | PASS | `LSApplicationCategoryType` |
-| macOS 14.0 minimum | PASS | SwiftPM and XcodeGen configuration |
-| 1024px app icon source | PASS | Source asset present and compiled `AppIcon.icns`/`Assets.car` verified in the final clean-source package |
-| Mac screenshots | PASS (minimum) | Actual dark empty-state capture prepared at 1280x800; additional feature/light captures remain marketing work. Apple source: <https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/> |
-| Subtitle | NOT YET VERIFIED | Draft in `APP_REVIEW_NOTES.md`; owner approves final marketing copy |
-| Promotional text | NOT YET VERIFIED | Draft in `APP_REVIEW_NOTES.md` |
-| Description | NOT YET VERIFIED | Draft in `APP_REVIEW_NOTES.md` |
-| Keywords | NOT YET VERIFIED | Draft in `APP_REVIEW_NOTES.md` |
-| What’s New | NOT YET VERIFIED | Draft in `RELEASE_NOTES.md` |
-| Support URL | BLOCKED | Existing private-repository URL returns 404; publish a public HTTPS page with a real contact method |
-| Privacy Policy URL | BLOCKED | Existing private-repository URL returns 404; publish a public HTTPS policy page |
-| App privacy answers | BLOCKED | Account owner must confirm local-only/no-collection declaration in App Store Connect |
-| Updated age-rating questionnaire | BLOCKED | Account owner must answer current questions; Apple deadline has passed |
-| DSA trader status for EU | BLOCKED | Legal/account owner declaration required |
-| Export compliance | BLOCKED | Account owner must answer truthfully; repository uses no custom cryptography |
-| Content rights | BLOCKED | Owner confirmation required |
-| Pricing and territories | BLOCKED | Business/account decision |
-| Release method | BLOCKED | Owner chooses manual/automatic/phased release |
-| Review contact | BLOCKED | Account owner provides contact in App Store Connect |
-| Demo account | NOT APPLICABLE | App has no account/login/backend |
-| Review notes | NOT YET VERIFIED | Draft in `APP_REVIEW_NOTES.md` |
-| App Store Connect record | BLOCKED | Account state not accessible in this run |
-| Uploaded/processed build | BLOCKED | Requires validated archive plus account authorization |
+| macOS 14.0 minimum | PASS (config) / BLOCKED (runtime) | Deployment target verified; no macOS 14 runtime proof |
+| Production toolchain | PASS | Xcode 26.6 (17F113), macOS 26.5 SDK |
+| Xcode 27 compatibility | PASS (build) | Beta 3 universal warnings-as-errors build succeeded |
+| App icon | PASS | Source and compiled assets present in signed payload |
+| Screenshots | PASS (minimum) / OWNER REVIEW | Truthful 1280x800 dark empty-state image; approve freshness and add feature/light images if desired. [Apple screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/) |
+| Subtitle | PASS (draft) | `Smarter storage. Safer cleanup` (30 characters) |
+| Description, promotional text, keywords | PASS (draft) | `APP_REVIEW_NOTES.md` and `.codex/app-store/metadata.json` |
+| What’s New | PASS (draft) | `RELEASE_NOTES.md` |
+| Review notes | PASS (draft) | Local-only behavior and disposable-folder flow documented |
+| Demo account | NOT APPLICABLE | No account, login, or backend |
+| Support URL | BLOCKED | Publish a public unauthenticated HTTPS support page with a real contact method |
+| Privacy Policy URL | BLOCKED | Publish a public unauthenticated HTTPS policy matching `PRIVACY_DATA_MAP.md` |
+| App privacy answers | BLOCKED | Account/privacy owner confirmation required |
+| Age rating | BLOCKED | Complete the current App Store Connect questionnaire. [Apple age-rating help](https://developer.apple.com/help/app-store-connect/manage-app-information/set-an-app-age-rating/) |
+| DSA trader status | BLOCKED | Legal/account owner declaration required. [Apple DSA help](https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements) |
+| Export compliance | BLOCKED | Owner must answer truthfully; repository contains no custom cryptography |
+| Content rights | BLOCKED | Owner confirmation required for name, icon, copy and bundled assets |
+| Copyright/legal name | BLOCKED | Bundle says `Rafal Sikor`; signer says `Rafal Sikora`; owner must provide the exact legal string |
+| Pricing, territories, release method | BLOCKED | Business/account decisions |
+| Review contact | BLOCKED | Account owner provides current contact details |
+| Accessibility nutrition labels | BLOCKED | Complete human QA and enter truthful declarations. [Apple accessibility-label help](https://developer.apple.com/help/app-store-connect/manage-app-accessibility/manage-accessibility-nutrition-labels) |
+| App Store Connect record/role | BLOCKED | Confirm app record and upload/submission role |
+| Apple validation/upload/processing | BLOCKED | Requires explicit external authorization and ASC access |
+| Processed clean-account install | BLOCKED | Install Apple-processed build and repeat critical smoke |
+
+The metadata file intentionally leaves owner-controlled URLs, contacts, legal declarations, pricing, territories, and release mode unset. Local validation must expose missing decisions instead of inventing them.

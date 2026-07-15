@@ -1,25 +1,26 @@
 # SpaceLens 1.0 Privacy Data Map
 
-This map describes repository-observable behavior. App Store declarations still require owner confirmation.
+This map describes repository-observable behavior as of 2026-07-15. App Store declarations still require owner confirmation.
 
-| Data | Source | Purpose | Storage | Retention / deletion | Recipient | Tracking / identity |
-| --- | --- | --- | --- | --- | --- | --- |
-| User-selected root path and security-scoped bookmark | macOS folder picker | Restore authorized scan access | Local Application Support session file | Replaced by later session; removed with app data | None | No tracking; not linked off-device |
-| File/folder names and paths inside selected root | Local file metadata | Display disk usage and classify cleanup risk | In memory during session; selected queue paths persisted locally | Cleared/replaced by later scans; app data removal clears persistence | None | No tracking |
-| File sizes, allocation, timestamps, structure | Local file metadata | Aggregate disk use, sorting, safety evidence | In memory; aggregate snapshot/session context locally | Cleared/replaced by later scans | None | No tracking |
-| Scan errors | Local filesystem APIs | Explain inaccessible paths | In memory; user-visible | Cleared/replaced by later scans | None | No tracking |
-| Cleanup queue paths and classification | User selection plus local rules | Persist review-first cleanup intent | Local Application Support session file | Removed after cleanup/invalid path or with app data | None | No tracking |
-| Unified log error text | Local persistence failures | Diagnose failed session persistence | Apple unified log according to OS retention | OS-managed | Local device operator | Localized error detail is private and hash-masked; no file contents are logged |
-| App Store support navigation | User opens the Store product-page Support URL outside SpaceLens | Contact support | No app-side storage | Not retained by SpaceLens | Public support host selected by owner | SpaceLens has no tracking SDK; destination policy must be disclosed |
+| Data | Purpose | Storage and retention | Recipient / tracking |
+| --- | --- | --- | --- |
+| User-selected root path and security-scoped bookmark | Restore authorized scan access | Local Application Support session; replaced by a later session or removed by Forget/clear/app-data removal | On-device only; no tracking |
+| File/folder names and paths under the selected root | Display usage and classify cleanup risk | In memory; selected queue paths may persist in the local session | On-device only; no tracking |
+| File sizes, allocation, timestamps and structure | Aggregate disk use, sorting and safety evidence | In memory and local aggregate/session context; replaced by later scans | On-device only; no tracking |
+| Scan errors | Explain inaccessible or unsafe entries | In memory and user-visible; replaced by later scans | On-device only; no tracking |
+| Cleanup queue paths and classifications | Persist review-first cleanup intent | Local session file; cleared after cleanup, invalidation, Forget/clear or app-data removal | On-device only; no tracking |
+| Local persistence error diagnostics | Diagnose a failed session save/load | Apple Unified Logging under OS retention | Local device operator; private/hash-masked detail, no file content |
 
-## Manifest Reconciliation
+## Repository Reconciliation
 
-- `NSPrivacyCollectedDataTypes`: empty.
-- `NSPrivacyTracking`: false.
-- File timestamp reason: `3B52.1`, for metadata inside user-granted folders.
-- No third-party packages or SDKs are declared in `Package.swift` or `project.yml`.
-- Official source checked 2026-07-11: <https://developer.apple.com/documentation/bundleresources/privacy-manifest-files>
+- No backend, network service, account, analytics, crash-reporting SDK, advertising SDK, tracking SDK, or third-party package dependency is present.
+- File contents and metadata are not uploaded by SpaceLens.
+- `NSPrivacyCollectedDataTypes` is empty.
+- `NSPrivacyTracking` is `false`; no tracking domains are declared.
+- Required-reason API code `3B52.1` covers file timestamps inside user-granted folders.
+- The signed exported package contains the same privacy manifest and passes the repository lint.
+- Official reference: [Apple privacy manifest documentation](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files).
 
-## Owner Confirmation
+## Owner Confirmation Required
 
-The account owner must confirm that no separate backend, analytics, crash-reporting, ad, or support workflow collects SpaceLens user data outside this repository before entering “Data Not Collected” in App Store Connect.
+Before selecting “Data Not Collected,” the account/privacy owner must confirm that no operational support, web, backend, analytics, crash-reporting, or other workflow outside this repository collects SpaceLens user data. The public privacy policy must match both the shipped app and that operational reality.

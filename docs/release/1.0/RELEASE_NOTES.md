@@ -2,8 +2,8 @@
 
 ## What’s New
 
-SpaceLens 1.0 introduces local disk intelligence for macOS: folder scanning, Smart Scan for common rebuildable caches and generated outputs, evidence-backed cleanup classifications, persistent review queues, and confirmation-gated cleanup with visible progress.
+SpaceLens 1.0 helps you understand storage use on your Mac with local folder scanning, Smart Scan suggestions for common rebuildable caches and generated outputs, and clear evidence for each cleanup classification.
 
-## Verified Scope
+Review and filter candidates before taking action. Cleanup-ready items move to the Bin only after an exact-path confirmation, so the operation remains recoverable.
 
-The wording above reflects repository functionality. Final release notes will be reconciled with the final verified diff before the draft PR is opened.
+SpaceLens works locally, with no account, analytics, advertising, or tracking SDK.

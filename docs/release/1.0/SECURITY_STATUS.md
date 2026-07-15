@@ -1,22 +1,29 @@
 # SpaceLens 1.0 Security Status
 
-Final repository/diff status: `PASS` with external release blockers recorded separately.
+Status: `PASS` for repository and final release diff, with release blockers tracked separately.
 
-Scope includes user-selected filesystem traversal, security-scoped bookmarks, cleanup path authorization, move-to-Bin policy, local persistence, external links, App Sandbox entitlements, build/release scripts, dependencies, secrets, and privacy-sensitive logging.
+## Reports
 
-The repository-wide review and final diff scan found no reportable Critical, High, Medium, or Low attacker vulnerability and no committed secrets, keys, certificates, profiles, credentials, or suspicious tokens.
+- Formal repository scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md`
+- Final exact-branch diff scan: `/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md`
 
-Resolved in this release pass:
+No reportable Critical, High, Medium, or Low attacker vulnerability remains. The scan scope covers user-selected filesystem traversal, security-scoped bookmarks, scan classification, cleanup authorization, move-to-Bin behavior, local persistence, logging, entitlements, build/release scripts, dependencies, secret material and privacy-sensitive data flows.
 
-- Smart Scan no longer assumes ambient home-folder authorization.
-- Restored sessions require a valid security-scoped bookmark; raw paths are never treated as authorization.
-- Sandboxed scans fail closed when security-scope acquisition fails.
-- Generic `build`, `dist`, and `target` directories are not cleanup-ready.
-- Permanent-delete code and UI are absent from Store v1; cleanup uses the Bin only.
-- Every cleanup confirmation lists exact target paths.
-- Persistence error detail is private/hash-masked in Unified Logging.
-- External tipping links and developer-specific scan probes are absent.
-- CI uses read-only repository permissions, SHA-pins checkout, regenerates XcodeGen output, and checks built resource/version/architecture parity.
-- The archive script verifies the final Distribution-signed exported payload, required entitlements, privacy manifest, profile, architectures, dSYM UUIDs, installer signature, version/build, and quarantine state.
+## Controls Verified
 
-Residual product-safety risk remains around filesystem changes between review and action. The sandbox, classification gates, exact-path confirmation, and Trash-only behavior reduce impact, but the user must still review each path immediately before confirming.
+- Only the configured `~/Library/Caches` location is recognized; nested lookalikes fail classification.
+- Scan errors, symlinks and identity mismatches fail closed and cannot become cleanup-ready.
+- Authorized roots are canonicalized, and device/inode/type identity is rechecked before Trash.
+- Cleanup requires a complete exact-path confirmation and moves items to the Bin only; permanent deletion is absent.
+- Restored access requires a valid security-scoped bookmark; raw stored paths are not permission.
+- Session clear removes active and quarantined corrupt copies; corrupt-file retention is uniquely named and capped.
+- Archive/export captures the source SHA, refuses unsafe/unmarked output roots, and rechecks source SHA/tree after export.
+- XcodeGen is version-pinned; release-time environment override is not accepted.
+- Private persistence errors are hash-masked; repository searches found no credentials, keys, profiles or secret material.
+- No third-party package dependency or runtime network/analytics/tracking SDK is present.
+
+## Residual Product-Safety Risk
+
+A same-user process could replace a path in the narrow interval after the final `lstat` identity check and before Foundation performs `trashItem`. This does not cross a privilege boundary: SpaceLens is sandboxed, operates only inside user-authorized scope, requires exact-path confirmation, and moves to the recoverable Bin. The condition is retained as residual product-safety risk rather than reported as an attacker-exploitable vulnerability.
+
+Any source or release-script change after the final diff report invalidates this status and requires a new diff scan.

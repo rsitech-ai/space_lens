@@ -1,45 +1,89 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "product": "SpaceLens",
   "platform": "macOS",
   "version": "1.0",
   "build": "1",
   "bundleIdentifier": "com.andrzej.spacelens",
   "minimumSystemVersion": "14.0",
-  "currentDate": "2026-07-11",
-  "sourceRevision": "fc280c7f0559c39eebf819187fa629dd854692c8",
-  "branch": "feat/andrzej_agent_sota_lab",
-  "productionToolchain": {
-    "xcode": "26.5 (17F42)",
-    "sdk": "macOS 26.5",
-    "swift": "6.3.2"
-  },
+  "statusDate": "2026-07-15",
   "verdict": "BLOCKED",
-  "pullRequest": "https://github.com/s1korrrr/space_lens/pull/8",
-  "ci": {
-    "status": "BLOCKED",
-    "runId": 29165029326,
-    "reason": "GitHub billing or spending limit prevented runner allocation"
+  "readiness": {
+    "repository": "repo-ready",
+    "package": "package-ready",
+    "releaseCandidate": false,
+    "appStoreSubmission": false
   },
-  "archive": {
+  "source": {
+    "productRevision": "791fe6c53ba74e68a46eafbbca8d9df2ecd52b0f",
+    "branch": "feat/andrzej_spacelens-release-final",
+    "baseRevision": "d6ef7e4075fe4852cf8d8f289d9d646085355c69"
+  },
+  "toolchains": {
+    "production": {
+      "xcode": "26.6 (17F113)",
+      "sdk": "macOS 26.5",
+      "swift": "6.3.3"
+    },
+    "compatibility": {
+      "xcode": "27 beta 3 (27A5218g)",
+      "sdk": "macOS 27",
+      "status": "PASS_BUILD"
+    },
+    "xcodegen": "2.45.4"
+  },
+  "tests": {
+    "swiftpmWarningsAsErrors": "PASS_49_OF_49",
+    "xcode": "PASS_49_OF_49",
+    "xcodeResult": "/private/tmp/SpaceLens-final-791fe6c-tests.xcresult",
+    "analyze": "PASS",
+    "universalRelease": "PASS_X86_64_ARM64",
+    "xcode27WarningsAsErrors": "PASS_X86_64_ARM64",
+    "addressSanitizerSwiftPM": "PASS_49_OF_49",
+    "threadSanitizerSwiftPM": "PASS_49_OF_49"
+  },
+  "package": {
     "status": "PASS",
-    "path": "build/AppStore/SpaceLens.xcarchive",
-    "exportPath": "build/AppStore/export",
-    "packageSHA256": "b2f1e5509e1954216a60f9425718902aa5bddc727dabe4075283ffc11e6063b2"
+    "archivePath": "/private/tmp/SpaceLens-final-AppStore-791fe6c/SpaceLens.xcarchive",
+    "installerPath": "/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg",
+    "sha256": "a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a",
+    "bytes": 1420625,
+    "architectures": ["x86_64", "arm64"],
+    "teamIdentifier": "2NY8A789TN",
+    "hardenedRuntime": true,
+    "sandboxed": true,
+    "getTaskAllow": false
   },
-  "os27Compatibility": {
-    "status": "BLOCKED",
-    "reason": "Xcode 27 and macOS 27 SDK/runtime are not installed"
+  "security": {
+    "status": "PASS",
+    "repositoryReport": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md",
+    "finalDiffReport": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md",
+    "reportableFindings": 0,
+    "residualRisk": "Same-user pathname replacement after final identity check and before recoverable Trash operation"
   },
-  "artifacts": [
-    "RELEASE_STATUS.md",
-    "APP_STORE_CHECKLIST.md",
-    "TEST_EVIDENCE.md",
-    "PRIVACY_DATA_MAP.md",
-    "SECURITY_STATUS.md",
+  "externalCI": {
+    "status": "PENDING",
+    "historicalRisk": "A prior workflow did not allocate a runner because of account billing or spending-limit state"
+  },
+  "blockers": [
+    "EXT-001", "EXT-002", "EXT-003", "EXT-004", "EXT-005", "EXT-006",
+    "EXT-007", "EXT-008", "EXT-009", "EXT-010", "EXT-011", "EXT-012",
+    "EXT-013", "EXT-014", "EXT-015", "EXT-016",
+    "QA-001", "QA-002", "QA-003", "QA-004", "QA-005"
+  ],
+  "authorityBoundary": {
+    "allowed": ["local fixes", "local verification", "commit", "branch push", "draft pull request"],
+    "notAuthorized": ["merge", "tag", "App Store upload", "TestFlight mutation", "Submit for Review", "public release", "legal or account declarations"]
+  },
+  "releaseArtifacts": [
     "APP_REVIEW_NOTES.md",
-    "RELEASE_NOTES.md",
+    "APP_STORE_CHECKLIST.md",
     "BLOCKERS.md",
+    "PRIVACY_DATA_MAP.md",
+    "RELEASE_NOTES.md",
+    "RELEASE_STATUS.md",
+    "SECURITY_STATUS.md",
+    "TEST_EVIDENCE.md",
     "screenshots/SpaceLens-macOS-dark-empty-1280x800.jpeg"
   ]
 }

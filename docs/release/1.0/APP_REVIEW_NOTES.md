@@ -4,7 +4,7 @@
 
 - Name: SpaceLens
 - Subtitle: Smarter storage. Safer cleanup
-- Promotional text: Find large files, explain cleanup risk, and review recoverable space locally on your Mac.
+- Promotional text: Find large files, understand cleanup risk, and review recoverable space locally on your Mac.
 - Primary category: Utilities
 - Keywords: disk,storage,cleanup,files,space,cache,developer,utility
 
@@ -18,27 +18,26 @@ Key capabilities:
 
 - Scan user-selected folders and summarize disk usage.
 - Find common caches and generated build outputs with Smart Scan.
-- Filter, sort, inspect, and queue cleanup candidates.
+- Filter, sort, inspect and queue cleanup candidates.
 - Move cleanup-ready items to the Bin after reviewing every target path.
 - Restore the last authorized scan context locally.
-- Work fully offline with no account, analytics, or tracking SDK.
+- Work offline with no account, analytics, advertising or tracking SDK.
 
-## Review Notes
+## App Review Notes
 
-SpaceLens has no login, backend, in-app purchase, subscription, or demo credentials.
-
-The app requests folder access only through the standard macOS folder picker. It uses an app-scoped security bookmark to restore access to the folder the reviewer selected. All classification is local. File contents and metadata are not uploaded.
+SpaceLens has no login, backend, in-app purchase, subscription or demo credentials. It requests access only through the standard macOS folder picker and uses an app-scoped security bookmark to restore access to the folder the reviewer selected. Classification runs locally; file contents and metadata are not uploaded.
 
 Suggested review flow:
 
-1. Choose a disposable test folder containing a normal document and a generated `.build` directory.
-2. Select **Select Folder** and wait for the scan to finish.
-3. Inspect the safety explanation in the right inspector.
-4. Verify that valuable or unknown content cannot be cleaned.
-5. For generated disposable test content, open the Move to Bin confirmation and verify that every target path is listed before cancelling or moving the fixture.
+1. Create a disposable folder containing a normal document and a generated `.build` directory.
+2. Use **Select Folder** and wait for the scan to finish.
+3. Inspect the safety explanation in the right-side inspector.
+4. Verify that valuable, unknown, inaccessible and symlink content cannot be queued for cleanup.
+5. Select disposable generated content, open the **Move to Bin** confirmation and verify that every exact target path is listed.
+6. Cancel, or move only the disposable fixture. SpaceLens has no permanent-delete operation.
 
-Do not use personal reviewer data for destructive testing. A disposable folder is sufficient.
+Do not use personal reviewer data for destructive testing. A disposable test folder is sufficient.
 
 ## Owner-Controlled Fields
 
-Review contact, copyright owner confirmation (including the current `Rafal Sikor` bundle string versus the `Rafal Sikora` signing identity), pricing, territories, release method, age rating, DSA trader status, export compliance, content rights, public Support/Privacy URLs, and final privacy answers require the account owner. These deliberately remain unset in `.codex/app-store/metadata.json` so local validation fails visibly instead of inventing declarations.
+The following deliberately remain unset until the accountable owner supplies them: public Support and Privacy URLs, review contact, privacy answers, age rating, DSA trader status, export compliance, content rights, pricing, territories, release method, accessibility labels and legal copyright string. The bundle currently says `Rafal Sikor`, while the signing identity says `Rafal Sikora`; the exact legal value must be confirmed rather than silently changed.
