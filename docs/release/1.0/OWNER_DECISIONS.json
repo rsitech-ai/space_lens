@@ -17,6 +17,7 @@
     "traderPublicEmail": "info@rsitech.ai",
     "traderPublicPhone": "private contact stored only in App Store Connect",
     "traderWebsite": "https://rsitech.ai",
+    "traderPhysicalAddressApprovedForPublicDisplay": true,
     "agreementsTaxBankingMembershipCurrent": true,
     "accountCanUploadAndSubmit": true
   },
@@ -41,7 +42,7 @@
   },
   "mustRemainOwnerControlled": {
     "digitalServicesActTraderStatus": "TRADER",
-    "traderPhysicalAddressApprovedForPublicDisplay": null,
+    "traderPhysicalAddressApprovedForPublicDisplay": true,
     "contentRightsConfirmed": true,
     "appPrivacyAnswersConfirmed": true,
     "ageRatingComplete": true,

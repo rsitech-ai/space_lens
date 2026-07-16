@@ -21,7 +21,7 @@ Checked against the release repository and current Apple/web state on 2026-07-16
 | Privacy Policy URL | PASS | <https://www.rsitech.ai/spacelens/privacy> returns signed-out HTTP 200 |
 | App privacy answers | OWNER CONFIRMED / PENDING ASC ENTRY | Data Not Collected, based on verified local-only operation |
 | Age rating | OWNER CONFIRMED / PENDING ASC ENTRY | All content-frequency answers None; accept Apple’s lowest resulting rating |
-| DSA trader status | OWNER CONFIRMED / VERIFICATION BLOCKED | Trader selected; Apple requires a physical address or P.O. Box for public display, plus email/phone/address/document verification |
+| DSA trader status | OWNER CONFIRMED / PHONE CODE PENDING | Trader selected; approved address, email and phone entered; Apple sent an SMS code and the workflow is paused at code entry |
 | Export compliance | OWNER CONFIRMED | No restricted encryption; bundle declares `ITSAppUsesNonExemptEncryption=false` |
 | Content rights | OWNER CONFIRMED | Owner confirmed rights to the name, icon, copy and bundled assets |
 | Copyright/legal name | OWNER CONFIRMED | `Rafal Sikora` in bundle metadata |

@@ -131,8 +131,8 @@
     "traderPublicEmail": "info@rsitech.ai",
     "traderPublicPhone": "private contact stored only in App Store Connect",
     "traderWebsite": "https://rsitech.ai",
-    "traderPhysicalAddressApprovedForPublicDisplay": null,
-    "traderVerificationStatus": "BLOCKED_PHYSICAL_ADDRESS_REQUIRED"
+    "traderPhysicalAddressApprovedForPublicDisplay": true,
+    "traderVerificationStatus": "PENDING_PHONE_CODE_VERIFICATION"
   },
   "blockers": [
     "EXT-008", "EXT-013", "EXT-014", "EXT-015",
@@ -140,8 +140,8 @@
   ],
   "authorityBoundary": {
     "allowed": ["local fixes", "local verification", "local commits"],
-    "completedByPriorExactAuthorization": ["SpaceLens branch push", "website branch push", "website PR and merge", "public page deployment", "Apple App ID creation", "Store profile creation", "App Store record creation using SpaceLens: Disk Cleanup", "DSA Trader selection"],
-    "notAuthorized": ["publish unconfirmed physical address", "App Store validation/upload", "TestFlight mutation", "Submit for Review", "tag", "public release", "new branch push"]
+    "completedByPriorExactAuthorization": ["SpaceLens branch push", "website branch push", "website PR and merge", "public page deployment", "Apple App ID creation", "Store profile creation", "App Store record creation using SpaceLens: Disk Cleanup", "DSA Trader selection", "DSA public contact entry and SMS verification request"],
+    "notAuthorized": ["complete DSA verification without an owner-supplied code or separately authorized document", "App Store validation/upload", "TestFlight mutation", "Submit for Review", "tag", "public release", "new branch push"]
   },
   "releaseArtifacts": [
     "APP_REVIEW_NOTES.md",
