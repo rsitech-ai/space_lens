@@ -100,15 +100,17 @@
 - Sandbox/entitlements: App Sandbox plus user-selected read/write file access
   and app-scoped security bookmark persistence.
 - Privacy manifest: present at `Resources/PrivacyInfo.xcprivacy`.
-- Privacy labels: draft as no collected data; local selected-folder metadata
-  processing only.
+- Privacy labels: owner-confirmed as Data Not Collected; local selected-folder
+  metadata processing only.
 - Assets: App icon asset catalog present.
-- Metadata: local privacy/support drafts are present; public HTTPS URLs remain blocked.
+- Metadata: public privacy/support URLs return signed-out HTTP 200; the App Store
+  record exists as `SpaceLens: Disk Cleanup`.
 - Review notes: app scans only user-selected folders, performs local risk
   classification, and gates destructive cleanup behind confirmation.
-- Historical export exists; a final current-source export remains pending.
-- Known blockers: App Store Connect app record confirmation, final metadata,
-  screenshots, privacy labels, age rating, and upload/submission.
+- A current signed `com.rsitech.spacelens` package exists and is held before
+  upload pending final security and exact-digest authorization.
+- Known blockers: DSA phone verification, human macOS 14/accessibility QA, final
+  security, package upload/processing, processed-build install, and review submission.
 
 ## Iteration Log
 

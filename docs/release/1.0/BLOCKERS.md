@@ -8,7 +8,7 @@ All currently runnable non-security repository gates pass. A current signed `com
 | --- | --- | --- | --- |
 | EXT-008 | DSA Trader phone verification code is pending | Legal/account owner | Enter the SMS code Apple sent to `private contact stored only in App Store Connect`, then complete any further Apple verification steps presented |
 | EXT-013 | Accessibility nutrition labels are incomplete | Accessibility/account owner | Complete human QA and enter only labels supported by evidence |
-| EXT-014 | Apple validation, upload and processing have not run | Account owner | After record creation and final security, approve the exact package digest for validation/upload |
+| EXT-014 | Apple validation, upload and processing have not run | Account owner | After final security and completed DSA verification, approve the exact package digest for validation/upload |
 | EXT-015 | Apple-processed clean-account install is absent | QA/account owner | Install the processed build and repeat the critical workflow |
 | EXT-016 | GitHub Actions cannot allocate a runner | GitHub account owner | Latest run `29481267996`, job `87565329735`, executed zero steps due billing/spending state; rerun after the account issue is fixed |
 
@@ -30,7 +30,7 @@ All currently runnable non-security repository gates pass. A current signed `com
 - Support and Privacy pages are published and return signed-out HTTP 200.
 - App Store Connect record `6791508081` exists as `SpaceLens: Disk Cleanup`, English (U.S.), SKU `SPACELENS-MAC-001`, Full Access, macOS version 1.0 Prepare for Submission.
 - The new App Store Connect record has no uploaded builds; package build 1 remains unconsumed.
-- The release branch is pushed at package source `0df601ffffc3c0fb97482df4b1abd7722e69e3d4`; draft PR #9 exists.
+- The Store package was built from release source `0df601ffffc3c0fb97482df4b1abd7722e69e3d4`; PR #9 carries the later metadata- and evidence-only commits.
 
 ## Resolved Owner Decisions
 

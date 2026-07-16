@@ -1,6 +1,6 @@
 # SpaceLens 1.0 Privacy Data Map
 
-This map describes repository-observable behavior as of 2026-07-15. App Store declarations still require owner confirmation.
+This map describes repository-observable behavior as of 2026-07-15. The owner confirmed the matching Data Not Collected declaration on 2026-07-16.
 
 | Data | Purpose | Storage and retention | Recipient / tracking |
 | --- | --- | --- | --- |
@@ -21,6 +21,6 @@ This map describes repository-observable behavior as of 2026-07-15. App Store de
 - The signed exported package contains the same privacy manifest and passes the repository lint.
 - Official reference: [Apple privacy manifest documentation](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files).
 
-## Owner Confirmation Required
+## Owner Confirmation
 
-Before selecting “Data Not Collected,” the account/privacy owner must confirm that no operational support, web, backend, analytics, crash-reporting, or other workflow outside this repository collects SpaceLens user data. The public privacy policy must match both the shipped app and that operational reality.
+The account/privacy owner confirmed Data Not Collected, including that no operational support, web, backend, analytics, crash-reporting, or other workflow outside this repository collects SpaceLens user data. The public privacy policy must continue to match both the shipped app and that operational reality.

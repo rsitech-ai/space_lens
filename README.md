@@ -50,14 +50,16 @@ SpaceLens includes a reproducible Xcode/App Store packaging lane:
 SPACE_LENS_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./script/archive_app_store.sh
 ```
 
-Existing local App Store exports are stale and are not current release
-evidence. Generate a fresh archive only after the release-hardening gate passes.
+Retired App Store exports have been removed. The current signed package and its
+hold conditions are recorded in the canonical 1.0 release dossier; generate a
+new archive only if code or packaging inputs change.
 
 See [docs/APP_STORE.md](docs/APP_STORE.md) for signing, archive, upload, and
 App Store Connect metadata steps.
 
-Production readiness notes live in [docs/production-plan.md](docs/production-plan.md)
-and [docs/app-store-release-checklist.md](docs/app-store-release-checklist.md).
+Production readiness notes live in [docs/production-plan.md](docs/production-plan.md).
+The canonical SpaceLens 1.0 gate matrix and remaining blockers live in
+[docs/release/1.0/RELEASE_STATUS.md](docs/release/1.0/RELEASE_STATUS.md).
 
 ## Workflow
 

@@ -61,14 +61,13 @@ Upload the exported package using one of Apple's supported paths:
 
 Prepare these before submitting for review:
 
-- App name: `SpaceLens`
+- App name: `SpaceLens: Disk Cleanup`
 - Bundle ID: `com.rsitech.spacelens`
 - Category: Utilities
-- Privacy Policy URL: prepared at
-  `https://www.rsitech.ai/spacelens/privacy`; blocked until deployment returns
-  HTTP 200 without authentication.
-- Support URL: prepared at `https://www.rsitech.ai/spacelens/support`; blocked
-  until deployment returns HTTP 200 without authentication.
+- Privacy Policy URL: `https://www.rsitech.ai/spacelens/privacy`; verified
+  signed-out HTTP 200.
+- Support URL: `https://www.rsitech.ai/spacelens/support`; verified signed-out
+  HTTP 200.
 - App privacy answers: local filesystem metadata is processed on device; no
   file contents or metadata are sent to external services by SpaceLens.
 - Review notes: SpaceLens scans only user-selected folders, classifies cleanup

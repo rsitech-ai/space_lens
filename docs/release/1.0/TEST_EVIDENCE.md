@@ -18,14 +18,15 @@ Fresh non-security evidence captured on 2026-07-15 and 2026-07-16 from product s
 | Gate | Result | Command / artifact |
 | --- | --- | --- |
 | SwiftPM warnings-as-errors | PASS | `swift test -Xswiftc -warnings-as-errors`; 50 tests, 0 failures |
-| Repository readiness validator | PASS | Fresh 2026-07-16 run: `SPACE_LENS_VALIDATION_DERIVED_DATA=/private/tmp/SpaceLens-dossier-validation-20260716 ./script/validate_app_store_readiness.sh`; 50/50 plus unsigned Xcode Debug and project parity |
-| Signed Xcode tests | PASS | 50/50; `/private/tmp/SpaceLens-presecurity-6d9f314-tests.xcresult` |
-| Universal Xcode Release | PASS | Warnings as errors; `/private/tmp/SpaceLens-presecurity-release-6d9f314`; `x86_64 arm64` |
+| Repository readiness validator | PASS | Fresh 2026-07-16 run at unchanged product source: 50/50 plus unsigned Xcode Debug and project parity; temporary DerivedData removed after evidence capture |
+| Signed Xcode tests | PASS | 50/50 at product source `6d9f314`; temporary `.xcresult` removed after evidence capture |
+| Universal Xcode Release | PASS | Warnings as errors at product source `6d9f314`; `x86_64 arm64`; temporary DerivedData removed after evidence capture |
 | Bundle identity/export key | PASS | Built app reports `com.rsitech.spacelens` and `ITSAppUsesNonExemptEncryption=false` |
-| Xcode Release analyze | PASS | `/private/tmp/SpaceLens-presecurity-analyze-6d9f314`; `ANALYZE SUCCEEDED` |
+| Xcode Release analyze | PASS | Product source `6d9f314`; `ANALYZE SUCCEEDED`; temporary DerivedData removed after evidence capture |
 | Address Sanitizer | PASS | `swift test --sanitize=address -Xswiftc -warnings-as-errors`; 50/50 |
 | Thread Sanitizer | PASS | `swift test --sanitize=thread -Xswiftc -warnings-as-errors`; 50/50 |
-| Development bundle smoke | PASS | `./script/build_and_run.sh --verify`; `dist/SpaceLens.app` built, ad-hoc signed and launched |
+| PR merge refresh | PASS / XCODE REFRESH BLOCKED (environment) | Fresh warnings-as-errors SwiftPM Release build, 50/50 SwiftPM tests and development bundle smoke passed on 2026-07-16. Three Xcode refresh attempts stalled before compilation in `SWBBuildService` while another repository's Xcode build was also stalled; no SpaceLens compiler or test failure was emitted. Product code is unchanged from `6d9f314`, so the retained Xcode/archive evidence remains source-matched. |
+| Development bundle smoke | PASS | Fresh 2026-07-16 `./script/build_and_run.sh --verify`; `dist/SpaceLens.app` built, ad-hoc signed and launched |
 | Release CLI inspection | PASS | Doctor: Xcode 26.6; scheme `SpaceLens`; bundle `com.rsitech.spacelens`; team `2NY8A789TN`; archive rebuild required |
 
 The first universal-build invocation failed before compilation because Xcode requires `-scheme` when `-derivedDataPath` is supplied. Adding the repository scheme resolved the command-contract issue; the corrected universal build and analyzer both passed. This was not a source failure.
@@ -53,15 +54,15 @@ A current Mac App Store archive and installer package were produced successfully
 - Export: `/private/tmp/SpaceLens-AppStore-20260716-0df601f/export`
 - Installer: `/private/tmp/SpaceLens-AppStore-20260716-0df601f/export/SpaceLens.pkg`
 - Package SHA-256: `e2e5f484ffa7f648a2019b7a8cbf75babc96835dbddfcb76378a87ff7904af05`
-- Expanded inspection: `/private/tmp/SpaceLens-Package-Inspect-e2e5f484`
+- Expanded inspection: completed on 2026-07-16; the temporary expanded directory was removed after evidence capture
 
 Inspection passed for Apple Distribution app signature, 3rd Party Mac Developer Installer package signature, team `2NY8A789TN`, `com.rsitech.spacelens`, version 1.0 (1), minimum macOS 14.0, `x86_64 arm64`, App Sandbox, user-selected read-write access, app-scope security-scoped bookmarks, absence of `get-task-allow`, `PrivacyInfo.xcprivacy`, matching dSYMs/binary UUIDs and absence of quarantine.
 
 The export embedded a matching Xcode-managed Store profile for `2NY8A789TN.com.rsitech.spacelens`, expiring 2027-06-29. The separately created and installed portal profile is `SpaceLens Mac App Store 2026`, portal ID `YPR4Y4YH4S`, UUID `8ae0f808-5c80-4c7c-8075-927c15c8de44`, also expiring 2027-06-29.
 
-This package has not been validated with App Store Connect or uploaded. It remains on hold until final security, record creation and fresh exact-digest authorization.
+This package has not been validated with App Store Connect or uploaded. It remains on hold until final security, completed DSA verification and fresh exact-digest authorization.
 
-The old package at `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg`, SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a`, is quarantined evidence for the retired `com.andrzej.spacelens` identity and must not be uploaded.
+The old package formerly stored at `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg`, SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a`, was removed from local storage. Its retired `com.andrzej.spacelens` identity and digest remain blocklisted.
 
 ## Screenshot Evidence
 

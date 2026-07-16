@@ -51,7 +51,7 @@ All currently runnable non-security repository gates pass at product source `6d9
 
 ## Stale Package — Never Upload
 
-`/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg` and SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a` belong to the retired `com.andrzej.spacelens` identity and pre-fix source. They are not a release candidate.
+The package formerly stored at `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg`, SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a`, belonged to the retired `com.andrzej.spacelens` identity and pre-fix source. It was removed from local storage on 2026-07-16; the digest remains blocklisted and must never be uploaded.
 
 ## Current Package — Hold Before Upload
 

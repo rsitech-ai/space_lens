@@ -35,4 +35,4 @@ Checked against the release repository and current Apple/web state on 2026-07-16
 | App Store validation/upload/processing | BLOCKED | Requires final security, completed DSA verification and fresh exact-digest authorization |
 | Processed build install | BLOCKED | No Apple-processed build exists |
 
-The stale package for `com.andrzej.spacelens` must never be uploaded. The current inspected package is `/private/tmp/SpaceLens-AppStore-20260716-0df601f/export/SpaceLens.pkg`, SHA-256 `e2e5f484ffa7f648a2019b7a8cbf75babc96835dbddfcb76378a87ff7904af05`.
+The stale package for `com.andrzej.spacelens` was removed from local storage; its recorded digest remains blocklisted. The current inspected package is `/private/tmp/SpaceLens-AppStore-20260716-0df601f/export/SpaceLens.pkg`, SHA-256 `e2e5f484ffa7f648a2019b7a8cbf75babc96835dbddfcb76378a87ff7904af05`.

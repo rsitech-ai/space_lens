@@ -36,16 +36,18 @@
   "tests": {
     "swiftpmWarningsAsErrors": "PASS_50_OF_50",
     "xcode": "PASS_50_OF_50",
-    "xcodeResult": "/private/tmp/SpaceLens-presecurity-6d9f314-tests.xcresult",
+    "xcodeResult": null,
+    "xcodeEvidenceRetention": "CAPTURED_AT_PRODUCT_REVISION_6D9F314_TEMP_ARTIFACT_REMOVED",
     "validator": "PASS_50_OF_50",
-    "validatorDerivedData": "/private/tmp/SpaceLens-dossier-validation-20260716",
+    "validatorDerivedData": null,
     "analyze": "PASS",
-    "analyzeDerivedData": "/private/tmp/SpaceLens-presecurity-analyze-6d9f314",
+    "analyzeDerivedData": null,
     "universalRelease": "PASS_X86_64_ARM64",
-    "releaseDerivedData": "/private/tmp/SpaceLens-presecurity-release-6d9f314",
+    "releaseDerivedData": null,
     "addressSanitizerSwiftPM": "PASS_50_OF_50",
     "threadSanitizerSwiftPM": "PASS_50_OF_50",
-    "developmentBundleSmoke": "PASS"
+    "developmentBundleSmoke": "PASS_FRESH_2026_07_16",
+    "mergeRefresh": "SWIFTPM_TEST_RELEASE_AND_SMOKE_PASS_XCODE_REFRESH_BLOCKED_SHARED_SWIFTBUILD_SERVICE_STALL"
   },
   "runtime": {
     "sandboxedSyntheticWorkflow": "PASS_CANCEL_ONLY",
@@ -90,7 +92,8 @@
     "status": "PASS_HOLD_PRESECURITY",
     "archivePath": "/private/tmp/SpaceLens-AppStore-20260716-0df601f/SpaceLens.xcarchive",
     "installerPath": "/private/tmp/SpaceLens-AppStore-20260716-0df601f/export/SpaceLens.pkg",
-    "inspectionPath": "/private/tmp/SpaceLens-Package-Inspect-e2e5f484",
+    "inspectionPath": null,
+    "inspectionEvidenceRetention": "CAPTURED_2026_07_16_TEMP_EXPANSION_REMOVED",
     "sha256": "e2e5f484ffa7f648a2019b7a8cbf75babc96835dbddfcb76378a87ff7904af05",
     "architectures": ["x86_64", "arm64"],
     "teamIdentifier": "2NY8A789TN",
