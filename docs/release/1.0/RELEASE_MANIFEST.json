@@ -66,8 +66,14 @@
     "manualProfileId": "YPR4Y4YH4S",
     "manualProfileUuid": "8ae0f808-5c80-4c7c-8075-927c15c8de44",
     "profileExpiration": "2027-06-29",
-    "appStoreConnectRecord": "BLOCKED_NAME_UNAVAILABLE",
-    "rejectedPublicName": "SpaceLens"
+    "appStoreConnectRecord": "PASS_PREPARE_FOR_SUBMISSION",
+    "appStoreConnectAppleId": "6791508081",
+    "publicName": "SpaceLens: Disk Cleanup",
+    "primaryLanguage": "English (U.S.)",
+    "sku": "SPACELENS-MAC-001",
+    "macosVersion": "1.0",
+    "buildsUploaded": 0,
+    "rejectedPriorPublicName": "SpaceLens"
   },
   "publicPages": {
     "support": {
@@ -121,16 +127,21 @@
     "ageRating": "ALL_CONTENT_FREQUENCIES_NONE",
     "exportCompliance": "NO_RESTRICTED_ENCRYPTION",
     "contentRights": true,
-    "digitalServicesActTraderStatus": null
+    "digitalServicesActTraderStatus": "TRADER",
+    "traderPublicEmail": "info@rsitech.ai",
+    "traderPublicPhone": "private contact stored only in App Store Connect",
+    "traderWebsite": "https://rsitech.ai",
+    "traderPhysicalAddressApprovedForPublicDisplay": null,
+    "traderVerificationStatus": "BLOCKED_PHYSICAL_ADDRESS_REQUIRED"
   },
   "blockers": [
-    "EXT-001", "EXT-002", "EXT-008", "EXT-013", "EXT-014", "EXT-015",
+    "EXT-008", "EXT-013", "EXT-014", "EXT-015",
     "EXT-016", "QA-001", "QA-003", "QA-004", "QA-005", "SEC-001"
   ],
   "authorityBoundary": {
     "allowed": ["local fixes", "local verification", "local commits"],
-    "completedByPriorExactAuthorization": ["SpaceLens branch push", "website branch push", "website PR and merge", "public page deployment", "Apple App ID creation", "Store profile creation", "App Store record attempt using public name SpaceLens"],
-    "notAuthorized": ["substitute App Store name", "DSA declaration", "App Store validation/upload", "TestFlight mutation", "Submit for Review", "tag", "public release", "new branch push"]
+    "completedByPriorExactAuthorization": ["SpaceLens branch push", "website branch push", "website PR and merge", "public page deployment", "Apple App ID creation", "Store profile creation", "App Store record creation using SpaceLens: Disk Cleanup", "DSA Trader selection"],
+    "notAuthorized": ["publish unconfirmed physical address", "App Store validation/upload", "TestFlight mutation", "Submit for Review", "tag", "public release", "new branch push"]
   },
   "releaseArtifacts": [
     "APP_REVIEW_NOTES.md",

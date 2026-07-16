@@ -6,9 +6,7 @@ All currently runnable non-security repository gates pass. A current signed `com
 
 | ID | Blocker | Owner | Exact next action |
 | --- | --- | --- | --- |
-| EXT-001 | The public App Store name `SpaceLens` is already in use; no App Store Connect record was created | Product/account owner | Choose an available public name and explicitly approve the exact replacement record payload |
-| EXT-002 | Version 1.0 build 1 availability is unknown | Account owner | Check the newly created App Store Connect record; increment before upload if build 1 is unavailable |
-| EXT-008 | DSA trader status is undecided | Legal/account owner | Make one truthful declaration: Trader or Non-trader; Trader requires public contact details and Apple verification |
+| EXT-008 | DSA Trader verification requires a physical address or P.O. Box for public display | Legal/account owner | Approve the exact public address, then complete Apple email, phone, address and document verification; `rsitech.ai` remains the website and cannot be entered as the address |
 | EXT-013 | Accessibility nutrition labels are incomplete | Accessibility/account owner | Complete human QA and enter only labels supported by evidence |
 | EXT-014 | Apple validation, upload and processing have not run | Account owner | After record creation and final security, approve the exact package digest for validation/upload |
 | EXT-015 | Apple-processed clean-account install is absent | QA/account owner | Install the processed build and repeat the critical workflow |
@@ -30,6 +28,8 @@ All currently runnable non-security repository gates pass. A current signed `com
 - Mac App Store provisioning profile `SpaceLens Mac App Store 2026` was created and installed; it expires 2027-06-29.
 - A matching Xcode-managed Store profile was embedded during successful archive export.
 - Support and Privacy pages are published and return signed-out HTTP 200.
+- App Store Connect record `6791508081` exists as `SpaceLens: Disk Cleanup`, English (U.S.), SKU `SPACELENS-MAC-001`, Full Access, macOS version 1.0 Prepare for Submission.
+- The new App Store Connect record has no uploaded builds; package build 1 remains unconsumed.
 - The release branch is pushed at package source `0df601ffffc3c0fb97482df4b1abd7722e69e3d4`; draft PR #9 exists.
 
 ## Resolved Owner Decisions
@@ -41,10 +41,12 @@ All currently runnable non-security repository gates pass. A current signed `com
 - Age rating: all content-frequency answers None; accept Apple’s lowest resulting rating.
 - Export compliance: no restricted/non-exempt encryption.
 - Content rights: confirmed.
+- DSA status: Trader.
+- Trader public email/phone: `info@rsitech.ai`, `private contact stored only in App Store Connect`; public physical address remains unconfirmed.
 - Pricing: free.
 - Territories: all available.
 - Release: automatic after approval.
 - Agreements, tax, banking, developer-program membership and upload/submission role: owner-confirmed current.
 - GitHub CI exception: proceed with fresh local CI-equivalent evidence while the external billing/spending blocker remains visible; this does not turn the failed workflow green.
 
-The completed authorization did not include a substitute App Store name, DSA declaration, package upload, TestFlight changes, submission, tag or public release. Each remains a separate external action.
+The completed authorization included App Store record creation and the Trader selection. It did not include publication of an unconfirmed physical address, package upload, TestFlight changes, submission, tag or public release. Each remains a separate external action.

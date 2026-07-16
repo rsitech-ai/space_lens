@@ -12,6 +12,11 @@
     "price": "FREE",
     "territories": "ALL_AVAILABLE",
     "releaseMethod": "AUTOMATIC",
+    "appStorePublicName": "SpaceLens: Disk Cleanup",
+    "digitalServicesActTraderStatus": "TRADER",
+    "traderPublicEmail": "info@rsitech.ai",
+    "traderPublicPhone": "private contact stored only in App Store Connect",
+    "traderWebsite": "https://rsitech.ai",
     "agreementsTaxBankingMembershipCurrent": true,
     "accountCanUploadAndSubmit": true
   },
@@ -35,7 +40,8 @@
     "accessibilityLabels": "DECLARE_ONLY_AFTER_HUMAN_PROOF"
   },
   "mustRemainOwnerControlled": {
-    "digitalServicesActTraderStatus": null,
+    "digitalServicesActTraderStatus": "TRADER",
+    "traderPhysicalAddressApprovedForPublicDisplay": null,
     "contentRightsConfirmed": true,
     "appPrivacyAnswersConfirmed": true,
     "ageRatingComplete": true,

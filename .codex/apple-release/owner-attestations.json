@@ -10,7 +10,7 @@
   "commonTaskEvidence": [],
   "ageRatingComplete": true,
   "exportCompliance": "doesNotUseRestrictedEncryption",
-  "digitalServicesAct": null,
+  "digitalServicesAct": "trader",
   "contentRightsConfirmed": true,
   "medicalDeclaration": null,
   "privacyAnswersConfirmed": true,
