@@ -1,12 +1,12 @@
 # SpaceLens 1.0 App Store Checklist
 
-Checked against the release repository on 2026-07-15.
+Checked against the release repository and current Apple/web state on 2026-07-16.
 
 | Item | Status | Evidence / owner action |
 | --- | --- | --- |
-| App name `SpaceLens` | PASS | Built bundle and metadata draft |
-| Bundle ID `com.rsitech.spacelens` | PASS (repo) / BLOCKED (Apple) | Local project is consistent; create the matching Apple identifier, profile and app record |
-| Version 1.0 build 1 | PASS (repo) / BLOCKED (ASC) | Config and fresh builds pass; remote build-number availability remains unknown |
+| Public App Store name | BLOCKED | Apple reports `SpaceLens` is already in use; owner must choose and approve an available public name |
+| Bundle ID `com.rsitech.spacelens` | PASS | Repository, explicit Apple ID, Store profile and signed package agree |
+| Version 1.0 build 1 | PASS (package) / BLOCKED (ASC) | Signed package is 1.0 (1); remote build-number availability remains unknown until record creation |
 | Utilities category | PASS | `LSApplicationCategoryType` |
 | macOS 14.0 minimum | PASS (config) / BLOCKED (runtime) | Deployment target verified; no macOS 14 runtime proof |
 | Production toolchain | PASS | Xcode 26.6 (17F113), macOS 26.5 SDK |
@@ -17,13 +17,13 @@ Checked against the release repository on 2026-07-15.
 | Description, keywords and What’s New | PASS (draft) | `.codex/app-store/metadata.json` and `RELEASE_NOTES.md` |
 | Review notes/contact | OWNER CONFIRMED | Rafal Sikora; private email and phone in `APP_REVIEW_NOTES.md` |
 | Demo account | NOT APPLICABLE | No account, login or backend |
-| Support URL | PREPARED / BLOCKED (deploy) | `https://www.rsitech.ai/spacelens/support`; publish and verify signed-out HTTP 200 |
-| Privacy Policy URL | PREPARED / BLOCKED (deploy) | `https://www.rsitech.ai/spacelens/privacy`; publish and verify signed-out HTTP 200 |
-| App privacy answers | RECOMMENDED / OWNER CONFIRMATION | Data Not Collected, based on verified local-only operation |
-| Age rating | RECOMMENDED / OWNER CONFIRMATION | All content-frequency answers None; accept Apple’s lowest resulting rating |
-| DSA trader status | BLOCKED | Legal/account owner declaration required |
-| Export compliance | REPO PREPARED / OWNER CONFIRMATION | No restricted encryption found; `ITSAppUsesNonExemptEncryption=false` |
-| Content rights | BLOCKED | Owner confirmation required for name, icon, copy and assets |
+| Support URL | PASS | <https://www.rsitech.ai/spacelens/support> returns signed-out HTTP 200 |
+| Privacy Policy URL | PASS | <https://www.rsitech.ai/spacelens/privacy> returns signed-out HTTP 200 |
+| App privacy answers | OWNER CONFIRMED / PENDING ASC ENTRY | Data Not Collected, based on verified local-only operation |
+| Age rating | OWNER CONFIRMED / PENDING ASC ENTRY | All content-frequency answers None; accept Apple’s lowest resulting rating |
+| DSA trader status | BLOCKED | Owner wrote `Trader/Non-trader`; one truthful selection is still required |
+| Export compliance | OWNER CONFIRMED | No restricted encryption; bundle declares `ITSAppUsesNonExemptEncryption=false` |
+| Content rights | OWNER CONFIRMED | Owner confirmed rights to the name, icon, copy and bundled assets |
 | Copyright/legal name | OWNER CONFIRMED | `Rafal Sikora` in bundle metadata |
 | Pricing | OWNER CONFIRMED | Free |
 | Territories | OWNER CONFIRMED | All available territories |
@@ -31,7 +31,8 @@ Checked against the release repository on 2026-07-15.
 | Accessibility labels | BLOCKED | Automated AX labels and minimum window pass; Light, focus and VoiceOver human proof remain |
 | Security | PENDING | Final scan intentionally runs after all other local fixes |
 | GitHub CI | EXTERNAL FAILURE / EXCEPTION RECORDED | Latest run started zero steps due billing/spending state; fresh local equivalents pass |
-| Apple validation/upload/processing | BLOCKED | Requires current signed package plus exact external authorization |
+| Store archive/package | PASS / HOLD | Signed universal package exists; hold until final security and exact-digest upload approval |
+| App Store validation/upload/processing | BLOCKED | Requires ASC record, final security and fresh external authorization |
 | Processed build install | BLOCKED | No Apple-processed build exists |
 
-The stale package for `com.andrzej.spacelens` must never be uploaded. The next package must be built only after the new identifier and matching Store profile exist.
+The stale package for `com.andrzej.spacelens` must never be uploaded. The current inspected package is `/private/tmp/SpaceLens-AppStore-20260716-0df601f/export/SpaceLens.pkg`, SHA-256 `e2e5f484ffa7f648a2019b7a8cbf75babc96835dbddfcb76378a87ff7904af05`.

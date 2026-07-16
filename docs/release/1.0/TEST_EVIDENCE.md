@@ -1,6 +1,6 @@
 # SpaceLens 1.0 Test Evidence
 
-Fresh non-security evidence captured on 2026-07-15 from product source `6d9f314eb7a92a54de94e6c88b50542f5398ac1b`.
+Fresh non-security evidence captured on 2026-07-15 and 2026-07-16 from product source `6d9f314eb7a92a54de94e6c88b50542f5398ac1b`. The signed package was built from release revision `0df601ffffc3c0fb97482df4b1abd7722e69e3d4`, which contains the verified product source plus release-dossier changes.
 
 ## Environment
 
@@ -18,7 +18,7 @@ Fresh non-security evidence captured on 2026-07-15 from product source `6d9f314e
 | Gate | Result | Command / artifact |
 | --- | --- | --- |
 | SwiftPM warnings-as-errors | PASS | `swift test -Xswiftc -warnings-as-errors`; 50 tests, 0 failures |
-| Repository readiness validator | PASS | `SPACE_LENS_VALIDATION_DERIVED_DATA=/private/tmp/SpaceLens-presecurity-validation-6d9f314 ./script/validate_app_store_readiness.sh`; 50/50 plus unsigned Xcode Debug and project parity |
+| Repository readiness validator | PASS | Fresh 2026-07-16 run: `SPACE_LENS_VALIDATION_DERIVED_DATA=/private/tmp/SpaceLens-dossier-validation-20260716 ./script/validate_app_store_readiness.sh`; 50/50 plus unsigned Xcode Debug and project parity |
 | Signed Xcode tests | PASS | 50/50; `/private/tmp/SpaceLens-presecurity-6d9f314-tests.xcresult` |
 | Universal Xcode Release | PASS | Warnings as errors; `/private/tmp/SpaceLens-presecurity-release-6d9f314`; `x86_64 arm64` |
 | Bundle identity/export key | PASS | Built app reports `com.rsitech.spacelens` and `ITSAppUsesNonExemptEncryption=false` |
@@ -47,7 +47,19 @@ The first universal-build invocation failed before compilation because Xcode req
 
 ## Signing And Package Boundary
 
-No current Store package was produced because the Apple identifier and matching provisioning profile for `com.rsitech.spacelens` do not yet exist locally.
+A current Mac App Store archive and installer package were produced successfully:
+
+- Archive: `/private/tmp/SpaceLens-AppStore-20260716-0df601f/SpaceLens.xcarchive`
+- Export: `/private/tmp/SpaceLens-AppStore-20260716-0df601f/export`
+- Installer: `/private/tmp/SpaceLens-AppStore-20260716-0df601f/export/SpaceLens.pkg`
+- Package SHA-256: `e2e5f484ffa7f648a2019b7a8cbf75babc96835dbddfcb76378a87ff7904af05`
+- Expanded inspection: `/private/tmp/SpaceLens-Package-Inspect-e2e5f484`
+
+Inspection passed for Apple Distribution app signature, 3rd Party Mac Developer Installer package signature, team `2NY8A789TN`, `com.rsitech.spacelens`, version 1.0 (1), minimum macOS 14.0, `x86_64 arm64`, App Sandbox, user-selected read-write access, app-scope security-scoped bookmarks, absence of `get-task-allow`, `PrivacyInfo.xcprivacy`, matching dSYMs/binary UUIDs and absence of quarantine.
+
+The export embedded a matching Xcode-managed Store profile for `2NY8A789TN.com.rsitech.spacelens`, expiring 2027-06-29. The separately created and installed portal profile is `SpaceLens Mac App Store 2026`, portal ID `YPR4Y4YH4S`, UUID `8ae0f808-5c80-4c7c-8075-927c15c8de44`, also expiring 2027-06-29.
+
+This package has not been validated with App Store Connect or uploaded. It remains on hold until final security, record creation and fresh exact-digest authorization.
 
 The old package at `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLens.pkg`, SHA-256 `a108ee50640d65f3e6f8427b7d343143a674125bc28774442d4d4df2b548326a`, is quarantined evidence for the retired `com.andrzej.spacelens` identity and must not be uploaded.
 
@@ -60,7 +72,7 @@ The old package at `/private/tmp/SpaceLens-final-AppStore-791fe6c/export/SpaceLe
 ## External CI
 
 - Draft PR: <https://github.com/s1korrrr/space_lens/pull/9>
-- Latest remote run: `29418432116`, job `87362390763`, head `eceb406`.
+- Latest remote run: `29481267996`, job `87565329735`, head `0df601ffffc3c0fb97482df4b1abd7722e69e3d4`.
 - The job completed with zero steps. GitHub reports recent account-payment failure or an insufficient spending limit.
 - Owner-approved exception: proceed with fresh local CI-equivalent evidence while keeping this external gate red. This exception does not validate the remote workflow or cover unpushed commits.
 

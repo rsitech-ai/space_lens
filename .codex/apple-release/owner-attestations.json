@@ -8,12 +8,12 @@
     "sufficientContrast": null
   },
   "commonTaskEvidence": [],
-  "ageRatingComplete": null,
-  "exportCompliance": null,
+  "ageRatingComplete": true,
+  "exportCompliance": "doesNotUseRestrictedEncryption",
   "digitalServicesAct": null,
-  "contentRightsConfirmed": null,
+  "contentRightsConfirmed": true,
   "medicalDeclaration": null,
-  "privacyAnswersConfirmed": null,
+  "privacyAnswersConfirmed": true,
   "accountDeletionVerified": null,
   "reviewerAccess": {
     "requiresLogin": false,

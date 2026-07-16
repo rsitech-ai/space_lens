@@ -6,16 +6,17 @@
   "build": "1",
   "bundleIdentifier": "com.rsitech.spacelens",
   "minimumSystemVersion": "14.0",
-  "statusDate": "2026-07-15",
-  "verdict": "BLOCKED_REPO_READY_FOR_SECURITY_SCAN",
+  "statusDate": "2026-07-16",
+  "verdict": "BLOCKED_EXTERNAL_PACKAGE_READY_PRESECURITY",
   "readiness": {
     "repository": "repo-ready-presecurity",
-    "package": "stale-rebuild-required",
+    "package": "package-ready-presecurity",
     "releaseCandidate": false,
     "appStoreSubmission": false
   },
   "source": {
     "productRevision": "6d9f314eb7a92a54de94e6c88b50542f5398ac1b",
+    "packageRevision": "0df601ffffc3c0fb97482df4b1abd7722e69e3d4",
     "branch": "feat/andrzej_spacelens-release-final",
     "baseRevision": "d6ef7e4075fe4852cf8d8f289d9d646085355c69"
   },
@@ -37,7 +38,7 @@
     "xcode": "PASS_50_OF_50",
     "xcodeResult": "/private/tmp/SpaceLens-presecurity-6d9f314-tests.xcresult",
     "validator": "PASS_50_OF_50",
-    "validatorDerivedData": "/private/tmp/SpaceLens-presecurity-validation-6d9f314",
+    "validatorDerivedData": "/private/tmp/SpaceLens-dossier-validation-20260716",
     "analyze": "PASS",
     "analyzeDerivedData": "/private/tmp/SpaceLens-presecurity-analyze-6d9f314",
     "universalRelease": "PASS_X86_64_ARM64",
@@ -58,14 +59,39 @@
     "voiceOver": "PENDING_HUMAN",
     "macOS14": "PENDING_RUNTIME"
   },
+  "appleAccount": {
+    "teamIdentifier": "2NY8A789TN",
+    "explicitAppId": "PASS",
+    "manualProfileName": "SpaceLens Mac App Store 2026",
+    "manualProfileId": "YPR4Y4YH4S",
+    "manualProfileUuid": "8ae0f808-5c80-4c7c-8075-927c15c8de44",
+    "profileExpiration": "2027-06-29",
+    "appStoreConnectRecord": "BLOCKED_NAME_UNAVAILABLE",
+    "rejectedPublicName": "SpaceLens"
+  },
+  "publicPages": {
+    "support": {
+      "url": "https://www.rsitech.ai/spacelens/support",
+      "status": "PASS_HTTP_200"
+    },
+    "privacy": {
+      "url": "https://www.rsitech.ai/spacelens/privacy",
+      "status": "PASS_HTTP_200"
+    },
+    "deploymentRevision": "324a2a251a5397635ba4c25a8ee8768af7c7524a"
+  },
   "package": {
-    "status": "STALE_REBUILD_REQUIRED",
-    "archivePath": null,
-    "installerPath": null,
-    "sha256": null,
+    "status": "PASS_HOLD_PRESECURITY",
+    "archivePath": "/private/tmp/SpaceLens-AppStore-20260716-0df601f/SpaceLens.xcarchive",
+    "installerPath": "/private/tmp/SpaceLens-AppStore-20260716-0df601f/export/SpaceLens.pkg",
+    "inspectionPath": "/private/tmp/SpaceLens-Package-Inspect-e2e5f484",
+    "sha256": "e2e5f484ffa7f648a2019b7a8cbf75babc96835dbddfcb76378a87ff7904af05",
     "architectures": ["x86_64", "arm64"],
     "teamIdentifier": "2NY8A789TN",
-    "reason": "The current bundle identifier has no matching Apple identifier/profile; the only existing package is for the retired bundle identity"
+    "appSignature": "APPLE_DISTRIBUTION_PASS",
+    "installerSignature": "THIRD_PARTY_MAC_DEVELOPER_INSTALLER_PASS",
+    "embeddedProfileAppId": "2NY8A789TN.com.rsitech.spacelens",
+    "uploadStatus": "NOT_UPLOADED"
   },
   "security": {
     "status": "PENDING_RESCAN",
@@ -78,9 +104,9 @@
   "externalCI": {
     "status": "BLOCKED_EXTERNAL_EXCEPTION_RECORDED",
     "pullRequest": "https://github.com/s1korrrr/space_lens/pull/9",
-    "runId": 29418432116,
-    "jobId": 87362390763,
-    "remoteHead": "eceb406f730027a51ef595eb468f9b2f1c1a2e0d",
+    "runId": 29481267996,
+    "jobId": 87565329735,
+    "remoteHead": "0df601ffffc3c0fb97482df4b1abd7722e69e3d4",
     "stepsExecuted": 0,
     "reason": "GitHub reports failed recent account payments or an insufficient spending limit",
     "exception": "Proceed using fresh local CI-equivalent evidence while preserving the external failure"
@@ -90,16 +116,21 @@
     "publicSupportEmail": "info@rsitech.ai",
     "price": "FREE",
     "territories": "ALL_AVAILABLE",
-    "releaseMethod": "AUTOMATIC"
+    "releaseMethod": "AUTOMATIC",
+    "appPrivacy": "DATA_NOT_COLLECTED",
+    "ageRating": "ALL_CONTENT_FREQUENCIES_NONE",
+    "exportCompliance": "NO_RESTRICTED_ENCRYPTION",
+    "contentRights": true,
+    "digitalServicesActTraderStatus": null
   },
   "blockers": [
-    "EXT-001", "EXT-002", "EXT-003", "EXT-004", "EXT-006", "EXT-007",
-    "EXT-008", "EXT-009", "EXT-010", "EXT-013", "EXT-014", "EXT-015",
+    "EXT-001", "EXT-002", "EXT-008", "EXT-013", "EXT-014", "EXT-015",
     "EXT-016", "QA-001", "QA-003", "QA-004", "QA-005", "SEC-001"
   ],
   "authorityBoundary": {
     "allowed": ["local fixes", "local verification", "local commits"],
-    "notAuthorized": ["branch push", "website deployment", "Apple identifier/profile/record creation", "App Store upload", "TestFlight mutation", "Submit for Review", "merge", "tag", "public release", "legal or account declarations"]
+    "completedByPriorExactAuthorization": ["SpaceLens branch push", "website branch push", "website PR and merge", "public page deployment", "Apple App ID creation", "Store profile creation", "App Store record attempt using public name SpaceLens"],
+    "notAuthorized": ["substitute App Store name", "DSA declaration", "App Store validation/upload", "TestFlight mutation", "Submit for Review", "tag", "public release", "new branch push"]
   },
   "releaseArtifacts": [
     "APP_REVIEW_NOTES.md",
