@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 2,
+  "product": "SpaceLens",
+  "platform": "macOS",
+  "version": "1.0",
+  "build": "1",
+  "bundleIdentifier": "com.rsitech.spacelens",
+  "minimumSystemVersion": "14.0",
+  "statusDate": "2026-07-16",
+  "verdict": "BLOCKED_EXTERNAL_PACKAGE_READY_PRESECURITY",
+  "readiness": {
+    "repository": "repo-ready-presecurity",
+    "package": "package-ready-presecurity",
+    "releaseCandidate": false,
+    "appStoreSubmission": false
+  },
+  "source": {
+    "productRevision": "6d9f314eb7a92a54de94e6c88b50542f5398ac1b",
+    "packageRevision": "0df601ffffc3c0fb97482df4b1abd7722e69e3d4",
+    "branch": "feat/andrzej_spacelens-release-final",
+    "baseRevision": "d6ef7e4075fe4852cf8d8f289d9d646085355c69"
+  },
+  "toolchains": {
+    "production": {
+      "xcode": "26.6 (17F113)",
+      "sdk": "macOS 26.5",
+      "swift": "6.3.3"
+    },
+    "compatibility": {
+      "xcode": "27 beta 3 (27A5218g)",
+      "sdk": "macOS 27",
+      "status": "HISTORICAL_PASS_BUILD_METADATA_ONLY_CHANGES_SINCE"
+    },
+    "xcodegen": "2.45.4"
+  },
+  "tests": {
+    "swiftpmWarningsAsErrors": "PASS_50_OF_50",
+    "xcode": "PASS_50_OF_50",
+    "xcodeResult": null,
+    "xcodeEvidenceRetention": "CAPTURED_AT_PRODUCT_REVISION_6D9F314_TEMP_ARTIFACT_REMOVED",
+    "validator": "PASS_50_OF_50",
+    "validatorDerivedData": null,
+    "analyze": "PASS",
+    "analyzeDerivedData": null,
+    "universalRelease": "PASS_X86_64_ARM64",
+    "releaseDerivedData": null,
+    "addressSanitizerSwiftPM": "PASS_50_OF_50",
+    "threadSanitizerSwiftPM": "PASS_50_OF_50",
+    "developmentBundleSmoke": "PASS_FRESH_2026_07_16",
+    "mergeRefresh": "SWIFTPM_TEST_RELEASE_AND_SMOKE_PASS_XCODE_REFRESH_BLOCKED_SHARED_SWIFTBUILD_SERVICE_STALL"
+  },
+  "runtime": {
+    "sandboxedSyntheticWorkflow": "PASS_CANCEL_ONLY",
+    "bookmarkRestore": "PASS",
+    "fixtureMutationAfterCancel": "NONE",
+    "automatedAccessibilityLabels": "PASS",
+    "minimumWindow820x620": "PASS",
+    "darkAppearance": "PASS",
+    "lightAppearance": "PENDING_HUMAN",
+    "keyboardFocus": "PENDING_HUMAN",
+    "voiceOver": "PENDING_HUMAN",
+    "macOS14": "PENDING_RUNTIME"
+  },
+  "appleAccount": {
+    "teamIdentifier": "2NY8A789TN",
+    "explicitAppId": "PASS",
+    "manualProfileName": "SpaceLens Mac App Store 2026",
+    "manualProfileId": "YPR4Y4YH4S",
+    "manualProfileUuid": "8ae0f808-5c80-4c7c-8075-927c15c8de44",
+    "profileExpiration": "2027-06-29",
+    "appStoreConnectRecord": "PASS_PREPARE_FOR_SUBMISSION",
+    "appStoreConnectAppleId": "6791508081",
+    "publicName": "SpaceLens: Disk Cleanup",
+    "primaryLanguage": "English (U.S.)",
+    "sku": "SPACELENS-MAC-001",
+    "macosVersion": "1.0",
+    "buildsUploaded": 0,
+    "rejectedPriorPublicName": "SpaceLens"
+  },
+  "publicPages": {
+    "support": {
+      "url": "https://www.rsitech.ai/spacelens/support",
+      "status": "PASS_HTTP_200"
+    },
+    "privacy": {
+      "url": "https://www.rsitech.ai/spacelens/privacy",
+      "status": "PASS_HTTP_200"
+    },
+    "deploymentRevision": "324a2a251a5397635ba4c25a8ee8768af7c7524a"
+  },
+  "package": {
+    "status": "PASS_HOLD_PRESECURITY",
+    "archivePath": "/private/tmp/SpaceLens-AppStore-20260716-0df601f/SpaceLens.xcarchive",
+    "installerPath": "/private/tmp/SpaceLens-AppStore-20260716-0df601f/export/SpaceLens.pkg",
+    "inspectionPath": null,
+    "inspectionEvidenceRetention": "CAPTURED_2026_07_16_TEMP_EXPANSION_REMOVED",
+    "sha256": "e2e5f484ffa7f648a2019b7a8cbf75babc96835dbddfcb76378a87ff7904af05",
+    "architectures": ["x86_64", "arm64"],
+    "teamIdentifier": "2NY8A789TN",
+    "appSignature": "APPLE_DISTRIBUTION_PASS",
+    "installerSignature": "THIRD_PARTY_MAC_DEVELOPER_INSTALLER_PASS",
+    "embeddedProfileAppId": "2NY8A789TN.com.rsitech.spacelens",
+    "uploadStatus": "NOT_UPLOADED"
+  },
+  "security": {
+    "status": "PENDING_RESCAN",
+    "repositoryReport": null,
+    "finalDiffReport": null,
+    "historicalRepositoryReport": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/796b036_20260715T115955Z/report.md",
+    "historicalFinalDiffReport": "/private/var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/codex-security-scans/SpaceLens/final_release_20260715/report.md",
+    "reportableFindings": null
+  },
+  "externalCI": {
+    "status": "BLOCKED_EXTERNAL_EXCEPTION_RECORDED",
+    "pullRequest": "https://github.com/s1korrrr/space_lens/pull/9",
+    "runId": 29481267996,
+    "jobId": 87565329735,
+    "remoteHead": "0df601ffffc3c0fb97482df4b1abd7722e69e3d4",
+    "stepsExecuted": 0,
+    "reason": "GitHub reports failed recent account payments or an insufficient spending limit",
+    "exception": "Proceed using fresh local CI-equivalent evidence while preserving the external failure"
+  },
+  "ownerConfirmed": {
+    "legalName": "Rafal Sikora",
+    "publicSupportEmail": "info@rsitech.ai",
+    "price": "FREE",
+    "territories": "ALL_AVAILABLE",
+    "releaseMethod": "AUTOMATIC",
+    "appPrivacy": "DATA_NOT_COLLECTED",
+    "ageRating": "ALL_CONTENT_FREQUENCIES_NONE",
+    "exportCompliance": "NO_RESTRICTED_ENCRYPTION",
+    "contentRights": true,
+    "digitalServicesActTraderStatus": "TRADER",
+    "traderPublicEmail": "info@rsitech.ai",
+    "traderPublicPhone": "private contact stored only in App Store Connect",
+    "traderWebsite": "https://rsitech.ai",
+    "traderPhysicalAddressApprovedForPublicDisplay": true,
+    "traderVerificationStatus": "PENDING_PHONE_CODE_VERIFICATION"
+  },
+  "blockers": [
+    "EXT-008", "EXT-013", "EXT-014", "EXT-015",
+    "EXT-016", "QA-001", "QA-003", "QA-004", "QA-005", "SEC-001"
+  ],
+  "authorityBoundary": {
+    "allowed": ["local fixes", "local verification", "local commits"],
+    "completedByPriorExactAuthorization": ["SpaceLens branch push", "website branch push", "website PR and merge", "public page deployment", "Apple App ID creation", "Store profile creation", "App Store record creation using SpaceLens: Disk Cleanup", "DSA Trader selection", "DSA public contact entry and SMS verification request"],
+    "notAuthorized": ["complete DSA verification without an owner-supplied code or separately authorized document", "App Store validation/upload", "TestFlight mutation", "Submit for Review", "tag", "public release", "new branch push"]
+  },
+  "releaseArtifacts": [
+    "APP_REVIEW_NOTES.md",
+    "APP_STORE_CHECKLIST.md",
+    "BLOCKERS.md",
+    "OWNER_DECISIONS.json",
+    "PRIVACY_DATA_MAP.md",
+    "RELEASE_NOTES.md",
+    "RELEASE_STATUS.md",
+    "SECURITY_STATUS.md",
+    "TEST_EVIDENCE.md",
+    "screenshots/SpaceLens-macOS-dark-feature-1280x800.jpeg"
+  ]
+}

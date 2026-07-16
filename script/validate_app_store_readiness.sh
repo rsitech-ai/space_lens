@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+DERIVED_DATA_PATH="${SPACE_LENS_VALIDATION_DERIVED_DATA:-${TMPDIR:-/tmp}/spacelens-app-store-validation}"
 
 echo "== Validate static App Store metadata =="
 plutil -lint Config/Info.plist
@@ -25,6 +26,7 @@ echo "== Validate Info.plist version keys =="
 
 echo "== Generate Xcode project =="
 ./script/generate_xcode_project.sh
+git diff --exit-code -- SpaceLens.xcodeproj
 
 echo "== SwiftPM tests =="
 swift test
@@ -35,7 +37,18 @@ xcodebuild \
   -scheme SpaceLens \
   -configuration Debug \
   -destination 'platform=macOS' \
+  -derivedDataPath "$DERIVED_DATA_PATH" \
   CODE_SIGNING_ALLOWED=NO \
   build
+
+BUILT_INFO_PLIST="$DERIVED_DATA_PATH/Build/Products/Debug/SpaceLens.app/Contents/Info.plist"
+test -f "$BUILT_INFO_PLIST"
+EXPECTED_VERSION="$(awk -F '"' '/MARKETING_VERSION:/ { print $2; exit }' project.yml)"
+EXPECTED_BUILD="$(awk -F '"' '/CURRENT_PROJECT_VERSION:/ { print $2; exit }' project.yml)"
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$BUILT_INFO_PLIST")" = "$EXPECTED_VERSION"
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$BUILT_INFO_PLIST")" = "$EXPECTED_BUILD"
+test -f "$DERIVED_DATA_PATH/Build/Products/Debug/SpaceLens.app/Contents/Resources/PrivacyInfo.xcprivacy"
+
+echo "Validated bundle version $EXPECTED_VERSION ($EXPECTED_BUILD)."
 
 echo "App Store readiness metadata validation passed."

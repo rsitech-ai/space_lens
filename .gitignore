@@ -6,3 +6,5 @@ DerivedData/
 xcuserdata/
 *.xcworkspace/xcuserdata/
 build/AppStore/
+.codex/apple-release/evidence/
+.codex/apple-release/state/

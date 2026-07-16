@@ -5,12 +5,12 @@ import XCTest
 final class RuleEngineTests: XCTestCase {
     private let rules = RuleEngine()
 
-    func testBuildFolderIsGeneratedOutput() {
+    func testGenericBuildFolderNeedsReview() {
         let node = node(path: "/Users/s1kor/dev/flutter/usafe/mobile/build", isDirectory: true)
         let classification = rules.classify(node)
 
-        XCTAssertEqual(classification.level, .generatedOutput)
-        XCTAssertEqual(classification.category, "Generated output")
+        XCTAssertEqual(classification.level, .largeButValuable)
+        XCTAssertFalse(classification.level.isQueueable)
     }
 
     func testPackageCacheIsRebuildable() {
@@ -18,6 +18,41 @@ final class RuleEngineTests: XCTestCase {
         let classification = rules.classify(node)
 
         XCTAssertEqual(classification.level, .rebuildableCache)
+    }
+
+    func testNestedLibraryCachesDirectoryIsNotRebuildable() {
+        let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
+        let nestedCache = node(
+            path: homeDirectory.appendingPathComponent("Documents/Project/Library/Caches/Photos").path,
+            isDirectory: true
+        )
+
+        XCTAssertFalse(rules.classify(nestedCache).level.isQueueable)
+    }
+
+    func testScanErrorCannotBecomeQueueableFromCacheName() {
+        let unreadableCache = node(
+            path: FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Caches/com.example.opaque").path,
+            isDirectory: true,
+            scanError: "Permission denied"
+        )
+
+        let classification = rules.classify(unreadableCache)
+
+        XCTAssertEqual(classification.level, .unknownReview)
+        XCTAssertEqual(classification.category, "Incomplete scan")
+    }
+
+    func testSymlinkCannotBecomeQueueableFromCacheName() {
+        let cacheLink = node(
+            path: FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Caches/com.example.link").path,
+            isDirectory: true,
+            isSymlink: true
+        )
+
+        XCTAssertFalse(rules.classify(cacheLink).level.isQueueable)
     }
 
     func testApplicationSupportDatabaseNeedsReview() {
@@ -97,14 +132,21 @@ final class RuleEngineTests: XCTestCase {
         XCTAssertEqual(classification.level, .safeTemp)
     }
 
-    private func node(path: String, isDirectory: Bool = false) -> FileNode {
+    private func node(
+        path: String,
+        isDirectory: Bool = false,
+        isSymlink: Bool = false,
+        scanError: String? = nil
+    ) -> FileNode {
         FileNode(
             url: URL(fileURLWithPath: path),
             isDirectory: isDirectory,
+            isSymlink: isSymlink,
             logicalSize: 2_000_000_000,
             allocatedSize: 2_000_000_000,
             modifiedAt: Date(timeIntervalSinceNow: -30 * 24 * 60 * 60),
-            createdAt: Date(timeIntervalSinceNow: -60 * 24 * 60 * 60)
+            createdAt: Date(timeIntervalSinceNow: -60 * 24 * 60 * 60),
+            scanError: scanError
         )
     }
 }

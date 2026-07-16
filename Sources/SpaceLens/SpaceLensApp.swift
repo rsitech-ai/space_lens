@@ -47,17 +47,11 @@ struct SpaceLensApp: App {
                 }
                 .keyboardShortcut(.delete, modifiers: [.command])
             }
-
-            CommandMenu("Support") {
-                Button("Buy Me a Coffee") {
-                    NSWorkspace.shared.open(SupportLinks.buyMeACoffee)
-                }
-                .keyboardShortcut("b", modifiers: [.command, .option])
-            }
         }
 
         Settings {
             SettingsView()
+                .environmentObject(appState)
         }
     }
 }

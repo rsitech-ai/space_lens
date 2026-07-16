@@ -3,7 +3,7 @@ set -euo pipefail
 
 MODE="${1:-run}"
 APP_NAME="SpaceLens"
-BUNDLE_ID="com.andrzej.spacelens"
+BUNDLE_ID="com.rsitech.spacelens"
 MIN_SYSTEM_VERSION="14.0"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -32,8 +32,14 @@ chmod +x "$APP_BINARY"
 /usr/libexec/PlistBuddy -c "Add :CFBundleName string SpaceLens" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string SpaceLens" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0-dev" "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 0" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string $MIN_SYSTEM_VERSION" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Add :NSPrincipalClass string NSApplication" "$INFO_PLIST"
+
+# This bundle is a local SwiftPM development smoke, not the App Store artifact.
+codesign --force --sign - --deep "$APP_BUNDLE"
+codesign --verify --deep --strict "$APP_BUNDLE"
 
 open_app() {
   /usr/bin/open -n "$APP_BUNDLE"

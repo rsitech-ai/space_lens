@@ -31,9 +31,10 @@ final class SmartCleanupScannerTests: XCTestCase {
 
         let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: temporaryRoot)
 
-        XCTAssertEqual(result.root.children.map(\.displayName), ["Build Artifacts (.build)", "Distribution Output"])
+        XCTAssertEqual(result.root.children.map(\.displayName), ["Build Artifacts (.build)"])
         XCTAssertEqual(result.root.children.flatMap(\.children).count, 0)
-        XCTAssertGreaterThanOrEqual(result.snapshot.totalLogicalSize, 20_000_000)
+        XCTAssertGreaterThanOrEqual(result.snapshot.totalLogicalSize, 12_000_000)
+        XCTAssertLessThan(result.snapshot.totalLogicalSize, 20_000_000)
         XCTAssertFalse(result.root.children.contains { $0.path.contains("/data/raw") })
     }
 
@@ -48,7 +49,7 @@ final class SmartCleanupScannerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(result.snapshot.totalLogicalSize, 5_000_000)
     }
 
-    func testSmartScanUsesExplicitCandidateNames() async throws {
+    func testSmartScanUsesGenericCandidateNamesWithoutDeveloperSpecificLocations() async throws {
         let derivedData = temporaryRoot.appendingPathComponent("Library/Developer/Xcode/DerivedData/App", isDirectory: true)
         let codexSessions = temporaryRoot.appendingPathComponent(".codex/sessions", isDirectory: true)
         try FileManager.default.createDirectory(at: derivedData, withIntermediateDirectories: true)
@@ -60,7 +61,7 @@ final class SmartCleanupScannerTests: XCTestCase {
         let displayNames = Set(result.root.children.map(\.displayName))
 
         XCTAssertTrue(displayNames.contains("Xcode DerivedData"))
-        XCTAssertTrue(displayNames.contains("Codex Sessions"))
+        XCTAssertFalse(displayNames.contains("Codex Sessions"))
     }
 
     func testSmartScanFindsNodeModulesCacheWithoutScanningAllNodeModules() async throws {
@@ -93,6 +94,17 @@ final class SmartCleanupScannerTests: XCTestCase {
         let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: siblingRoot)
 
         XCTAssertTrue(result.root.children.isEmpty)
+    }
+
+    func testSmartScanDoesNotTreatNestedLibraryCachesAsUserCache() async throws {
+        let valuableDirectory = temporaryRoot
+            .appendingPathComponent("Documents/Project/Library/Caches/Photos", isDirectory: true)
+        try FileManager.default.createDirectory(at: valuableDirectory, withIntermediateDirectories: true)
+        try writeSparseFile(valuableDirectory.appendingPathComponent("originals.bin"), size: 6_000_000)
+
+        let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: temporaryRoot)
+
+        XCTAssertFalse(result.root.children.contains { $0.path == valuableDirectory.path })
     }
 
     private func writeSparseFile(_ url: URL, size: UInt64) throws {

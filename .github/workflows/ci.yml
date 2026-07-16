@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Verify production toolchain family
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          test "$(xcodebuild -version | awk '/Xcode/ { split($2, version, "."); print version[1] }')" -ge 26
+
+      - name: Resolve package graph
+        run: swift package resolve
+
+      - name: Regenerate Xcode project from pinned source of truth
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          ./script/generate_xcode_project.sh
+          git diff --exit-code -- SpaceLens.xcodeproj
+
+      - name: Run SwiftPM tests with warnings as errors
+        run: swift test -Xswiftc -warnings-as-errors
+
+      - name: Run Xcode tests
+        run: >-
+          xcodebuild
+          -project SpaceLens.xcodeproj
+          -scheme SpaceLens
+          -configuration Debug
+          -destination 'platform=macOS,arch=arm64'
+          CODE_SIGNING_ALLOWED=NO
+          test
+
+      - name: Build unsigned universal Release app
+        run: >-
+          xcodebuild
+          -project SpaceLens.xcodeproj
+          -scheme SpaceLens
+          -configuration Release
+          -destination 'generic/platform=macOS'
+          -derivedDataPath "$RUNNER_TEMP/SpaceLensDerivedData"
+          CODE_SIGNING_ALLOWED=NO
+          ARCHS='arm64 x86_64'
+          ONLY_ACTIVE_ARCH=NO
+          SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+          build
+
+      - name: Validate release metadata
+        run: |
+          set -euo pipefail
+          plutil -lint Config/Info.plist
+          plutil -lint Config/SpaceLens.entitlements
+          plutil -lint Config/ExportOptions-AppStore.plist
+          plutil -lint Resources/PrivacyInfo.xcprivacy
+          APP_PATH="$RUNNER_TEMP/SpaceLensDerivedData/Build/Products/Release/SpaceLens.app"
+          test -d "$APP_PATH"
+          EXPECTED_VERSION="$(awk -F '"' '/MARKETING_VERSION:/ { print $2; exit }' project.yml)"
+          EXPECTED_BUILD="$(awk -F '"' '/CURRENT_PROJECT_VERSION:/ { print $2; exit }' project.yml)"
+          test -f "$APP_PATH/Contents/Resources/PrivacyInfo.xcprivacy"
+          cmp Resources/PrivacyInfo.xcprivacy "$APP_PATH/Contents/Resources/PrivacyInfo.xcprivacy"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Contents/Info.plist")" = "$EXPECTED_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Contents/Info.plist")" = "$EXPECTED_BUILD"
+          lipo -archs "$APP_PATH/Contents/MacOS/SpaceLens" | grep -q arm64
+          lipo -archs "$APP_PATH/Contents/MacOS/SpaceLens" | grep -q x86_64

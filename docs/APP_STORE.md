@@ -6,12 +6,12 @@ SwiftPM development lane.
 ## Prerequisites
 
 - Active Apple Developer Program membership.
-- Xcode 26.5 or newer.
-- XcodeGen installed: `brew install xcodegen`.
-- App Store Connect app record for bundle ID `com.andrzej.spacelens`.
+- Xcode 26.6 or newer for the production release lane.
+- XcodeGen 2.45.4 installed. Release scripts fail closed on version drift.
+- App Store Connect app record for bundle ID `com.rsitech.spacelens`.
 - Apple Distribution signing certificate installed in the login keychain.
 - App Store provisioning handled automatically by Xcode, or already available
-  for `com.andrzej.spacelens`.
+  for `com.rsitech.spacelens`.
 
 ## Repo-Owned Release Assets
 
@@ -61,15 +61,19 @@ Upload the exported package using one of Apple's supported paths:
 
 Prepare these before submitting for review:
 
-- App name: `SpaceLens`
-- Bundle ID: `com.andrzej.spacelens`
+- App name: `SpaceLens: Disk Cleanup`
+- Bundle ID: `com.rsitech.spacelens`
 - Category: Utilities
-- Privacy Policy URL:
-  `https://github.com/s1korrrr/space_lens/blob/main/docs/PRIVACY.md`
-- Support URL:
-  `https://github.com/s1korrrr/space_lens/blob/main/docs/SUPPORT.md`
+- Privacy Policy URL: `https://www.rsitech.ai/spacelens/privacy`; verified
+  signed-out HTTP 200.
+- Support URL: `https://www.rsitech.ai/spacelens/support`; verified signed-out
+  HTTP 200.
 - App privacy answers: local filesystem metadata is processed on device; no
   file contents or metadata are sent to external services by SpaceLens.
 - Review notes: SpaceLens scans only user-selected folders, classifies cleanup
   risk locally, and gates destructive cleanup behind confirmation.
-- Screenshots from the current macOS build.
+- Screenshots from the current macOS build at an Apple-accepted 16:10 size.
+
+`./script/build_and_run.sh --verify` creates a local SwiftPM development smoke
+bundle. It is not the sandboxed, signed App Store artifact. Release runtime
+proof must use the current Xcode Release/archive app.

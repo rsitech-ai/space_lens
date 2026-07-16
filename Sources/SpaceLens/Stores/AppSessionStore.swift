@@ -88,20 +88,28 @@ public final class AppSessionStore {
             }
         }
 
-        guard let rootPath = session.rootPath else {
-            return nil
-        }
-
-        let url = URL(fileURLWithPath: rootPath, isDirectory: true)
-        return fileManager.fileExists(atPath: url.path) ? url : nil
+        return nil
     }
 
     public func clear() throws {
-        guard fileManager.fileExists(atPath: fileURL.path) else {
+        let directoryURL = fileURL.deletingLastPathComponent()
+        guard fileManager.fileExists(atPath: directoryURL.path) else {
             return
         }
 
-        try fileManager.removeItem(at: fileURL)
+        let activeSessionName = fileURL.lastPathComponent
+        let quarantinedSessionPrefix = fileURL.deletingPathExtension().lastPathComponent + ".corrupt-"
+        let sessionFiles = try fileManager.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: nil
+        ).filter { url in
+            url.lastPathComponent == activeSessionName
+                || (url.lastPathComponent.hasPrefix(quarantinedSessionPrefix) && url.pathExtension == "json")
+        }
+
+        for sessionFile in sessionFiles {
+            try fileManager.removeItem(at: sessionFile)
+        }
     }
 
     private static func defaultFileURL(fileManager: FileManager) -> URL {
@@ -113,8 +121,40 @@ public final class AppSessionStore {
     }
 
     private func quarantineCorruptSession() {
-        let corruptURL = fileURL.deletingLastPathComponent()
-            .appendingPathComponent("session.corrupt-\(Int(Date().timeIntervalSince1970)).json")
-        try? fileManager.moveItem(at: fileURL, to: corruptURL)
+        let directoryURL = fileURL.deletingLastPathComponent()
+        let sessionStem = fileURL.deletingPathExtension().lastPathComponent
+        let quarantinedSessionPrefix = sessionStem + ".corrupt-"
+        let timestamp = Int(Date().timeIntervalSince1970 * 1_000)
+        let corruptURL = directoryURL.appendingPathComponent(
+            "\(quarantinedSessionPrefix)\(timestamp)-\(UUID().uuidString).json"
+        )
+
+        guard (try? fileManager.moveItem(at: fileURL, to: corruptURL)) != nil else {
+            return
+        }
+
+        guard let quarantinedFiles = try? fileManager.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: [.contentModificationDateKey]
+        ).filter({ url in
+            url.lastPathComponent.hasPrefix(quarantinedSessionPrefix) && url.pathExtension == "json"
+        }), quarantinedFiles.count > 3 else {
+            return
+        }
+
+        let newestFirst = quarantinedFiles.sorted { lhs, rhs in
+            let lhsDate = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                ?? .distantPast
+            let rhsDate = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                ?? .distantPast
+            if lhsDate != rhsDate {
+                return lhsDate > rhsDate
+            }
+            return lhs.lastPathComponent > rhs.lastPathComponent
+        }
+
+        for staleFile in newestFirst.dropFirst(3) {
+            try? fileManager.removeItem(at: staleFile)
+        }
     }
 }

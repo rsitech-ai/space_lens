@@ -1,12 +1,23 @@
 import AppKit
 import Foundation
 import OSLog
+import Security
 import SwiftUI
 
 @MainActor
 final class AppState: ObservableObject {
-    private static let logger = Logger(subsystem: "com.andrzej.spacelens", category: "session")
+    private static let logger = Logger(subsystem: "com.rsitech.spacelens", category: "session")
 
+    private nonisolated static func hasAppSandboxEntitlement() -> Bool {
+        guard let task = SecTaskCreateFromSelf(nil) else {
+            return false
+        }
+        return SecTaskCopyValueForEntitlement(
+            task,
+            "com.apple.security.app-sandbox" as CFString,
+            nil
+        ) as? Bool == true
+    }
     enum SidebarSelection: String, CaseIterable, Identifiable {
         case all
         case safe
@@ -148,22 +159,31 @@ final class AppState: ObservableObject {
     private var classificationCache: [UUID: SafetyClassification] = [:]
     private var securityScopedRootURL: URL?
     private var isAccessingSecurityScopedRoot = false
+    private let requiresSecurityScopedAccess: Bool
+    private let startSecurityScopedAccess: @Sendable (URL) -> Bool
+    private let stopSecurityScopedAccess: @Sendable (URL) -> Void
     private let sessionStore: AppSessionStore?
     private var pendingRestoredCleanupPaths: Set<String> = []
 
     deinit {
-        if isAccessingSecurityScopedRoot {
-            securityScopedRootURL?.stopAccessingSecurityScopedResource()
+        if isAccessingSecurityScopedRoot, let securityScopedRootURL {
+            stopSecurityScopedAccess(securityScopedRootURL)
         }
     }
 
     init(
         sessionStore: AppSessionStore? = nil,
         restoreOnLaunch: Bool = false,
-        smartCleanupScanner: SmartCleanupScanner = SmartCleanupScanner()
+        smartCleanupScanner: SmartCleanupScanner = SmartCleanupScanner(),
+        requiresSecurityScopedAccess: Bool = AppState.hasAppSandboxEntitlement(),
+        startSecurityScopedAccess: @escaping @Sendable (URL) -> Bool = { $0.startAccessingSecurityScopedResource() },
+        stopSecurityScopedAccess: @escaping @Sendable (URL) -> Void = { $0.stopAccessingSecurityScopedResource() }
     ) {
         self.sessionStore = sessionStore
         self.smartCleanupScanner = smartCleanupScanner
+        self.requiresSecurityScopedAccess = requiresSecurityScopedAccess
+        self.startSecurityScopedAccess = startSecurityScopedAccess
+        self.stopSecurityScopedAccess = stopSecurityScopedAccess
 
         guard restoreOnLaunch, let sessionStore, let session = sessionStore.load() else {
             return
@@ -206,16 +226,35 @@ final class AppState: ObservableObject {
         cleanupQueue.reduce(Int64(0)) { $0 + $1.estimatedRecoverableBytes }
     }
 
+    var authorizedSmartScanRoot: URL? {
+        rootNode?.url ?? securityScopedRootURL ?? currentScanRootURL
+    }
+
+    var currentAuthorizedScanRoot: URL? {
+        securityScopedRootURL
+    }
+
     func chooseFolder() {
+        chooseFolder(for: .full)
+    }
+
+    private func chooseFolder(for scanMode: ScanMode) {
         let panel = NSOpenPanel()
-        panel.title = "Select a folder to scan"
-        panel.prompt = "Scan"
+        panel.title = scanMode == .smart
+            ? "Select a folder for Smart Scan"
+            : "Select a folder to scan"
+        panel.prompt = scanMode == .smart ? "Smart Scan" : "Scan"
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
 
         if panel.runModal() == .OK, let url = panel.url {
-            startScan(root: url)
+            switch scanMode {
+            case .full:
+                startScan(root: url)
+            case .smart:
+                startSmartScan(root: url)
+            }
         }
     }
 
@@ -229,16 +268,19 @@ final class AppState: ObservableObject {
     }
 
     func smartScan() {
-        let root = rootNode?.url
-            ?? currentScanRootURL
-            ?? securityScopedRootURL
-            ?? FileManager.default.homeDirectoryForCurrentUser
+        guard let root = authorizedSmartScanRoot else {
+            chooseFolder(for: .smart)
+            return
+        }
         startSmartScan(root: root)
     }
 
     func startScan(root: URL) {
         scanTask?.cancel()
-        beginAccessingSecurityScopedRoot(root)
+        guard beginAccessingSecurityScopedRoot(root) else {
+            rejectUnauthorizedScan()
+            return
+        }
         let scanID = UUID()
         activeScanID = scanID
         currentScanRootURL = root
@@ -254,7 +296,7 @@ final class AppState: ObservableObject {
         let ruleEngine = ruleEngine
         let intelligenceService = intelligenceService
 
-        scanTask = Task {
+        scanTask = Task { [weak self] in
             let result = await DiskScanner().scan(root: root) { [weak self] progress in
                 Task { @MainActor [weak self] in
                     guard let self, self.isScanning, self.activeScanID == scanID else {
@@ -310,7 +352,10 @@ final class AppState: ObservableObject {
 
     func startSmartScan(root: URL) {
         scanTask?.cancel()
-        beginAccessingSecurityScopedRoot(root)
+        guard beginAccessingSecurityScopedRoot(root) else {
+            rejectUnauthorizedScan()
+            return
+        }
         let scanID = UUID()
         activeScanID = scanID
         currentScanRootURL = root
@@ -327,7 +372,7 @@ final class AppState: ObservableObject {
         let intelligenceService = intelligenceService
         let smartCleanupScanner = smartCleanupScanner
 
-        scanTask = Task {
+        scanTask = Task { [weak self] in
             let result = await smartCleanupScanner.scan(root: root) { [weak self] progress in
                 Task { @MainActor [weak self] in
                     guard let self, self.isScanning, self.activeScanID == scanID else {
@@ -443,6 +488,27 @@ final class AppState: ObservableObject {
         selectedNodeIDs = []
     }
 
+    func forgetSavedSession() {
+        cancelScan()
+        stopAccessingSecurityScopedRoot()
+        currentScanRootURL = nil
+        rootNode = nil
+        snapshot = nil
+        scanStatistics = nil
+        scanIntelligenceSummary = nil
+        selectedNodeIDs = []
+        cleanupQueue = []
+        pendingRestoredCleanupPaths = []
+
+        do {
+            try sessionStore?.clear()
+            cleanupStatusMessage = "Forgot the saved folder and cleanup queue"
+            latestError = nil
+        } catch {
+            latestError = "Could not forget the saved session: \(error.localizedDescription)"
+        }
+    }
+
     func pruneSelectionToVisible() {
         let visibleIDs = Set(visibleNodes.map(\.node.id))
         selectedNodeIDs = selectedNodeIDs.intersection(visibleIDs)
@@ -453,26 +519,30 @@ final class AppState: ObservableObject {
     }
 
     func moveToBin(node: FileNode) async {
-        await performCleanup(node: node, operationName: "Moved to Bin") { progress in
-            try await FileCleanupService.moveToBin(url: node.url, progress: progress)
+        guard let authorizedRoot = authorizedSmartScanRoot else {
+            latestError = "Select and scan a folder before cleaning up files."
+            return
         }
-    }
-
-    func deleteForever(node: FileNode) async {
-        await performCleanup(node: node, operationName: "Deleted forever") { progress in
-            try await FileCleanupService.deleteForever(url: node.url, progress: progress)
+        await performCleanup(node: node, operationName: "Moved to Bin") { progress in
+            try await FileCleanupService.moveToBin(
+                node: node,
+                authorizedRoot: authorizedRoot,
+                progress: progress
+            )
         }
     }
 
     func moveSelectedToBin() async {
-        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Moved to Bin") { node, progress in
-            try await FileCleanupService.moveToBin(url: node.url, progress: progress)
+        guard let authorizedRoot = authorizedSmartScanRoot else {
+            latestError = "Select and scan a folder before cleaning up files."
+            return
         }
-    }
-
-    func deleteSelectedForever() async {
-        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Deleted forever") { node, progress in
-            try await FileCleanupService.deleteForever(url: node.url, progress: progress)
+        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Moved to Bin") { node, progress in
+            try await FileCleanupService.moveToBin(
+                node: node,
+                authorizedRoot: authorizedRoot,
+                progress: progress
+            )
         }
     }
 
@@ -682,15 +752,34 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func beginAccessingSecurityScopedRoot(_ url: URL) {
+    private func beginAccessingSecurityScopedRoot(_ url: URL) -> Bool {
         let standardizedURL = url.standardizedFileURL
         if securityScopedRootURL == standardizedURL, isAccessingSecurityScopedRoot {
-            return
+            return true
         }
 
         stopAccessingSecurityScopedRoot()
+        let startedAccess = startSecurityScopedAccess(standardizedURL)
+        let alreadyHasAccess = (try? FileManager.default.contentsOfDirectory(
+            at: standardizedURL,
+            includingPropertiesForKeys: nil,
+            options: []
+        )) != nil
+        guard startedAccess || alreadyHasAccess || !requiresSecurityScopedAccess else {
+            return false
+        }
+
         securityScopedRootURL = standardizedURL
-        isAccessingSecurityScopedRoot = standardizedURL.startAccessingSecurityScopedResource()
+        isAccessingSecurityScopedRoot = startedAccess
+        return true
+    }
+
+    private func rejectUnauthorizedScan() {
+        activeScanID = nil
+        currentScanRootURL = nil
+        isScanning = false
+        scanProgress = nil
+        latestError = "SpaceLens could not access that folder. Select it again to refresh permission."
     }
 
     private func stopAccessingSecurityScopedRoot() {
@@ -700,7 +789,7 @@ final class AppState: ObservableObject {
             return
         }
 
-        securityScopedRootURL.stopAccessingSecurityScopedResource()
+        stopSecurityScopedAccess(securityScopedRootURL)
         self.securityScopedRootURL = nil
         isAccessingSecurityScopedRoot = false
     }
@@ -713,7 +802,7 @@ final class AppState: ObservableObject {
         do {
             try sessionStore.save(rootURL: securityScopedRootURL ?? rootNode?.url, cleanupQueue: cleanupQueue)
         } catch {
-            Self.logger.error("Failed to persist SpaceLens session: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("Failed to persist SpaceLens session: \(error.localizedDescription, privacy: .private(mask: .hash))")
         }
     }
 
