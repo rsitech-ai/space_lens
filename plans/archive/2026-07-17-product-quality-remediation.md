@@ -3,13 +3,13 @@
 ## Goal
 
 - User-visible outcome: SpaceLens restores its saved scan location without another picker, adapts cleanly at supported widths, respects Reduce Motion, explains empty/recovery states, and completes the scan/queue/cancel flow without app-originated runtime faults.
-- Authority boundary: work only in the isolated audit worktree; preserve the primary checkout; use disposable fixtures; stop destructive native flows at Cancel; update and merge PR #10 only after local and hosted gates pass.
+- Authority boundary: work only in the isolated audit worktree; preserve the primary checkout; use disposable fixtures; stop destructive native flows at Cancel; update and merge PR #10 after the strongest local, runtime, and review gates pass. The owner explicitly waived the account-blocked GitHub Actions signal on 2026-07-17.
 
 ## Scope
 
 - Production: scan-root authorization, SwiftUI command/focus flow, adaptive table controls, motion policy, empty states, help and support copy, and generated Xcode project integrity.
 - Tests: restored session, empty-state presentation, layout/motion policy, and support URL.
-- Evidence: SwiftPM/Xcode gates, native fixture interaction, app-subsystem logs, official Apple documentation, audit report, and hosted PR checks.
+- Evidence: SwiftPM/Xcode gates, native fixture interaction, app-subsystem logs, official Apple documentation, audit report, and exact PR review.
 - Non-goals: visual redesign, new classification rules, broader filesystem authority, automatic launch scanning, live cleanup of user files, or App Store upload.
 
 ## Milestones
@@ -33,10 +33,12 @@
 - Regenerated the Xcode project so production Xcode builds include the new sources and tests.
 - Verified the support destination returns HTTP 200.
 
-### M4. Verification and publication — blocked:external
+### M4. Verification and publication — complete
 
-- SwiftPM/Xcode suites, analyze, Release, build-and-run, native smoke, and app-subsystem logs pass.
-- Final local verification, commit, clean-tree readiness, push, and exact PR review are complete. GitHub Actions refused to start the fresh job because of an account payment or spending-limit issue. Merge remains withheld until the owner resolves that external gate and a fresh run passes.
+- Fresh SwiftPM and Xcode suites pass 70/70 with warnings as errors; Xcode analyze and SwiftPM Release pass.
+- The verified app rebuild launched at the actual minimum 825 x 674 window size, the disposable fixture remained intact, and the app subsystem emitted no diagnostic.
+- Generated-project regeneration, shell syntax, source-debt scan, diff hygiene, exact remote/local file reconciliation, and review-thread reconciliation pass.
+- GitHub Actions remains account-blocked before runner allocation. The owner explicitly directed that this signal not block completion or merge.
 
 ## Decisions
 
@@ -46,21 +48,20 @@
 - Classify the three geometry pairs as controlled SwiftUI/accessibility-harness noise only after minimal reproduction ruled out SpaceLens content, commands, window constraints, package path, and build lane. Keep SpaceLens-owned width clamps regardless.
 - Distinguish a clean `com.rsitech.spacelens` subsystem from unrelated Apple-service messages; do not describe the entire unified log as silent.
 - Treat the old signed package as historical because it does not contain the current remediation.
-- Never merge around a red hosted gate; a zero-step/no-log job is `blocked:external`, not a local pass.
-- The fresh check annotation identified the external cause as GitHub account billing or spending limit, so workflow churn and reruns cannot repair it.
+- Preserve the GitHub account-level failure in the audit, but do not treat a job that ran zero repository steps as a code finding after the owner explicitly waived it.
 
 ## Verification
 
 - `swift test -Xswiftc -warnings-as-errors`
 - `swift build -c release -Xswiftc -warnings-as-errors`
-- Xcode Debug tests, analyze, and fresh universal Release build
+- Xcode Debug tests and Release analyze
 - `./script/build_and_run.sh --verify`
-- `./script/validate_app_store_readiness.sh` after the generated project is committed
-- `bash -n script/*.sh`, secret/debt scans, and `git diff --check`
-- Native: scan, search/filter/categories, queue, confirmation Cancel, support, relaunch/rescan restore, zoomed/minimum windows, and scoped unified logs
-- GitHub: fresh Actions result and exact PR diff/review before merge
+- `./script/validate_app_store_readiness.sh`
+- `bash -n script/*.sh`, secret/debt scans, project regeneration, and `git diff --check`
+- Native: scan, search/filter/categories, queue, confirmation Cancel, support, relaunch/rescan restore, zoomed/minimum windows, fixture integrity, and scoped unified logs
+- Pull request: exact remote/local file list, mergeability, and unresolved review threads
 
 ## Rollback / recovery
 
-- The remediation is isolated to one feature branch and worktree. Revert only its intentional commit if a regression appears; never discard unrelated primary-checkout work.
-- If hosted infrastructure again creates a zero-step/no-log failure, preserve the evidence and stop before merge.
+- If a regression appears after merge, revert only the intentional PR commits through a new reviewed change; never discard unrelated primary-checkout work.
+- Keep the audit evidence and disposable fixture paths available for a focused reproduction before rollback.

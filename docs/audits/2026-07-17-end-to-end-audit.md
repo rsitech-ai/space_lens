@@ -86,8 +86,8 @@ No unresolved repository-actionable correctness, security, data-loss, maintainab
 
 ## Release and publication status
 
-- Current source label before publication: `runtime-proven`, `repo-ready`.
+- Current source label: `runtime-proven`, `repo-ready`.
 - Package label: the previously exported signed package predates this remediation and is historical evidence only; the updated source is not claimed `package-ready`.
 - Apple review label: not claimed; App Store Connect upload and review are external.
-- GitHub label: `blocked:external`. The fresh remediation-head run `29606585215` ended after three seconds without starting a runner or executing any step. Its GitHub check annotation says the job was not started because recent account payments failed or the account spending limit must be increased. The job log is consequently absent (`404 BlobNotFound`).
-- Merge status: intentionally not performed. Source, runtime, review, and local readiness gates pass, but changing GitHub billing or spending limits is an owner action and the required hosted gate remains red.
+- GitHub Actions note: the remediation-head run ended before allocating a runner because of the account payment or spending-limit setting. No repository code or workflow step ran. On 2026-07-17, the owner explicitly waived this hosted signal for the merge decision.
+- Merge basis: source, runtime, review, and local readiness gates pass; the PR is mergeable; the local and remote file lists match; and no review thread remains unresolved. Merge approval is therefore based on the verified repository and native-app evidence above, with the waived GitHub account-level failure retained as informational context.
