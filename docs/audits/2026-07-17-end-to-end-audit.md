@@ -89,5 +89,5 @@ No unresolved repository-actionable correctness, security, data-loss, maintainab
 - Current source label before publication: `runtime-proven`, `repo-ready`.
 - Package label: the previously exported signed package predates this remediation and is historical evidence only; the updated source is not claimed `package-ready`.
 - Apple review label: not claimed; App Store Connect upload and review are external.
-- GitHub label before fresh push: `blocked:external`. PR #10's prior hosted run `29569758540` failed before executing any step. Its only `macos` job has zero steps and its job-log request returns `404 BlobNotFound`, so it provides no repository-actionable failure signal.
-- Merge policy: push the reviewed commit, require a fresh hosted result, re-review the exact PR diff, and merge only if the required checks are green.
+- GitHub label: `blocked:external`. The fresh remediation-head run `29606585215` ended after three seconds without starting a runner or executing any step. Its GitHub check annotation says the job was not started because recent account payments failed or the account spending limit must be increased. The job log is consequently absent (`404 BlobNotFound`).
+- Merge status: intentionally not performed. Source, runtime, review, and local readiness gates pass, but changing GitHub billing or spending limits is an owner action and the required hosted gate remains red.

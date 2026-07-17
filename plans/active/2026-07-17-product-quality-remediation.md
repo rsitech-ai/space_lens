@@ -33,10 +33,10 @@
 - Regenerated the Xcode project so production Xcode builds include the new sources and tests.
 - Verified the support destination returns HTTP 200.
 
-### M4. Verification and publication — in progress
+### M4. Verification and publication — blocked:external
 
 - SwiftPM/Xcode suites, analyze, Release, build-and-run, native smoke, and app-subsystem logs pass.
-- Remaining: final post-edit verification, commit, clean-tree readiness, push, hosted check, exact PR review, conditional merge.
+- Final local verification, commit, clean-tree readiness, push, and exact PR review are complete. GitHub Actions refused to start the fresh job because of an account payment or spending-limit issue. Merge remains withheld until the owner resolves that external gate and a fresh run passes.
 
 ## Decisions
 
@@ -47,6 +47,7 @@
 - Distinguish a clean `com.rsitech.spacelens` subsystem from unrelated Apple-service messages; do not describe the entire unified log as silent.
 - Treat the old signed package as historical because it does not contain the current remediation.
 - Never merge around a red hosted gate; a zero-step/no-log job is `blocked:external`, not a local pass.
+- The fresh check annotation identified the external cause as GitHub account billing or spending limit, so workflow churn and reruns cannot repair it.
 
 ## Verification
 
