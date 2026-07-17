@@ -61,7 +61,15 @@ struct FileTableView: View {
     @ViewBuilder
     private func responsiveTable(layout: FileTableLayout) -> some View {
         Group {
-            if layout.showsRecommendationColumn {
+            if sortedVisibleNodes.isEmpty {
+                let presentation = appState.emptyResultsPresentation
+                ContentUnavailableView(
+                    presentation.title,
+                    systemImage: presentation.systemImage,
+                    description: Text(presentation.description)
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if layout.showsRecommendationColumn {
                 fullTable(layout: layout)
             } else if layout.showsModifiedColumn {
                 detailedTable(layout: layout)
@@ -234,7 +242,7 @@ struct FileTableView: View {
     }
 }
 
-private struct FileTableLayout {
+struct FileTableLayout {
     let width: CGFloat
 
     var isVeryNarrow: Bool {
@@ -247,6 +255,10 @@ private struct FileTableLayout {
 
     var isTight: Bool {
         width < 840
+    }
+
+    var usesStackedControls: Bool {
+        width < 1_120
     }
 
     var showsKindColumn: Bool {
@@ -292,12 +304,13 @@ private struct FileTableLayout {
 
 private struct TableControlBar: View {
     @EnvironmentObject private var appState: AppState
+    @FocusState private var searchFieldIsFocused: Bool
     let visibleCount: Int
     let layout: FileTableLayout
 
     var body: some View {
         Group {
-            if layout.isTight {
+            if layout.usesStackedControls {
                 VStack(alignment: .leading, spacing: 8) {
                     searchField
 
@@ -335,6 +348,9 @@ private struct TableControlBar: View {
         .padding(.horizontal)
         .padding(.vertical, 10)
         .background(.bar)
+        .focusedSceneValue(\.focusSearchAction) {
+            searchFieldIsFocused = true
+        }
     }
 
     private var searchField: some View {
@@ -343,6 +359,7 @@ private struct TableControlBar: View {
                 .foregroundStyle(.secondary)
             TextField("Filter by name, path, or category", text: $appState.searchText)
                 .textFieldStyle(.plain)
+                .focused($searchFieldIsFocused)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -367,6 +384,7 @@ private struct TableControlBar: View {
                 .pickerStyle(.segmented)
             }
         }
+        .labelsHidden()
         .frame(maxWidth: layout.isCompact ? .infinity : 420)
     }
 
@@ -820,7 +838,7 @@ private struct IntelligenceStrip: View {
                 .frame(width: 30)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Local intelligence")
+                Text(ProductCopy.localAnalysisTitle)
                     .font(.subheadline.weight(.semibold))
                 Text(summary.body)
                     .font(.callout)
@@ -850,53 +868,69 @@ private struct IntelligenceStrip: View {
 }
 
 private struct DocumentScanMotionView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let scannedCount: Int
     private let laneHeight: CGFloat = 88
     private let iconTrackHeight: CGFloat = 52
 
     var body: some View {
-        TimelineView(.animation) { timeline in
-            let time = timeline.date.timeIntervalSinceReferenceDate
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(.cyan)
-                    Text("\(scannedCount) items inspected")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                    Spacer()
+        Group {
+            if ScanMotionPolicy.allowsContinuousMotion(reduceMotion: reduceMotion) {
+                TimelineView(.animation) { timeline in
+                    lane(time: timeline.date.timeIntervalSinceReferenceDate)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.black.opacity(0.08), in: Capsule())
-
-                GeometryReader { geometry in
-                    ZStack {
-                        ForEach(0..<7, id: \.self) { index in
-                            let phase = (time * 0.42 + Double(index) / 7).truncatingRemainder(dividingBy: 1)
-                            let iconSize = index.isMultiple(of: 2) ? CGFloat(25) : CGFloat(21)
-                            let x = iconSize / 2 + phase * max(geometry.size.width - iconSize, 1)
-                            let y = iconCenterY(index: index, iconSize: iconSize)
-
-                            Image(systemName: index.isMultiple(of: 2) ? "doc.text.magnifyingglass" : "doc")
-                                .font(.system(size: iconSize, weight: .semibold))
-                                .foregroundStyle(scanColor(for: index))
-                                .opacity(0.42 + 0.5 * phase)
-                                .scaleEffect(0.92 + 0.14 * phase)
-                                .position(x: x, y: y)
-                        }
-                    }
-                }
-                .frame(height: iconTrackHeight)
+            } else {
+                lane(time: nil)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 7)
         }
         .frame(height: laneHeight)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .accessibilityLabel("Scanning documents animation")
+        .accessibilityLabel("Scan progress, \(scannedCount) items inspected")
+    }
+
+    private func lane(time: TimeInterval?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(.cyan)
+                Text("\(scannedCount) items inspected")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.black.opacity(0.08), in: Capsule())
+
+            GeometryReader { geometry in
+                ZStack {
+                    ForEach(0..<7, id: \.self) { index in
+                        let phase = phase(time: time, index: index)
+                        let iconSize = index.isMultiple(of: 2) ? CGFloat(25) : CGFloat(21)
+                        let x = iconSize / 2 + phase * max(geometry.size.width - iconSize, 1)
+                        let y = iconCenterY(index: index, iconSize: iconSize)
+
+                        Image(systemName: index.isMultiple(of: 2) ? "doc.text.magnifyingglass" : "doc")
+                            .font(.system(size: iconSize, weight: .semibold))
+                            .foregroundStyle(scanColor(for: index))
+                            .opacity(time == nil ? 0.72 : 0.42 + 0.5 * phase)
+                            .scaleEffect(time == nil ? 1 : 0.92 + 0.14 * phase)
+                            .position(x: x, y: y)
+                    }
+                }
+            }
+            .frame(height: iconTrackHeight)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+    }
+
+    private func phase(time: TimeInterval?, index: Int) -> Double {
+        guard let time else {
+            return Double(index + 1) / 8
+        }
+        return (time * 0.42 + Double(index) / 7).truncatingRemainder(dividingBy: 1)
     }
 
     private func iconCenterY(index: Int, iconSize: CGFloat) -> CGFloat {
@@ -921,19 +955,22 @@ private struct DocumentScanMotionView: View {
 }
 
 private struct AnimatedScanBar: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let isActive: Bool
 
     var body: some View {
         GeometryReader { geometry in
+            let availableWidth = max(geometry.size.width, 0)
+
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(.quaternary)
 
-                if isActive {
+                if isActive, ScanMotionPolicy.allowsContinuousMotion(reduceMotion: reduceMotion) {
                     TimelineView(.animation) { timeline in
                         let cycle = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.45) / 1.45
-                        let width = max(geometry.size.width * 0.28, 80)
-                        let offset = (geometry.size.width + width) * cycle - width
+                        let width = min(max(availableWidth * 0.28, 80), availableWidth)
+                        let offset = (availableWidth + width) * cycle - width
 
                         Capsule()
                             .fill(scanGradient)
@@ -943,7 +980,7 @@ private struct AnimatedScanBar: View {
                 } else {
                     Capsule()
                         .fill(scanGradient)
-                        .frame(width: geometry.size.width)
+                        .frame(width: availableWidth)
                 }
             }
             .clipShape(Capsule())
@@ -958,6 +995,12 @@ private struct AnimatedScanBar: View {
             startPoint: .leading,
             endPoint: .trailing
         )
+    }
+}
+
+enum ScanMotionPolicy {
+    static func allowsContinuousMotion(reduceMotion: Bool) -> Bool {
+        !reduceMotion
     }
 }
 

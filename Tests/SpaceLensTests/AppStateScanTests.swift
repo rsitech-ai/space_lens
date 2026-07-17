@@ -113,7 +113,7 @@ final class AppStateScanTests: XCTestCase {
             smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
         )
 
-        XCTAssertNil(appState.authorizedSmartScanRoot)
+        XCTAssertNil(appState.authorizedScanRoot)
     }
 
     @MainActor

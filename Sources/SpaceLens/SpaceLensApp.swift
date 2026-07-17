@@ -5,6 +5,7 @@ import SwiftUI
 struct SpaceLensApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState(sessionStore: .shared, restoreOnLaunch: true)
+    @FocusedValue(\.focusSearchAction) private var focusSearchAction
 
     var body: some Scene {
         WindowGroup("SpaceLens") {
@@ -14,6 +15,14 @@ struct SpaceLensApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .pasteboard) {
+                Button("Find…") {
+                    focusSearchAction?()
+                }
+                .keyboardShortcut("f", modifiers: [.command])
+                .disabled(focusSearchAction == nil)
+            }
+
             CommandMenu("Scan") {
                 Button("Select Folder...") {
                     appState.chooseFolder()

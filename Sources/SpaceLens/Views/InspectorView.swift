@@ -23,6 +23,13 @@ struct InspectorView: View {
                         let classification = appState.classification(for: node)
                         explanation = await appState.intelligenceService.explain(node: node, classification: classification)
                     }
+                } else if appState.rootNode != nil, appState.visibleNodes.isEmpty {
+                    let presentation = appState.emptyResultsPresentation
+                    ContentUnavailableView(
+                        presentation.title,
+                        systemImage: presentation.systemImage,
+                        description: Text(presentation.description)
+                    )
                 } else {
                     ContentUnavailableView(
                         "No Item Selected",

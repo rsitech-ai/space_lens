@@ -4,6 +4,12 @@ import OSLog
 import Security
 import SwiftUI
 
+struct EmptyResultsPresentation: Equatable {
+    let title: String
+    let systemImage: String
+    let description: String
+}
+
 @MainActor
 final class AppState: ObservableObject {
     private static let logger = Logger(subsystem: "com.rsitech.spacelens", category: "session")
@@ -272,7 +278,62 @@ final class AppState: ObservableObject {
         cleanupQueue.reduce(Int64(0)) { $0 + $1.estimatedRecoverableBytes }
     }
 
-    var authorizedSmartScanRoot: URL? {
+    var emptyResultsPresentation: EmptyResultsPresentation {
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || tableFilter != .all {
+            return EmptyResultsPresentation(
+                title: "No Matching Items",
+                systemImage: "line.3.horizontal.decrease.circle",
+                description: "Try another search or filter."
+            )
+        }
+
+        switch sidebarSelection {
+        case .all:
+            return EmptyResultsPresentation(
+                title: "No Scanned Items",
+                systemImage: "externaldrive",
+                description: "The selected folder does not contain any visible items."
+            )
+        case .safe:
+            return EmptyResultsPresentation(
+                title: "No Cleanup Candidates",
+                systemImage: "checkmark.shield",
+                description: "SpaceLens did not find low-risk cleanup items in this scan."
+            )
+        case .review:
+            return EmptyResultsPresentation(
+                title: "Nothing Needs Review",
+                systemImage: "checkmark.circle",
+                description: "No scanned items require a manual safety decision."
+            )
+        case .valuable:
+            return EmptyResultsPresentation(
+                title: "No Valuable Data Flagged",
+                systemImage: "doc.badge.gearshape",
+                description: "No scanned items were classified as large or valuable."
+            )
+        case .active:
+            return EmptyResultsPresentation(
+                title: "No Active or Tool-Owned Items",
+                systemImage: "bolt.horizontal",
+                description: "No scanned items appear active or owned by a running tool."
+            )
+        case .errors:
+            return EmptyResultsPresentation(
+                title: "No Scan Errors",
+                systemImage: "checkmark.seal",
+                description: "SpaceLens read every scanned location successfully."
+            )
+        case .queue:
+            return EmptyResultsPresentation(
+                title: "Cleanup Queue Is Empty",
+                systemImage: "tray",
+                description: "Select cleanup-ready items and add them to the queue."
+            )
+        }
+    }
+
+    var authorizedScanRoot: URL? {
         rootNode?.url ?? securityScopedRootURL ?? currentScanRootURL
     }
 
@@ -305,16 +366,16 @@ final class AppState: ObservableObject {
     }
 
     func rescan() {
-        guard let rootNode else {
+        guard let root = authorizedScanRoot else {
             chooseFolder()
             return
         }
 
-        startScan(root: rootNode.url)
+        startScan(root: root)
     }
 
     func smartScan() {
-        guard let root = authorizedSmartScanRoot else {
+        guard let root = authorizedScanRoot else {
             chooseFolder(for: .smart)
             return
         }
@@ -578,7 +639,7 @@ final class AppState: ObservableObject {
     }
 
     func moveToBin(node: FileNode) async {
-        guard let authorizedRoot = authorizedSmartScanRoot else {
+        guard let authorizedRoot = authorizedScanRoot else {
             latestError = "Select and scan a folder before cleaning up files."
             return
         }
@@ -592,7 +653,7 @@ final class AppState: ObservableObject {
     }
 
     func moveSelectedToBin() async {
-        guard let authorizedRoot = authorizedSmartScanRoot else {
+        guard let authorizedRoot = authorizedScanRoot else {
             latestError = "Select and scan a folder before cleaning up files."
             return
         }

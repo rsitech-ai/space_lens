@@ -202,6 +202,24 @@ final class AppSessionStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testRestoredFullRescanRootMatchesSavedBookmark() throws {
+        let sessionURL = temporaryRoot.appendingPathComponent("session.json")
+        let store = AppSessionStore(fileURL: sessionURL)
+        try store.save(rootURL: temporaryRoot, cleanupQueue: [])
+
+        let restoredLaunch = AppState(
+            sessionStore: store,
+            restoreOnLaunch: true,
+            requiresSecurityScopedAccess: false
+        )
+
+        XCTAssertEqual(
+            restoredLaunch.authorizedScanRoot?.standardizedFileURL,
+            temporaryRoot.standardizedFileURL
+        )
+    }
+
+    @MainActor
     func testRestoredCleanupQueueCollapsesParentAndDescendantPaths() async throws {
         let sessionURL = temporaryRoot.appendingPathComponent("session.json")
         let store = AppSessionStore(fileURL: sessionURL)
@@ -224,7 +242,7 @@ final class AppSessionStoreTests: XCTestCase {
             restoreOnLaunch: true,
             requiresSecurityScopedAccess: false
         )
-        let restoredRoot = try XCTUnwrap(restoredLaunch.authorizedSmartScanRoot)
+        let restoredRoot = try XCTUnwrap(restoredLaunch.authorizedScanRoot)
         restoredLaunch.startScan(root: restoredRoot)
         try await waitForScanToFinish(restoredLaunch)
 
@@ -257,7 +275,7 @@ final class AppSessionStoreTests: XCTestCase {
         let restoredLaunch = AppState(sessionStore: store, restoreOnLaunch: true)
         XCTAssertFalse(restoredLaunch.isScanning)
         XCTAssertNil(restoredLaunch.rootNode)
-        XCTAssertNil(restoredLaunch.authorizedSmartScanRoot)
+        XCTAssertNil(restoredLaunch.authorizedScanRoot)
         XCTAssertTrue(restoredLaunch.cleanupQueue.isEmpty)
         XCTAssertEqual(
             restoredLaunch.latestError,

@@ -1,89 +1,93 @@
 # App E2E Audit Report: SpaceLens
 
-## Scope and decision boundary
+## Scope and authority
 
 - Audit date: 2026-07-17.
-- Source: `feat/andrzej_end-to-end-audit`, isolated from the user's primary checkout.
+- Source: `feat/andrzej_end-to-end-audit` in an isolated worktree; the user's primary checkout was not modified.
 - Product: native SwiftUI macOS app, deployment target macOS 14+, bundle identifier `com.rsitech.spacelens`.
-- Toolchain exercised: macOS 27, Xcode 26.6 (17F113), Swift 6.3.3.
+- Toolchain: macOS 27, Xcode 26.6 (17F113), Swift 6.3.3.
 - Runtime artifact: `/private/tmp/SpaceLens-end-to-end-audit-20260717/dist/SpaceLens.app`.
-- Cleanup authority: real user files were never touched. UI cleanup stopped at the exact-path confirmation and Cancel. A separate automated integration test moved only a unique disposable test file to the Bin and removed that test artifact afterward.
+- Cleanup boundary: the native smoke used only a disposable fixture and stopped the product cleanup flow at the exact-path confirmation and Cancel. Existing automated cleanup integration tests use unique disposable files only.
 
 ## Official documentation baseline
 
 - [Apple: Accessing files from the macOS App Sandbox](https://developer.apple.com/documentation/security/accessing-files-from-the-macos-app-sandbox)
-- [Apple: NSURL bookmarks and security-scoped URLs](https://developer.apple.com/documentation/foundation/nsurl)
+- [Apple: Security-scoped resource access](https://developer.apple.com/documentation/foundation/url/startaccessingsecurityscopedresource%28%29)
+- [Apple: Focused values](https://developer.apple.com/documentation/swiftui/focusedvalues)
+- [Apple: Focused scene values](https://developer.apple.com/documentation/swiftui/view/focusedscenevalue%28_%3A_%3A%29)
+- [Apple: Command groups](https://developer.apple.com/documentation/swiftui/commandgroup)
+- [Apple: ContentUnavailableView](https://developer.apple.com/documentation/swiftui/contentunavailableview)
+- [Apple: Reduce Motion environment value](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityreducemotion)
 - [Apple: Privacy manifest files](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files)
-- [Apple: Adding a privacy manifest to an app](https://developer.apple.com/documentation/bundleresources/adding-a-privacy-manifest-to-your-app-or-third-party-sdk)
-- [Apple: Describing use of required-reason APIs](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)
-- [Apple: Restoring an app's state with AppKit](https://developer.apple.com/documentation/appkit/restoring-your-app-s-state-with-appkit)
 
-The implementation continues to use user-selected file access, a security-scoped bookmark for relaunch authorization, App Sandbox entitlements, a local privacy manifest, and `FileManager.trashItem` for recoverable cleanup. No network dependency, analytics SDK, account system, or external inference service is present.
+SpaceLens keeps filesystem access user-selected and security-scoped, persists only a bookmark and app-owned session data, performs analysis locally with deterministic rules, and uses recoverable Bin cleanup. It has no analytics SDK, account system, external inference service, or third-party package dependency.
 
 ## Findings and retained fixes
 
 | Severity | Area | Reproduced failure | Retained fix | Verification |
 | --- | --- | --- | --- | --- |
-| High | Cleanup safety | A queue could contain a directory and its descendant, double-count projected bytes, and later target a child already moved with its parent. The scan summary also showed 2.1 MB recoverable from a 1.1 MB fixture. | Normalize selected, queued, restored, and statistical candidates to the smallest non-overlapping cleanup roots. | Red/green queue, persistence, and statistics regressions; final UI reports 1.1 MB total and 1.1 MB recoverable across two cleanup roots. |
-| High | Authorization/state | Starting a scan under a different security-scoped root left old results and queued targets actionable. | Clear the prior scan, selection, queue, statistics, intelligence summary, and pending restored paths only after access to the new root succeeds. | `AppStateScanTests.testStartingScanForDifferentRootClearsStaleResultsAndQueue`. |
-| High | Classification | Any old `.log`, including a document in `Documents`, became cleanup-ready. | Require both age and a known temporary/cache location; otherwise classify the log as review-only. | `RuleEngineTests.testOldLogInUserDocumentsStillRequiresReview`; disposable `/private/tmp` log remains correctly queueable. |
-| High | SwiftUI state flow | Selection, search, filters, queue changes, and AppKit-restored sidebar selection synchronously republished derived `@Published` caches during view updates. Unified logs recorded repeated undefined-behavior faults. | Make projection updates one explicit observable transaction, keep derived caches non-publishing, normalize selection within that transaction, and defer SwiftUI sidebar binding writes to the next main-run-loop turn. | Publisher-count regressions plus a fresh native scan/search/sidebar/select/queue replay with zero `Publishing changes from within view updates` entries. Relaunch now starts on `All Files`. |
-| Medium | Cleanup performance | PR review found that normalization compared every candidate with the growing retained-root array and repeatedly resolved both paths, producing quadratic work on large independent candidate sets. | Canonicalize each URL once, component-sort the cached paths, collapse descendants in one prefix traversal, then restore the prior presentation order. | A 2,004-input regression asserts exactly one canonicalization per input; SwiftPM and Xcode suites pass 61/61. |
+| High | Cleanup safety | A queue could contain a directory and its descendant, double-count projected bytes, and later target a child already moved with its parent. | Canonicalize once, component-sort, and collapse descendants to the smallest independent roots while preserving presentation order. | Queue, persistence, statistics, identity, and 2,004-input canonicalization regressions. |
+| High | Authorization/state | Starting a scan under a different security-scoped root left stale results and queued targets actionable. | Clear stale scan-owned state only after access to the new root succeeds. | `AppStateScanTests.testStartingScanForDifferentRootClearsStaleResultsAndQueue`. |
+| High | Restored scan flow | After relaunch, Rescan ignored the resolved bookmark and opened the folder picker again. | Use one `authorizedScanRoot` for full rescan, smart scan, and cleanup boundaries. | Restored-session regression plus quit/relaunch native Rescan: no picker, exact queue restored. |
+| High | Classification | Any old `.log`, including a document in `Documents`, became cleanup-ready. | Require both age and a known temporary/cache location; otherwise classify the log as review-only. | Rule-engine regression and fixture projection. |
+| High | SwiftUI state flow | Selection, search, filters, queue changes, and restored sidebar selection synchronously republished derived caches during view updates. | Keep projections non-publishing, update the observable transaction once, normalize selection there, and defer restored sidebar writes one main-run-loop turn. | Publisher-count regressions and native interaction replay with no app-subsystem diagnostic. |
+| Medium | Layout | The filter label collapsed and the control row became cramped at ordinary and minimum widths; computed scan-bar widths could become negative. | Stack controls below 1,120 points, hide only the picker's visual label while retaining its accessibility label, and clamp computed widths to zero. | Layout-policy tests; zoomed and actual minimum 825 x 674 native sweeps. |
+| Medium | Accessibility | Continuous scan animation ignored Reduce Motion, and Cmd-F did not focus search. | Switch to a static scan equivalent under Reduce Motion and expose a focused scene action through the standard Find command. | Motion-policy tests and native Cmd-F focus/filter proof. |
+| Medium | Empty/recovery states | Zero-result categories reused generic messaging, toolbar actions lacked explanations, trust copy said vague `Local intelligence`, and Help had no direct support action. | Add category/search/filter-aware empty states, concise help text, accurate local rule-based copy, and a verified direct support link. | Presentation/support tests and native sidebar, toolbar, and Settings sweep. |
+| Medium | Project integrity | SwiftPM compiled new source files while the checked-in Xcode project omitted them, causing the production Xcode build to fail. | Regenerate the project from `project.yml` and keep the generated diff checked in. | Fresh Xcode Debug test, analyze, and universal Release build. |
 | Medium | Error honesty | Smart-scan enumerator errors were silently discarded. | Accumulate discovery errors while continuing enumeration. | `SmartCleanupScannerTests.testSmartScanCountsDiscoveryPermissionErrors`. |
-| Polish | Build logs | App Store validation selected an ambiguous macOS destination and emitted duplicate-destination warnings. | Select the host architecture explicitly. | Readiness validation rerun without the destination warning. |
-| Polish | Maintainability | An unused test-only cleanup progress recorder remained in the suite. | Remove the dead helper. | Static search and warnings-as-errors build. |
+| Polish | Build logs | App Store validation selected an ambiguous macOS destination. | Select the host architecture explicitly. | Readiness validation without duplicate-destination output. |
 
 ## Automated and static verification
 
-| Gate | Result | Evidence |
-| --- | --- | --- |
-| SwiftPM tests, warnings as errors | 61 tests, 0 failures | `/private/tmp/SpaceLens-swift-pr-review-20260717.log` |
-| SwiftPM Release build, warnings as errors | Passed | `/private/tmp/SpaceLens-swift-release-pr-review-20260717.log` |
-| Xcode Debug clean test, warnings as errors | 61 tests, 0 failures | `/private/tmp/SpaceLens-xcode-test-pr-review-20260717.log` |
-| Xcode Release clean analyze, warnings as errors | Passed | `/private/tmp/SpaceLens-xcode-analyze-pr-review-20260717.log` |
-| App Store metadata/readiness | Passed; version 1.0 (1); generated project unchanged | `/private/tmp/SpaceLens-app-store-readiness-final-20260717.log` |
-| Signed App Store archive/export | Passed from reviewed source `6c92bc6cd79731251ffa139f0d7bbbee8fe42b8d`; archive, export, code signature, installer signature, sandbox/bookmark entitlements, privacy manifest, universal binary, dSYM, and provisioning profile verified | `/private/tmp/SpaceLens-AppStore-audit-reviewed-20260717/SpaceLens.xcarchive`; `/private/tmp/SpaceLens-AppStore-audit-reviewed-20260717/export/SpaceLens.pkg` |
-| Shell syntax | Passed for every script | `bash -n script/*.sh` |
-| Secret/material scan | No credential or private-key matches | Repository-local `rg` signature scan |
-| Unsafe/debt scan | No source `TODO`, `FIXME`, forced cast, forced try, or fatal-error match | Repository-local `rg` scan |
-| Dependencies | No third-party package dependency | `Package.swift` and generated Xcode project inspection |
-| Signing identities | Apple Development, Apple Distribution, Mac Installer Distribution, and Developer ID Application identities present | `security find-identity` |
+| Gate | Result |
+| --- | --- |
+| SwiftPM tests, warnings as errors | 70 tests, 0 failures |
+| SwiftPM Release build, warnings as errors | Passed |
+| Xcode Debug tests | 70 tests, 0 failures |
+| Xcode analyze | Passed |
+| Fresh Xcode universal Release build | Passed |
+| Generated-project/build-and-run verification | Passed |
+| Shell syntax | `bash -n script/*.sh` passed |
+| Secret and private-key signature scan | No repository match |
+| Source debt/unsafe construct scan | No `TODO`, `FIXME`, `HACK`, forced try/cast, `fatalError`, or debug-print match |
+| Support integration | `https://www.rsitech.ai/spacelens/support` returned HTTP 200 |
 
-Xcode 26.6 invokes the App Intents metadata processor for this SwiftUI app and prints `Metadata extraction skipped. No AppIntents.framework dependency found.` SpaceLens does not implement App Intents, and the build/analyzer/readiness command succeeds. This is an Xcode tool step, not a source diagnostic or missing product integration.
+The clean-tree repository readiness script passed for the remediation commit: metadata and entitlements parsed, the generated Xcode project matched source of truth, 70 SwiftPM tests passed, the Xcode build succeeded, the privacy manifest was embedded unchanged, the binary was universal, and bundle version 1.0 (1) matched `project.yml`.
+
+Xcode invokes its App Intents metadata processor and reports that extraction is skipped because SpaceLens has no AppIntents dependency. SpaceLens does not implement App Intents; the build and analyzer complete successfully.
 
 ## Native end-to-end evidence
 
-Fixture: `/private/tmp/SpaceLens-E2E-20260717.gjdYOR`, containing a 1 MiB `.build` artifact, an old disposable log, ordinary source/documents, an empty directory, and a symlink.
+Fixture: `/private/tmp/SpaceLens-PQ-20260717.IqSdbM`, with a `.build` directory, a disposable temporary log, a review-only document log, ordinary files, an empty directory, and a symlink.
 
-| Scenario | Expected | Actual | Status |
-| --- | --- | --- | --- |
-| Fresh launch | Honest unscanned state | `No Scan Yet`, zero queue, disabled Cancel/Reveal actions | Passed |
-| Full fixture scan | Do not follow symlink; truthful totals | 10 items, 1.1 MB, 0 errors, 2 independent cleanup roots, 1.1 MB recoverable | Passed |
-| Safe selection | Parent/child rows may be visibly selected but cleanup roots and bytes must collapse | 3 visible rows selected, 2 cleanup-ready roots, 1.1 MB | Passed |
-| Sidebar projections | Seven categories consistently project the table | Safe 3, Review 6, Valuable 0, Active 0, Errors 0, Queue 2; All 9 visible | Passed |
-| Search and filters | Update rows and prune stale selection | `financial` produced one row; Cleanup Ready produced 2; Large produced 0; folder/file options present and automated projection tests pass | Passed |
-| Queue | Add only independent safe roots and persist them | 2 candidates, 1.1 MB projected; quit/relaunch/rescan restored exactly 2 | Passed |
-| Cleanup confirmation | Show every exact target and make cancellation safe | Sheet listed `.build` and `financial-audit.log`; Cancel left both intact | Passed |
-| Disposable cleanup integration | Move an unchanged authorized descendant to the Bin | Source disappeared, resulting Bin URL existed, unique test artifact was removed | Passed |
-| Settings | Product claims match behavior | General and Privacy & Help panes verified; forget-session sheet states it does not delete selected-folder files; Cancel preserves session | Passed |
-| Window adaptation | Normal and zoomed layouts remain usable | Compact two-column table and expanded six-column table both readable; controls remained reachable | Passed |
-| Relaunch | Start cleanly and restore only app-owned session data | `All Files` on launch; bookmark location retained; queue restored after rescan | Passed |
-| Runtime logs | No app crash or unexplained app fault | Zero SwiftUI publishing faults after final launch and interaction replay; no crash report | Passed |
+| Scenario | Actual | Status |
+| --- | --- | --- |
+| Full scan | 10 items, 1 MB, 0 errors; symlink not followed | Passed |
+| Classification | Three independent cleanup roots: `.build`, `financial-audit.log`, and `Documents/important.log`; document log remains review-only until explicitly selected | Passed |
+| Search and categories | Cmd-F focused search; `important` produced one row; Scan Errors showed contextual main and inspector empty states | Passed |
+| Queue and confirmation | Select All produced three exact roots; Move to Bin listed all paths; Cancel left the fixture intact | Passed |
+| Restored session | Quit/relaunch, then Rescan reused the bookmark without a picker and restored the three queue roots | Passed |
+| Settings/support | Privacy & Help displayed the live `Open SpaceLens Support` action | Passed |
+| Window adaptation | Zoomed and actual minimum 825 x 674 layouts remained readable with reachable controls | Passed |
+| Runtime health | No crash; no app-originated warning, error, or fault under subsystem `com.rsitech.spacelens` | Passed |
 
-Final screenshot: [fixture scan with safe selection](screenshots/2026-07-17-final-fixture-queue.jpeg).
+### Runtime-log classification
 
-The macOS 27 development environment also logs failed `linkd.autoShortcut`/Core Spotlight registration and a missing `/private/var/db/DetachedSignatures` database for the ad-hoc development bundle. These messages originate from Apple services, occur before product interaction, and are not accompanied by an app crash or failed SpaceLens feature. The separately signed Xcode and App Store archive lanes are the authoritative packaging gates.
+The global macOS log is not completely silent. Accessibility inspection of any minimal SwiftUI window on this host reproducibly emits three AppKit negative-width/height messages; replacing the entire SpaceLens content with one `Text` and testing a separate one-line Xcode SwiftUI app preserved the same signal, while Calculator did not. The signal is therefore classified as a SwiftUI-window/accessibility-harness interaction, not a SpaceLens layout fault. The retained clamp and adaptive-layout fixes still prevent negative values in SpaceLens-owned calculations.
+
+The host also emits Apple-service Core Spotlight donation, BaseBoard task-port, and Xcode-test `linkd.autoShortcut` messages. They are not emitted by the SpaceLens subsystem and do not correlate with a failed product operation. This report deliberately distinguishes that controlled system noise from the clean app-originated log rather than claiming that the entire unified log is clean.
 
 ## Code review result
 
-The final source review covered filesystem traversal, symlink and identity validation, security scope lifecycle, cancellation, concurrent scan identity, classification precedence, byte accounting, cleanup boundaries, session quarantine/restoration, SwiftUI source-of-truth flow, accessibility labels, adaptive layout, scripts, entitlements, privacy metadata, and generated-project drift.
+The reviewed surface includes traversal and symlink handling, security-scope lifecycle, cancellation and scan identity, classification precedence, byte accounting, exact cleanup boundaries, session quarantine/restoration, SwiftUI state ownership, accessibility, adaptive layout, scripts, entitlements, privacy metadata, and generated-project consistency.
 
-No unresolved correctness, security, data-loss, maintainability, or performance finding remains in the reviewed change set. The cleanup path still rejects the authorized root itself, out-of-root paths, symlinks, missing scan identity, and items whose filesystem identity changed after scanning. Cleanup remains explicit, review-first, and recoverable through the Bin.
+No unresolved repository-actionable correctness, security, data-loss, maintainability, performance, or accessibility finding remains in the local change set. Cleanup still rejects the authorized root itself, out-of-root paths, symlinks, missing scan identity, and targets whose filesystem identity changed after scanning. Cleanup remains explicit, review-first, and recoverable through the Bin.
 
 ## Release and publication status
 
-- Repository/runtime label: `runtime-proven`, `repo-ready`, and `package-ready`.
-- Exported package: `/private/tmp/SpaceLens-AppStore-audit-reviewed-20260717/export/SpaceLens.pkg` (SHA-256 `9ed286c391b5c4993a4e3fdc071cf775066e72838395ac3462459fdb58450a41`).
+- Current source label before publication: `runtime-proven`, `repo-ready`.
+- Package label: the previously exported signed package predates this remediation and is historical evidence only; the updated source is not claimed `package-ready`.
 - Apple review label: not claimed; App Store Connect upload and review are external.
-- GitHub label: `blocked:external`. [PR #10](https://github.com/s1korrrr/space_lens/pull/10) is open and GitHub reports it mergeable, but [CI run 29569663764](https://github.com/s1korrrr/space_lens/actions/runs/29569663764) completed as a failure before exposing any job step. Its sole `macos` job has an empty step list and no downloadable log (`BlobNotFound`), repeating the same no-step/no-log failure observed on the initial PR head.
-- Merge label: not performed. The source, runtime, review, and signed-package gates pass, but the user-required hosted gate is red and provides no repository-actionable failure signal. Merging around it would violate the publication contract.
+- GitHub label before fresh push: `blocked:external`. PR #10's prior hosted run `29569758540` failed before executing any step. Its only `macos` job has zero steps and its job-log request returns `404 BlobNotFound`, so it provides no repository-actionable failure signal.
+- Merge policy: push the reviewed commit, require a fresh hosted result, re-review the exact PR diff, and merge only if the required checks are green.
