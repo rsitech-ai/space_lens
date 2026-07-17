@@ -98,25 +98,53 @@ enum CleanupTargetNormalizer {
         _ elements: [Element],
         url: (Element) -> URL
     ) -> [Element] {
-        let sortedElements = elements.sorted { lhs, rhs in
-            let lhsPath = canonicalPath(url(lhs))
-            let rhsPath = canonicalPath(url(rhs))
-            let lhsDepth = lhsPath.split(separator: "/").count
-            let rhsDepth = rhsPath.split(separator: "/").count
-            if lhsDepth == rhsDepth {
-                return lhsPath.localizedStandardCompare(rhsPath) == .orderedAscending
-            }
-            return lhsDepth < rhsDepth
+        collapsingDescendants(elements, url: url, canonicalize: canonicalPath)
+    }
+
+    static func collapsingDescendants<Element>(
+        _ elements: [Element],
+        url: (Element) -> URL,
+        canonicalize: (URL) -> String
+    ) -> [Element] {
+        var sortedElements = elements.enumerated().map { index, element in
+            let path = canonicalize(url(element))
+            return CanonicalElement(
+                element: element,
+                path: path,
+                components: path.split(separator: "/").map(String.init),
+                originalIndex: index
+            )
         }
 
-        return sortedElements.reduce(into: []) { roots, element in
-            guard !roots.contains(where: {
-                isSameOrDescendant(url(element), of: url($0))
-            }) else {
-                return
+        sortedElements.sort { lhs, rhs in
+            if lhs.components == rhs.components {
+                return lhs.originalIndex < rhs.originalIndex
+            }
+            return lhs.components.lexicographicallyPrecedes(rhs.components)
+        }
+
+        var roots: [CanonicalElement<Element>] = []
+        roots.reserveCapacity(sortedElements.count)
+        for element in sortedElements {
+            if let previousRoot = roots.last,
+               element.components.starts(with: previousRoot.components) {
+                continue
             }
             roots.append(element)
         }
+
+        roots.sort { lhs, rhs in
+            if lhs.components.count == rhs.components.count {
+                let comparison = lhs.path.localizedStandardCompare(rhs.path)
+                if comparison == .orderedSame {
+                    return lhs.originalIndex < rhs.originalIndex
+                }
+                return comparison == .orderedAscending
+            }
+            return lhs.components.count < rhs.components.count
+        }
+
+        return roots.map(\.element)
     }
 
     static func isSameOrDescendant(_ candidate: URL, of ancestor: URL) -> Bool {
@@ -130,5 +158,12 @@ enum CleanupTargetNormalizer {
 
     private static func canonicalPath(_ url: URL) -> String {
         url.standardizedFileURL.resolvingSymlinksInPath().path
+    }
+
+    private struct CanonicalElement<Element> {
+        let element: Element
+        let path: String
+        let components: [String]
+        let originalIndex: Int
     }
 }

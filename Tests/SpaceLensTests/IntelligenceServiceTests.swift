@@ -94,4 +94,30 @@ final class IntelligenceServiceTests: XCTestCase {
         XCTAssertEqual(statistics.queueableBytes, 400)
         XCTAssertLessThanOrEqual(statistics.queueableBytes, statistics.totalAllocatedBytes)
     }
+
+    func testCleanupTargetNormalizationCanonicalizesEachInputOnce() {
+        let urls = [
+            URL(fileURLWithPath: "/tmp/SpaceLens/.build"),
+            URL(fileURLWithPath: "/tmp/SpaceLens/.build/artifact.o"),
+            URL(fileURLWithPath: "/tmp/SpaceLens/DerivedData"),
+            URL(fileURLWithPath: "/tmp/SpaceLens/DerivedData/ModuleCache")
+        ] + (0..<2_000).map {
+            URL(fileURLWithPath: "/tmp/SpaceLens/caches/cache-\($0)")
+        }
+        var canonicalizationCount = 0
+
+        let roots = CleanupTargetNormalizer.collapsingDescendants(
+            urls,
+            url: { $0 },
+            canonicalize: { url in
+                canonicalizationCount += 1
+                return url.standardizedFileURL.path
+            }
+        )
+
+        XCTAssertEqual(canonicalizationCount, urls.count)
+        XCTAssertEqual(roots.count, 2_002)
+        XCTAssertTrue(roots.contains(URL(fileURLWithPath: "/tmp/SpaceLens/.build")))
+        XCTAssertTrue(roots.contains(URL(fileURLWithPath: "/tmp/SpaceLens/DerivedData")))
+    }
 }
