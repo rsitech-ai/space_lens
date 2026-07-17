@@ -101,29 +101,60 @@ final class AppState: ObservableObject {
         }
     }
 
-    @Published var sidebarSelection: SidebarSelection = .all {
-        didSet {
+    private var storedSidebarSelection: SidebarSelection = .all
+    var sidebarSelection: SidebarSelection {
+        get { storedSidebarSelection }
+        set {
+            guard newValue != storedSidebarSelection else {
+                return
+            }
+            objectWillChange.send()
+            storedSidebarSelection = newValue
             rebuildVisibleNodes()
         }
     }
-    @Published var rootNode: FileNode? {
-        didSet {
+    private var storedRootNode: FileNode?
+    var rootNode: FileNode? {
+        get { storedRootNode }
+        set {
+            objectWillChange.send()
+            storedRootNode = newValue
             rebuildNodeCaches()
         }
     }
     @Published var snapshot: ScanSnapshot?
-    @Published var selectedNodeIDs: Set<UUID> = [] {
-        didSet {
-            rebuildSelectedNodeCaches()
+    private var storedSelectedNodeIDs: Set<UUID> = []
+    var selectedNodeIDs: Set<UUID> {
+        get { storedSelectedNodeIDs }
+        set {
+            guard newValue != storedSelectedNodeIDs else {
+                return
+            }
+            objectWillChange.send()
+            storedSelectedNodeIDs = newValue
         }
     }
-    @Published var searchText = "" {
-        didSet {
+    private var storedSearchText = ""
+    var searchText: String {
+        get { storedSearchText }
+        set {
+            guard newValue != storedSearchText else {
+                return
+            }
+            objectWillChange.send()
+            storedSearchText = newValue
             rebuildVisibleNodes()
         }
     }
-    @Published var tableFilter: TableFilter = .all {
-        didSet {
+    private var storedTableFilter: TableFilter = .all
+    var tableFilter: TableFilter {
+        get { storedTableFilter }
+        set {
+            guard newValue != storedTableFilter else {
+                return
+            }
+            objectWillChange.send()
+            storedTableFilter = newValue
             rebuildVisibleNodes()
         }
     }
@@ -132,8 +163,12 @@ final class AppState: ObservableObject {
     @Published var scanProgress: ScanProgress?
     @Published var scanStatistics: ScanStatistics?
     @Published var scanIntelligenceSummary: ScanIntelligenceSummary?
-    @Published var cleanupQueue: [CleanupCandidate] = [] {
-        didSet {
+    private var storedCleanupQueue: [CleanupCandidate] = []
+    var cleanupQueue: [CleanupCandidate] {
+        get { storedCleanupQueue }
+        set {
+            objectWillChange.send()
+            storedCleanupQueue = newValue
             rebuildVisibleNodes()
             persistSession()
         }
@@ -142,10 +177,21 @@ final class AppState: ObservableObject {
     @Published var cleanupProgress: CleanupProgress?
     @Published var cleanupStatusMessage: String?
     @Published var latestError: String?
-    @Published private(set) var visibleNodes: [FlattenedFileNode] = []
-    @Published private(set) var visibleCleanupReadyCount = 0
-    @Published private(set) var selectedCleanupEligibleNodes: [FileNode] = []
-    @Published private(set) var selectedRecoverableBytes: Int64 = 0
+    private(set) var visibleNodes: [FlattenedFileNode] = []
+    private(set) var visibleCleanupReadyCount = 0
+    var selectedCleanupEligibleNodes: [FileNode] {
+        let eligibleNodes = selectedNodeIDs.compactMap { id -> FileNode? in
+            guard let node = nodeByID[id], classification(for: node).level.isQueueable else {
+                return nil
+            }
+            return node
+        }
+        return CleanupTargetNormalizer.collapsingDescendants(eligibleNodes, url: \.url)
+    }
+
+    var selectedRecoverableBytes: Int64 {
+        selectedCleanupEligibleNodes.reduce(Int64(0)) { $0 + $1.effectiveSize }
+    }
 
     let ruleEngine = RuleEngine()
     let intelligenceService: IntelligenceService = LocalIntelligenceService()
@@ -281,6 +327,7 @@ final class AppState: ObservableObject {
             rejectUnauthorizedScan()
             return
         }
+        resetStaleResultsIfRootChanged(to: root)
         let scanID = UUID()
         activeScanID = scanID
         currentScanRootURL = root
@@ -356,6 +403,7 @@ final class AppState: ObservableObject {
             rejectUnauthorizedScan()
             return
         }
+        resetStaleResultsIfRootChanged(to: root)
         let scanID = UUID()
         activeScanID = scanID
         currentScanRootURL = root
@@ -454,11 +502,17 @@ final class AppState: ObservableObject {
             return
         }
 
-        guard !cleanupQueue.contains(where: { $0.fileNode.path == node.path }) else {
+        var updatedQueue = cleanupQueue
+        guard !updatedQueue.contains(where: {
+            CleanupTargetNormalizer.isSameOrDescendant(node.url, of: $0.fileNode.url)
+        }) else {
             return
         }
 
-        cleanupQueue.append(
+        updatedQueue.removeAll {
+            CleanupTargetNormalizer.isSameOrDescendant($0.fileNode.url, of: node.url)
+        }
+        updatedQueue.append(
             CleanupCandidate(
                 fileNode: node,
                 classification: classification,
@@ -466,6 +520,7 @@ final class AppState: ObservableObject {
                 action: .queueForFutureTrash
             )
         )
+        cleanupQueue = updatedQueue
     }
 
     func addSelectedToCleanupQueue() {
@@ -511,7 +566,11 @@ final class AppState: ObservableObject {
 
     func pruneSelectionToVisible() {
         let visibleIDs = Set(visibleNodes.map(\.node.id))
-        selectedNodeIDs = selectedNodeIDs.intersection(visibleIDs)
+        let retainedSelection = selectedNodeIDs.intersection(visibleIDs)
+        guard retainedSelection != selectedNodeIDs else {
+            return
+        }
+        selectedNodeIDs = retainedSelection
     }
 
     func isCleanupInProgress(node: FileNode) -> Bool {
@@ -652,7 +711,6 @@ final class AppState: ObservableObject {
         }
         classificationCache.removeAll(keepingCapacity: true)
         rebuildVisibleNodes()
-        rebuildSelectedNodeCaches()
     }
 
     private func rebuildVisibleNodes() {
@@ -709,18 +767,7 @@ final class AppState: ObservableObject {
                 count += 1
             }
         }
-    }
-
-    private func rebuildSelectedNodeCaches() {
-        let eligibleNodes = selectedNodeIDs.compactMap { id -> FileNode? in
-            guard let node = nodeByID[id], classification(for: node).level.isQueueable else {
-                return nil
-            }
-            return node
-        }
-
-        selectedCleanupEligibleNodes = eligibleNodes
-        selectedRecoverableBytes = eligibleNodes.reduce(Int64(0)) { $0 + $1.effectiveSize }
+        storedSelectedNodeIDs.formIntersection(visibleNodes.map(\.node.id))
     }
 
     private func restorePersistedCleanupQueueIfNeeded() {
@@ -728,20 +775,23 @@ final class AppState: ObservableObject {
             return
         }
 
-        var restoredCandidates: [CleanupCandidate] = []
+        var restoredNodes: [FileNode] = []
         for item in allNodes where !Self.pathMatchKeys(for: [item.node.path]).isDisjoint(with: pendingRestoredCleanupPaths) {
             let classification = classification(for: item.node)
             guard classification.level.isQueueable else {
                 continue
             }
 
-            restoredCandidates.append(
-                CleanupCandidate(
-                    fileNode: item.node,
-                    classification: classification,
-                    estimatedRecoverableBytes: item.node.effectiveSize,
-                    action: .queueForFutureTrash
-                )
+            restoredNodes.append(item.node)
+        }
+
+        let restoredCandidates = CleanupTargetNormalizer.collapsingDescendants(restoredNodes, url: \.url).map { node in
+            let classification = classification(for: node)
+            return CleanupCandidate(
+                fileNode: node,
+                classification: classification,
+                estimatedRecoverableBytes: node.effectiveSize,
+                action: .queueForFutureTrash
             )
         }
 
@@ -772,6 +822,22 @@ final class AppState: ObservableObject {
         securityScopedRootURL = standardizedURL
         isAccessingSecurityScopedRoot = startedAccess
         return true
+    }
+
+    private func resetStaleResultsIfRootChanged(to root: URL) {
+        guard let previousRoot = rootNode?.url ?? currentScanRootURL,
+              !Self.pathsReferToSameItem(previousRoot, root) else {
+            return
+        }
+
+        rootNode = nil
+        snapshot = nil
+        scanStatistics = nil
+        scanIntelligenceSummary = nil
+        selectedNodeIDs = []
+        cleanupQueue = []
+        pendingRestoredCleanupPaths = []
+        cleanupStatusMessage = nil
     }
 
     private func rejectUnauthorizedScan() {
@@ -823,4 +889,9 @@ final class AppState: ObservableObject {
             return keys
         })
     }
+
+    private static func pathsReferToSameItem(_ lhs: URL, _ rhs: URL) -> Bool {
+        !pathMatchKeys(for: [lhs.path]).isDisjoint(with: pathMatchKeys(for: [rhs.path]))
+    }
+
 }

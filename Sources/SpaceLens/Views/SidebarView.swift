@@ -8,7 +8,7 @@ struct SidebarView: View {
             let layout = SidebarLayout(width: geometry.size.width)
 
             VStack(spacing: 0) {
-                List(selection: $appState.sidebarSelection) {
+                List(selection: sidebarSelectionBinding) {
                     Section("Library") {
                         ForEach(AppState.SidebarSelection.allCases) { item in
                             Label {
@@ -55,6 +55,17 @@ struct SidebarView: View {
                 SidebarSupportBar(isCompact: layout.isCompact)
             }
         }
+    }
+
+    private var sidebarSelectionBinding: Binding<AppState.SidebarSelection> {
+        Binding(
+            get: { appState.sidebarSelection },
+            set: { selection in
+                DispatchQueue.main.async {
+                    appState.sidebarSelection = selection
+                }
+            }
+        )
     }
 
     private func icon(for item: AppState.SidebarSelection) -> String {

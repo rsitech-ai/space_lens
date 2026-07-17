@@ -59,4 +59,39 @@ final class IntelligenceServiceTests: XCTestCase {
         XCTAssertTrue(summary.title.contains("low-risk cleanup candidates"))
         XCTAssertTrue(summary.body.contains("3 items scanned"))
     }
+
+    func testScanStatisticsDoNotDoubleCountQueueableDescendants() {
+        let artifact = FileNode(
+            url: URL(fileURLWithPath: "/tmp/SpaceLens/.build/artifact.o"),
+            isDirectory: false,
+            logicalSize: 400,
+            allocatedSize: 400
+        )
+        let buildFolder = FileNode(
+            url: URL(fileURLWithPath: "/tmp/SpaceLens/.build"),
+            isDirectory: true,
+            logicalSize: 400,
+            allocatedSize: 400,
+            children: [artifact]
+        )
+        let snapshot = ScanSnapshot(
+            rootPath: "/tmp/SpaceLens",
+            startedAt: Date(),
+            completedAt: Date(),
+            totalLogicalSize: 400,
+            totalAllocatedSize: 400,
+            nodeCount: 3,
+            errorCount: 0
+        )
+        let rules = RuleEngine(homeDirectory: URL(fileURLWithPath: "/tmp"))
+        let items = [buildFolder, artifact].map {
+            ClassifiedScanItem(node: $0, classification: rules.classify($0))
+        }
+
+        let statistics = ScanStatistics(snapshot: snapshot, items: items)
+
+        XCTAssertEqual(statistics.queueableCount, 1)
+        XCTAssertEqual(statistics.queueableBytes, 400)
+        XCTAssertLessThanOrEqual(statistics.queueableBytes, statistics.totalAllocatedBytes)
+    }
 }

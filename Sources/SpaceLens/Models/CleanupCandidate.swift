@@ -92,3 +92,43 @@ public struct CleanupProgress: Equatable, Sendable {
         return min(1, Double(completedItemCount) / Double(totalItemCount))
     }
 }
+
+enum CleanupTargetNormalizer {
+    static func collapsingDescendants<Element>(
+        _ elements: [Element],
+        url: (Element) -> URL
+    ) -> [Element] {
+        let sortedElements = elements.sorted { lhs, rhs in
+            let lhsPath = canonicalPath(url(lhs))
+            let rhsPath = canonicalPath(url(rhs))
+            let lhsDepth = lhsPath.split(separator: "/").count
+            let rhsDepth = rhsPath.split(separator: "/").count
+            if lhsDepth == rhsDepth {
+                return lhsPath.localizedStandardCompare(rhsPath) == .orderedAscending
+            }
+            return lhsDepth < rhsDepth
+        }
+
+        return sortedElements.reduce(into: []) { roots, element in
+            guard !roots.contains(where: {
+                isSameOrDescendant(url(element), of: url($0))
+            }) else {
+                return
+            }
+            roots.append(element)
+        }
+    }
+
+    static func isSameOrDescendant(_ candidate: URL, of ancestor: URL) -> Bool {
+        let candidatePath = canonicalPath(candidate)
+        let ancestorPath = canonicalPath(ancestor)
+        guard ancestorPath != "/" else {
+            return true
+        }
+        return candidatePath == ancestorPath || candidatePath.hasPrefix(ancestorPath + "/")
+    }
+
+    private static func canonicalPath(_ url: URL) -> String {
+        url.standardizedFileURL.resolvingSymlinksInPath().path
+    }
+}

@@ -132,6 +132,15 @@ final class RuleEngineTests: XCTestCase {
         XCTAssertEqual(classification.level, .safeTemp)
     }
 
+    func testOldLogInUserDocumentsStillRequiresReview() {
+        let node = node(path: "/Users/s1kor/Documents/financial-audit.log")
+
+        let classification = rules.classify(node)
+
+        XCTAssertEqual(classification.level, .unknownReview)
+        XCTAssertFalse(classification.level.isQueueable)
+    }
+
     private func node(
         path: String,
         isDirectory: Bool = false,

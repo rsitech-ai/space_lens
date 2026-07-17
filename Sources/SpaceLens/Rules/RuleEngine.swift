@@ -229,13 +229,22 @@ public struct RuleEngine: Sendable {
 
         if isLogFile(path: path, name: name, fileExtension: fileExtension) {
             let old = isOlderThan(days: 14, date: node.modifiedAt)
+            let isDisposable = old && isTemporaryLocation(path: path)
             return SafetyClassification(
-                level: old ? .safeTemp : .unknownReview,
-                confidence: old ? 0.78 : 0.58,
+                level: isDisposable ? .safeTemp : .unknownReview,
+                confidence: isDisposable ? 0.78 : 0.68,
                 category: "Logs",
-                summary: old ? "This appears to be an old log file." : "This appears to be a recent or active log file.",
-                evidence: ["Matched log naming pattern.", old ? "Last modified more than 14 days ago." : "Recent logs may still be useful or active."],
-                recommendedAction: old ? "Queue for review before Trash." : "Reveal and check whether the owning process still needs it."
+                summary: isDisposable
+                    ? "This appears to be an old log in a disposable location."
+                    : "This log may be recent, active, or valuable user data.",
+                evidence: [
+                    "Matched log naming pattern.",
+                    old ? "Last modified more than 14 days ago." : "Recent logs may still be useful or active.",
+                    isTemporaryLocation(path: path) ? "Located in a temp/cache-style path." : "Location is not known-safe."
+                ],
+                recommendedAction: isDisposable
+                    ? "Queue for review before Trash."
+                    : "Reveal and confirm the log is disposable before deleting it manually."
             )
         }
 

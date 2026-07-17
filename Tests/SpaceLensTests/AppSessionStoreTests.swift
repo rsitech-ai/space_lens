@@ -202,6 +202,37 @@ final class AppSessionStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testRestoredCleanupQueueCollapsesParentAndDescendantPaths() async throws {
+        let sessionURL = temporaryRoot.appendingPathComponent("session.json")
+        let store = AppSessionStore(fileURL: sessionURL)
+        let buildFolder = temporaryRoot.appendingPathComponent(".build", isDirectory: true)
+        let artifact = buildFolder.appendingPathComponent("artifact.o")
+        try FileManager.default.createDirectory(at: buildFolder, withIntermediateDirectories: true)
+        try Data([1]).write(to: artifact)
+        try store.save(rootURL: temporaryRoot, cleanupQueue: [])
+        let bookmarkedSession = try XCTUnwrap(store.load())
+        try store.save(
+            PersistedAppSession(
+                rootPath: temporaryRoot.path,
+                rootBookmarkData: bookmarkedSession.rootBookmarkData,
+                cleanupPaths: [buildFolder.path, artifact.path]
+            )
+        )
+
+        let restoredLaunch = AppState(
+            sessionStore: store,
+            restoreOnLaunch: true,
+            requiresSecurityScopedAccess: false
+        )
+        let restoredRoot = try XCTUnwrap(restoredLaunch.authorizedSmartScanRoot)
+        restoredLaunch.startScan(root: restoredRoot)
+        try await waitForScanToFinish(restoredLaunch)
+
+        XCTAssertEqual(restoredLaunch.cleanupQueue.count, 1)
+        XCTAssertEqual(restoredLaunch.cleanupQueue.first?.fileNode.name, ".build")
+    }
+
+    @MainActor
     func testAppStateRequiresReselectionWhenSavedSessionHasNoBookmark() throws {
         let sessionURL = temporaryRoot.appendingPathComponent("session.json")
         let store = AppSessionStore(fileURL: sessionURL)
