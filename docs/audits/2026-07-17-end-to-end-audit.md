@@ -85,4 +85,5 @@ No unresolved correctness, security, data-loss, maintainability, or performance 
 - Repository/runtime label: `runtime-proven`, `repo-ready`, and `package-ready`.
 - Exported package: `/private/tmp/SpaceLens-AppStore-audit-reviewed-20260717/export/SpaceLens.pkg` (SHA-256 `9ed286c391b5c4993a4e3fdc071cf775066e72838395ac3462459fdb58450a41`).
 - Apple review label: not claimed; App Store Connect upload and review are external.
-- GitHub label: [PR #10](https://github.com/s1korrrr/space_lens/pull/10) is open from `feat/andrzej_end-to-end-audit`; hosted-check and merge evidence will be recorded here before completion.
+- GitHub label: `blocked:external`. [PR #10](https://github.com/s1korrrr/space_lens/pull/10) is open and GitHub reports it mergeable, but [CI run 29569663764](https://github.com/s1korrrr/space_lens/actions/runs/29569663764) completed as a failure before exposing any job step. Its sole `macos` job has an empty step list and no downloadable log (`BlobNotFound`), repeating the same no-step/no-log failure observed on the initial PR head.
+- Merge label: not performed. The source, runtime, review, and signed-package gates pass, but the user-required hosted gate is red and provides no repository-actionable failure signal. Merging around it would violate the publication contract.

@@ -93,6 +93,7 @@
 - 2026-07-17: Signed App Store archive/export passed from `ef75269f6c0128424860100668ca1453290753a4`; the exported package and embedded app passed signature, entitlement, privacy-manifest, architecture, dSYM, provisioning-profile, and provenance checks.
 - 2026-07-17: Published ready-for-review PR #10. Its first hosted workflow completed as a failure without exposing any job steps or downloadable logs; the final evidence commit will retrigger the workflow before the merge decision.
 - 2026-07-17: PR review identified quadratic cleanup-root normalization. Replaced it with canonicalize-once component sorting and prefix collapse; a 2,004-input regression, 61-test SwiftPM/Xcode suites, Release build/analyze, and signed archive from reviewed source `6c92bc6cd79731251ffa139f0d7bbbee8fe42b8d` all passed. The review thread is resolved.
+- 2026-07-17: Final publication decision is `blocked:external`. CI run 29569663764 failed before any step and exposes no job log, repeating the first head's no-step/no-log failure. PR #10 remains open and unmerged; all safe local work is complete.
 
 ## Rollback / Recovery
 

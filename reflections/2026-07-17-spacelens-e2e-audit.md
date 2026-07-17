@@ -36,7 +36,7 @@
 - **Retained fix / direction:** Shared cleanup-root normalization; one observable transaction per projection mutation; selection pruning inside that transaction; deferred sidebar binding writes; location-sensitive log safety; honest scan error accumulation.
 - **Post-review hardening:** The first shared normalizer fixed correctness but performed quadratic comparisons and repeated filesystem canonicalization. The reviewed implementation canonicalizes once per input and uses a prefix-aware sorted traversal; a 2,004-input regression locks that boundary down.
 - **Why alternatives were rejected:** Per-call-site normalization would drift; fully computed large projections would move scan-sized work into rendering; suppressing logs would hide undefined behavior.
-- **Residual risk:** Xcode/macOS development services emit App Intents/Core Spotlight noise for the development bundle. The signed App Store archive passed; hosted CI remains a separate publication gate.
+- **Residual risk:** Xcode/macOS development services emit App Intents/Core Spotlight noise for the development bundle. The signed App Store archive passed; GitHub CI repeatedly fails before executing any step or producing a log, so merge remains externally blocked.
 - **Rollback trigger:** Any regression in scan responsiveness, selection synchronization, cleanup containment, signed archive validation, or hosted checks.
 
 ## Reusable lesson
