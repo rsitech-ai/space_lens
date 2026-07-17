@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import XCTest
 @testable import SpaceLens
@@ -70,6 +71,132 @@ final class CleanupQueueTests: XCTestCase {
         XCTAssertEqual(appState.selectedRecoverableBytes, 1_000)
     }
 
+    func testCleanupSelectionCollapsesDescendantsWhenParentIsSelected() {
+        let appState = AppState()
+        let artifactNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build/artifact.o"),
+            isDirectory: false,
+            logicalSize: 400,
+            allocatedSize: 400
+        )
+        let buildNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            isDirectory: true,
+            logicalSize: 400,
+            allocatedSize: 400,
+            children: [artifactNode]
+        )
+        appState.rootNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            isDirectory: true,
+            logicalSize: 400,
+            allocatedSize: 400,
+            children: [buildNode]
+        )
+
+        appState.selectedNodeIDs = [buildNode.id, artifactNode.id]
+
+        XCTAssertEqual(appState.selectedCleanupEligibleNodes.map(\.id), [buildNode.id])
+        XCTAssertEqual(appState.selectedRecoverableBytes, 400)
+    }
+
+    func testSelectingCleanupReadyRowsPublishesOneStateChange() {
+        let appState = AppState()
+        let cacheNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            isDirectory: true,
+            logicalSize: 1_000,
+            allocatedSize: 1_000
+        )
+        let sourceNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/main.swift"),
+            isDirectory: false,
+            logicalSize: 1_000,
+            allocatedSize: 1_000
+        )
+        appState.rootNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            isDirectory: true,
+            logicalSize: 2_000,
+            allocatedSize: 2_000,
+            children: [cacheNode, sourceNode]
+        )
+        appState.selectedNodeIDs = [cacheNode.id, sourceNode.id]
+        var publishedChangeCount = 0
+        let subscription = appState.objectWillChange.sink {
+            publishedChangeCount += 1
+        }
+
+        appState.selectCleanupReadyVisible()
+
+        XCTAssertEqual(publishedChangeCount, 1)
+        XCTAssertEqual(appState.selectedCleanupEligibleNodes.map(\.id), [cacheNode.id])
+        XCTAssertEqual(appState.selectedRecoverableBytes, 1_000)
+        withExtendedLifetime(subscription) {}
+    }
+
+    func testProjectionMutationsPublishOneStateChangeEach() {
+        let appState = AppState()
+        let cacheNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            isDirectory: true,
+            logicalSize: 1_000,
+            allocatedSize: 1_000
+        )
+        appState.rootNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            isDirectory: true,
+            logicalSize: 1_000,
+            allocatedSize: 1_000,
+            children: [cacheNode]
+        )
+        appState.selectedNodeIDs = [cacheNode.id]
+        var publishedChangeCount = 0
+        let subscription = appState.objectWillChange.sink {
+            publishedChangeCount += 1
+        }
+
+        appState.searchText = ".build"
+        XCTAssertEqual(publishedChangeCount, 1)
+        XCTAssertEqual(appState.selectedNodeIDs, [cacheNode.id])
+
+        publishedChangeCount = 0
+        appState.tableFilter = .cleanupReady
+        XCTAssertEqual(publishedChangeCount, 1)
+
+        publishedChangeCount = 0
+        appState.sidebarSelection = .safe
+        XCTAssertEqual(publishedChangeCount, 1)
+
+        publishedChangeCount = 0
+        appState.addToCleanupQueue(node: cacheNode)
+        XCTAssertEqual(publishedChangeCount, 1)
+        withExtendedLifetime(subscription) {}
+    }
+
+    func testQueueReplacesDescendantWithSelectedParent() {
+        let appState = AppState()
+        let artifactNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build/artifact.o"),
+            isDirectory: false,
+            logicalSize: 400,
+            allocatedSize: 400
+        )
+        let buildNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            isDirectory: true,
+            logicalSize: 400,
+            allocatedSize: 400,
+            children: [artifactNode]
+        )
+
+        appState.addToCleanupQueue(node: artifactNode)
+        appState.addToCleanupQueue(node: buildNode)
+
+        XCTAssertEqual(appState.cleanupQueue.map(\.fileNode.id), [buildNode.id])
+        XCTAssertEqual(appState.projectedRecoverableBytes, 400)
+    }
+
     func testCachedVisibleNodesUpdateForSidebarFilterAndQueue() {
         let appState = AppState()
         let cacheNode = FileNode(
@@ -134,24 +261,5 @@ final class CleanupQueueTests: XCTestCase {
         appState.pruneSelectionToVisible()
 
         XCTAssertEqual(appState.selectedNodeIDs, [sourceNode.id])
-    }
-}
-
-private final class CleanupProgressRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: [CleanupProgress] = []
-
-    var events: [CleanupProgress] {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-        return storage
-    }
-
-    func record(_ progress: CleanupProgress) {
-        lock.lock()
-        storage.append(progress)
-        lock.unlock()
     }
 }

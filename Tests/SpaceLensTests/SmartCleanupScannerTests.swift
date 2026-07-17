@@ -107,6 +107,19 @@ final class SmartCleanupScannerTests: XCTestCase {
         XCTAssertFalse(result.root.children.contains { $0.path == valuableDirectory.path })
     }
 
+    func testSmartScanCountsDiscoveryPermissionErrors() async throws {
+        let blockedDirectory = temporaryRoot.appendingPathComponent("Blocked", isDirectory: true)
+        try FileManager.default.createDirectory(at: blockedDirectory, withIntermediateDirectories: true)
+        try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: blockedDirectory.path)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: blockedDirectory.path)
+        }
+
+        let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: temporaryRoot)
+
+        XCTAssertGreaterThan(result.snapshot.errorCount, 0)
+    }
+
     private func writeSparseFile(_ url: URL, size: UInt64) throws {
         FileManager.default.createFile(atPath: url.path, contents: nil)
         let handle = try FileHandle(forWritingTo: url)

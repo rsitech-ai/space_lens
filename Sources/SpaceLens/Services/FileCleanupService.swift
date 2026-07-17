@@ -20,11 +20,12 @@ public enum CleanupValidationError: LocalizedError, Equatable {
 public enum FileCleanupService {
     public typealias ProgressHandler = @Sendable (CleanupProgress) -> Void
 
+    @discardableResult
     public static func moveToBin(
         node: FileNode,
         authorizedRoot: URL,
         progress: ProgressHandler? = nil
-    ) async throws {
+    ) async throws -> URL? {
         try await Task.detached(priority: .utility) {
             let url = try validatedCleanupURL(for: node, authorizedRoot: authorizedRoot)
             let totalBytes = allocatedSize(of: url)
@@ -52,6 +53,7 @@ public enum FileCleanupService {
                     totalBytes: totalBytes
                 )
             )
+            return resultingItemURL as URL?
         }.value
     }
 

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 DERIVED_DATA_PATH="${SPACE_LENS_VALIDATION_DERIVED_DATA:-${TMPDIR:-/tmp}/spacelens-app-store-validation}"
+HOST_ARCH="$(uname -m)"
 
 echo "== Validate static App Store metadata =="
 plutil -lint Config/Info.plist
@@ -36,7 +37,7 @@ xcodebuild \
   -project SpaceLens.xcodeproj \
   -scheme SpaceLens \
   -configuration Debug \
-  -destination 'platform=macOS' \
+  -destination "platform=macOS,arch=$HOST_ARCH" \
   -derivedDataPath "$DERIVED_DATA_PATH" \
   CODE_SIGNING_ALLOWED=NO \
   build

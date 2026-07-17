@@ -113,6 +113,34 @@ final class AppStateScanTests: XCTestCase {
             smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot)
         )
 
-        XCTAssertNil(appState.authorizedSmartScanRoot)
+        XCTAssertNil(appState.authorizedScanRoot)
+    }
+
+    @MainActor
+    func testStartingScanForDifferentRootClearsStaleResultsAndQueue() async throws {
+        let firstRoot = temporaryRoot.appendingPathComponent("First", isDirectory: true)
+        let secondRoot = temporaryRoot.appendingPathComponent("Second", isDirectory: true)
+        let buildFolder = firstRoot.appendingPathComponent(".build", isDirectory: true)
+        try FileManager.default.createDirectory(at: buildFolder, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: secondRoot, withIntermediateDirectories: true)
+        try Data([1]).write(to: buildFolder.appendingPathComponent("artifact.o"))
+
+        let appState = AppState(requiresSecurityScopedAccess: false)
+        appState.startScan(root: firstRoot)
+        for _ in 0..<100 where appState.isScanning {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        XCTAssertFalse(appState.isScanning)
+        let buildNode = try XCTUnwrap(
+            appState.rootNode?.flattened().first { $0.node.name == ".build" }?.node
+        )
+        appState.addToCleanupQueue(node: buildNode)
+        XCTAssertFalse(appState.cleanupQueue.isEmpty)
+
+        appState.startScan(root: secondRoot)
+
+        XCTAssertNil(appState.rootNode)
+        XCTAssertNil(appState.snapshot)
+        XCTAssertTrue(appState.cleanupQueue.isEmpty)
     }
 }

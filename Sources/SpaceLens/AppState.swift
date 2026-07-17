@@ -4,6 +4,12 @@ import OSLog
 import Security
 import SwiftUI
 
+struct EmptyResultsPresentation: Equatable {
+    let title: String
+    let systemImage: String
+    let description: String
+}
+
 @MainActor
 final class AppState: ObservableObject {
     private static let logger = Logger(subsystem: "com.rsitech.spacelens", category: "session")
@@ -101,29 +107,60 @@ final class AppState: ObservableObject {
         }
     }
 
-    @Published var sidebarSelection: SidebarSelection = .all {
-        didSet {
+    private var storedSidebarSelection: SidebarSelection = .all
+    var sidebarSelection: SidebarSelection {
+        get { storedSidebarSelection }
+        set {
+            guard newValue != storedSidebarSelection else {
+                return
+            }
+            objectWillChange.send()
+            storedSidebarSelection = newValue
             rebuildVisibleNodes()
         }
     }
-    @Published var rootNode: FileNode? {
-        didSet {
+    private var storedRootNode: FileNode?
+    var rootNode: FileNode? {
+        get { storedRootNode }
+        set {
+            objectWillChange.send()
+            storedRootNode = newValue
             rebuildNodeCaches()
         }
     }
     @Published var snapshot: ScanSnapshot?
-    @Published var selectedNodeIDs: Set<UUID> = [] {
-        didSet {
-            rebuildSelectedNodeCaches()
+    private var storedSelectedNodeIDs: Set<UUID> = []
+    var selectedNodeIDs: Set<UUID> {
+        get { storedSelectedNodeIDs }
+        set {
+            guard newValue != storedSelectedNodeIDs else {
+                return
+            }
+            objectWillChange.send()
+            storedSelectedNodeIDs = newValue
         }
     }
-    @Published var searchText = "" {
-        didSet {
+    private var storedSearchText = ""
+    var searchText: String {
+        get { storedSearchText }
+        set {
+            guard newValue != storedSearchText else {
+                return
+            }
+            objectWillChange.send()
+            storedSearchText = newValue
             rebuildVisibleNodes()
         }
     }
-    @Published var tableFilter: TableFilter = .all {
-        didSet {
+    private var storedTableFilter: TableFilter = .all
+    var tableFilter: TableFilter {
+        get { storedTableFilter }
+        set {
+            guard newValue != storedTableFilter else {
+                return
+            }
+            objectWillChange.send()
+            storedTableFilter = newValue
             rebuildVisibleNodes()
         }
     }
@@ -132,8 +169,12 @@ final class AppState: ObservableObject {
     @Published var scanProgress: ScanProgress?
     @Published var scanStatistics: ScanStatistics?
     @Published var scanIntelligenceSummary: ScanIntelligenceSummary?
-    @Published var cleanupQueue: [CleanupCandidate] = [] {
-        didSet {
+    private var storedCleanupQueue: [CleanupCandidate] = []
+    var cleanupQueue: [CleanupCandidate] {
+        get { storedCleanupQueue }
+        set {
+            objectWillChange.send()
+            storedCleanupQueue = newValue
             rebuildVisibleNodes()
             persistSession()
         }
@@ -142,10 +183,21 @@ final class AppState: ObservableObject {
     @Published var cleanupProgress: CleanupProgress?
     @Published var cleanupStatusMessage: String?
     @Published var latestError: String?
-    @Published private(set) var visibleNodes: [FlattenedFileNode] = []
-    @Published private(set) var visibleCleanupReadyCount = 0
-    @Published private(set) var selectedCleanupEligibleNodes: [FileNode] = []
-    @Published private(set) var selectedRecoverableBytes: Int64 = 0
+    private(set) var visibleNodes: [FlattenedFileNode] = []
+    private(set) var visibleCleanupReadyCount = 0
+    var selectedCleanupEligibleNodes: [FileNode] {
+        let eligibleNodes = selectedNodeIDs.compactMap { id -> FileNode? in
+            guard let node = nodeByID[id], classification(for: node).level.isQueueable else {
+                return nil
+            }
+            return node
+        }
+        return CleanupTargetNormalizer.collapsingDescendants(eligibleNodes, url: \.url)
+    }
+
+    var selectedRecoverableBytes: Int64 {
+        selectedCleanupEligibleNodes.reduce(Int64(0)) { $0 + $1.effectiveSize }
+    }
 
     let ruleEngine = RuleEngine()
     let intelligenceService: IntelligenceService = LocalIntelligenceService()
@@ -226,7 +278,62 @@ final class AppState: ObservableObject {
         cleanupQueue.reduce(Int64(0)) { $0 + $1.estimatedRecoverableBytes }
     }
 
-    var authorizedSmartScanRoot: URL? {
+    var emptyResultsPresentation: EmptyResultsPresentation {
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || tableFilter != .all {
+            return EmptyResultsPresentation(
+                title: "No Matching Items",
+                systemImage: "line.3.horizontal.decrease.circle",
+                description: "Try another search or filter."
+            )
+        }
+
+        switch sidebarSelection {
+        case .all:
+            return EmptyResultsPresentation(
+                title: "No Scanned Items",
+                systemImage: "externaldrive",
+                description: "The selected folder does not contain any visible items."
+            )
+        case .safe:
+            return EmptyResultsPresentation(
+                title: "No Cleanup Candidates",
+                systemImage: "checkmark.shield",
+                description: "SpaceLens did not find low-risk cleanup items in this scan."
+            )
+        case .review:
+            return EmptyResultsPresentation(
+                title: "Nothing Needs Review",
+                systemImage: "checkmark.circle",
+                description: "No scanned items require a manual safety decision."
+            )
+        case .valuable:
+            return EmptyResultsPresentation(
+                title: "No Valuable Data Flagged",
+                systemImage: "doc.badge.gearshape",
+                description: "No scanned items were classified as large or valuable."
+            )
+        case .active:
+            return EmptyResultsPresentation(
+                title: "No Active or Tool-Owned Items",
+                systemImage: "bolt.horizontal",
+                description: "No scanned items appear active or owned by a running tool."
+            )
+        case .errors:
+            return EmptyResultsPresentation(
+                title: "No Scan Errors",
+                systemImage: "checkmark.seal",
+                description: "SpaceLens read every scanned location successfully."
+            )
+        case .queue:
+            return EmptyResultsPresentation(
+                title: "Cleanup Queue Is Empty",
+                systemImage: "tray",
+                description: "Select cleanup-ready items and add them to the queue."
+            )
+        }
+    }
+
+    var authorizedScanRoot: URL? {
         rootNode?.url ?? securityScopedRootURL ?? currentScanRootURL
     }
 
@@ -259,16 +366,16 @@ final class AppState: ObservableObject {
     }
 
     func rescan() {
-        guard let rootNode else {
+        guard let root = authorizedScanRoot else {
             chooseFolder()
             return
         }
 
-        startScan(root: rootNode.url)
+        startScan(root: root)
     }
 
     func smartScan() {
-        guard let root = authorizedSmartScanRoot else {
+        guard let root = authorizedScanRoot else {
             chooseFolder(for: .smart)
             return
         }
@@ -281,6 +388,7 @@ final class AppState: ObservableObject {
             rejectUnauthorizedScan()
             return
         }
+        resetStaleResultsIfRootChanged(to: root)
         let scanID = UUID()
         activeScanID = scanID
         currentScanRootURL = root
@@ -356,6 +464,7 @@ final class AppState: ObservableObject {
             rejectUnauthorizedScan()
             return
         }
+        resetStaleResultsIfRootChanged(to: root)
         let scanID = UUID()
         activeScanID = scanID
         currentScanRootURL = root
@@ -454,11 +563,17 @@ final class AppState: ObservableObject {
             return
         }
 
-        guard !cleanupQueue.contains(where: { $0.fileNode.path == node.path }) else {
+        var updatedQueue = cleanupQueue
+        guard !updatedQueue.contains(where: {
+            CleanupTargetNormalizer.isSameOrDescendant(node.url, of: $0.fileNode.url)
+        }) else {
             return
         }
 
-        cleanupQueue.append(
+        updatedQueue.removeAll {
+            CleanupTargetNormalizer.isSameOrDescendant($0.fileNode.url, of: node.url)
+        }
+        updatedQueue.append(
             CleanupCandidate(
                 fileNode: node,
                 classification: classification,
@@ -466,6 +581,7 @@ final class AppState: ObservableObject {
                 action: .queueForFutureTrash
             )
         )
+        cleanupQueue = updatedQueue
     }
 
     func addSelectedToCleanupQueue() {
@@ -511,7 +627,11 @@ final class AppState: ObservableObject {
 
     func pruneSelectionToVisible() {
         let visibleIDs = Set(visibleNodes.map(\.node.id))
-        selectedNodeIDs = selectedNodeIDs.intersection(visibleIDs)
+        let retainedSelection = selectedNodeIDs.intersection(visibleIDs)
+        guard retainedSelection != selectedNodeIDs else {
+            return
+        }
+        selectedNodeIDs = retainedSelection
     }
 
     func isCleanupInProgress(node: FileNode) -> Bool {
@@ -519,7 +639,7 @@ final class AppState: ObservableObject {
     }
 
     func moveToBin(node: FileNode) async {
-        guard let authorizedRoot = authorizedSmartScanRoot else {
+        guard let authorizedRoot = authorizedScanRoot else {
             latestError = "Select and scan a folder before cleaning up files."
             return
         }
@@ -533,7 +653,7 @@ final class AppState: ObservableObject {
     }
 
     func moveSelectedToBin() async {
-        guard let authorizedRoot = authorizedSmartScanRoot else {
+        guard let authorizedRoot = authorizedScanRoot else {
             latestError = "Select and scan a folder before cleaning up files."
             return
         }
@@ -652,7 +772,6 @@ final class AppState: ObservableObject {
         }
         classificationCache.removeAll(keepingCapacity: true)
         rebuildVisibleNodes()
-        rebuildSelectedNodeCaches()
     }
 
     private func rebuildVisibleNodes() {
@@ -709,18 +828,7 @@ final class AppState: ObservableObject {
                 count += 1
             }
         }
-    }
-
-    private func rebuildSelectedNodeCaches() {
-        let eligibleNodes = selectedNodeIDs.compactMap { id -> FileNode? in
-            guard let node = nodeByID[id], classification(for: node).level.isQueueable else {
-                return nil
-            }
-            return node
-        }
-
-        selectedCleanupEligibleNodes = eligibleNodes
-        selectedRecoverableBytes = eligibleNodes.reduce(Int64(0)) { $0 + $1.effectiveSize }
+        storedSelectedNodeIDs.formIntersection(visibleNodes.map(\.node.id))
     }
 
     private func restorePersistedCleanupQueueIfNeeded() {
@@ -728,20 +836,23 @@ final class AppState: ObservableObject {
             return
         }
 
-        var restoredCandidates: [CleanupCandidate] = []
+        var restoredNodes: [FileNode] = []
         for item in allNodes where !Self.pathMatchKeys(for: [item.node.path]).isDisjoint(with: pendingRestoredCleanupPaths) {
             let classification = classification(for: item.node)
             guard classification.level.isQueueable else {
                 continue
             }
 
-            restoredCandidates.append(
-                CleanupCandidate(
-                    fileNode: item.node,
-                    classification: classification,
-                    estimatedRecoverableBytes: item.node.effectiveSize,
-                    action: .queueForFutureTrash
-                )
+            restoredNodes.append(item.node)
+        }
+
+        let restoredCandidates = CleanupTargetNormalizer.collapsingDescendants(restoredNodes, url: \.url).map { node in
+            let classification = classification(for: node)
+            return CleanupCandidate(
+                fileNode: node,
+                classification: classification,
+                estimatedRecoverableBytes: node.effectiveSize,
+                action: .queueForFutureTrash
             )
         }
 
@@ -772,6 +883,22 @@ final class AppState: ObservableObject {
         securityScopedRootURL = standardizedURL
         isAccessingSecurityScopedRoot = startedAccess
         return true
+    }
+
+    private func resetStaleResultsIfRootChanged(to root: URL) {
+        guard let previousRoot = rootNode?.url ?? currentScanRootURL,
+              !Self.pathsReferToSameItem(previousRoot, root) else {
+            return
+        }
+
+        rootNode = nil
+        snapshot = nil
+        scanStatistics = nil
+        scanIntelligenceSummary = nil
+        selectedNodeIDs = []
+        cleanupQueue = []
+        pendingRestoredCleanupPaths = []
+        cleanupStatusMessage = nil
     }
 
     private func rejectUnauthorizedScan() {
@@ -823,4 +950,9 @@ final class AppState: ObservableObject {
             return keys
         })
     }
+
+    private static func pathsReferToSameItem(_ lhs: URL, _ rhs: URL) -> Bool {
+        !pathMatchKeys(for: [lhs.path]).isDisjoint(with: pathMatchKeys(for: [rhs.path]))
+    }
+
 }

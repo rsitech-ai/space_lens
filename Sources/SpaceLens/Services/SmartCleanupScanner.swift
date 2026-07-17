@@ -94,14 +94,21 @@ public final class SmartCleanupScanner: @unchecked Sendable {
         context: inout SmartScanContext,
         progress: ProgressHandler?
     ) async {
+        var discoveryErrorCount = 0
         guard let enumerator = fileManager.enumerator(
             at: rootURL,
             includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
             options: [.skipsPackageDescendants],
-            errorHandler: { _, _ in true }
+            errorHandler: { _, _ in
+                discoveryErrorCount += 1
+                return true
+            }
         ) else {
             context.errorCount += 1
             return
+        }
+        defer {
+            context.errorCount += discoveryErrorCount
         }
 
         while let url = enumerator.nextObject() as? URL {

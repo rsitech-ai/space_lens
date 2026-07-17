@@ -82,4 +82,31 @@ final class FileCleanupServiceTests: XCTestCase {
 
         XCTAssertEqual(validatedURL, candidateURL.standardizedFileURL)
     }
+
+    func testMoveToBinMovesUnchangedDescendantAndReportsResult() async throws {
+        let authorizedRoot = temporaryRoot.appendingPathComponent("authorized", isDirectory: true)
+        let candidateURL = authorizedRoot.appendingPathComponent("SpaceLens-(UUID().uuidString).tmp")
+        try FileManager.default.createDirectory(at: authorizedRoot, withIntermediateDirectories: true)
+        try Data("disposable audit fixture".utf8).write(to: candidateURL)
+        let scannedNode = FileNode(
+            url: candidateURL,
+            isDirectory: false,
+            logicalSize: 24,
+            allocatedSize: 24
+        )
+
+        let resultingURL = try await FileCleanupService.moveToBin(
+            node: scannedNode,
+            authorizedRoot: authorizedRoot
+        )
+        defer {
+            if let resultingURL {
+                try? FileManager.default.removeItem(at: resultingURL)
+            }
+        }
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: candidateURL.path))
+        let trashURL = try XCTUnwrap(resultingURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: trashURL.path))
+    }
 }

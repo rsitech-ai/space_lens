@@ -22,6 +22,7 @@ struct ContentView: View {
                 } label: {
                     Label("Select Folder", systemImage: "folder.badge.plus")
                 }
+                .help("Select a folder to scan")
 
                 Button {
                     appState.smartScan()
@@ -35,6 +36,7 @@ struct ContentView: View {
                 } label: {
                     Label("Rescan", systemImage: "arrow.clockwise")
                 }
+                .help("Scan the current folder again")
                 .disabled(appState.isScanning)
 
                 Button {
@@ -42,6 +44,7 @@ struct ContentView: View {
                 } label: {
                     Label("Cancel", systemImage: "xmark.circle")
                 }
+                .help("Stop the current scan")
                 .disabled(!appState.isScanning)
 
                 if let selectedNode = appState.selectedNode {
@@ -50,6 +53,7 @@ struct ContentView: View {
                     } label: {
                         Label("Reveal", systemImage: "finder")
                     }
+                    .help("Reveal the selected item in Finder")
                 }
             }
 
@@ -58,7 +62,6 @@ struct ContentView: View {
                     Label("Settings", systemImage: "gearshape")
                 }
                 .help("Open SpaceLens settings")
-
             }
         }
     }

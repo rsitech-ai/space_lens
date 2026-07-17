@@ -92,3 +92,78 @@ public struct CleanupProgress: Equatable, Sendable {
         return min(1, Double(completedItemCount) / Double(totalItemCount))
     }
 }
+
+enum CleanupTargetNormalizer {
+    static func collapsingDescendants<Element>(
+        _ elements: [Element],
+        url: (Element) -> URL
+    ) -> [Element] {
+        collapsingDescendants(elements, url: url, canonicalize: canonicalPath)
+    }
+
+    static func collapsingDescendants<Element>(
+        _ elements: [Element],
+        url: (Element) -> URL,
+        canonicalize: (URL) -> String
+    ) -> [Element] {
+        var sortedElements = elements.enumerated().map { index, element in
+            let path = canonicalize(url(element))
+            return CanonicalElement(
+                element: element,
+                path: path,
+                components: path.split(separator: "/").map(String.init),
+                originalIndex: index
+            )
+        }
+
+        sortedElements.sort { lhs, rhs in
+            if lhs.components == rhs.components {
+                return lhs.originalIndex < rhs.originalIndex
+            }
+            return lhs.components.lexicographicallyPrecedes(rhs.components)
+        }
+
+        var roots: [CanonicalElement<Element>] = []
+        roots.reserveCapacity(sortedElements.count)
+        for element in sortedElements {
+            if let previousRoot = roots.last,
+               element.components.starts(with: previousRoot.components) {
+                continue
+            }
+            roots.append(element)
+        }
+
+        roots.sort { lhs, rhs in
+            if lhs.components.count == rhs.components.count {
+                let comparison = lhs.path.localizedStandardCompare(rhs.path)
+                if comparison == .orderedSame {
+                    return lhs.originalIndex < rhs.originalIndex
+                }
+                return comparison == .orderedAscending
+            }
+            return lhs.components.count < rhs.components.count
+        }
+
+        return roots.map(\.element)
+    }
+
+    static func isSameOrDescendant(_ candidate: URL, of ancestor: URL) -> Bool {
+        let candidatePath = canonicalPath(candidate)
+        let ancestorPath = canonicalPath(ancestor)
+        guard ancestorPath != "/" else {
+            return true
+        }
+        return candidatePath == ancestorPath || candidatePath.hasPrefix(ancestorPath + "/")
+    }
+
+    private static func canonicalPath(_ url: URL) -> String {
+        url.standardizedFileURL.resolvingSymlinksInPath().path
+    }
+
+    private struct CanonicalElement<Element> {
+        let element: Element
+        let path: String
+        let components: [String]
+        let originalIndex: Int
+    }
+}

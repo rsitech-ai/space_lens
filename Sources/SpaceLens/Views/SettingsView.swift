@@ -38,8 +38,12 @@ struct SettingsView: View {
                 }
 
                 Section("Help") {
-                    Text("For support, use the Support link on the SpaceLens App Store product page. Do not include private file contents or sensitive paths in a support request.")
+                    Text("Open SpaceLens Support for help. Do not include private file contents or sensitive paths in a support request.")
                         .foregroundStyle(.secondary)
+
+                    if let supportURL = SupportLinks.supportURL {
+                        Link("Open SpaceLens Support", destination: supportURL)
+                    }
                 }
             }
             .formStyle(.grouped)

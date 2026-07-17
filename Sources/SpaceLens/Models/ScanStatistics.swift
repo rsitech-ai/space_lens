@@ -32,12 +32,14 @@ public struct ScanStatistics: Hashable, Sendable {
         totalItems = snapshot.nodeCount
         errorCount = snapshot.errorCount
         totalAllocatedBytes = snapshot.totalAllocatedSize
+        let queueableRoots = CleanupTargetNormalizer.collapsingDescendants(
+            items.filter { $0.classification.level.isQueueable },
+            url: { $0.node.url }
+        )
 
         var retainedFileCount = 0
         var retainedDirectoryCount = 0
         var retainedSymlinkCount = 0
-        var queueableCount = 0
-        var queueableBytes: Int64 = 0
         var reviewCount = 0
         var protectedCount = 0
         var activeCount = 0
@@ -59,11 +61,6 @@ public struct ScanStatistics: Hashable, Sendable {
 
             let level = item.classification.level
             levelCounts[level, default: 0] += 1
-
-            if level.isQueueable {
-                queueableCount += 1
-                queueableBytes += item.node.effectiveSize
-            }
 
             switch level {
             case .unknownReview:
@@ -89,8 +86,8 @@ public struct ScanStatistics: Hashable, Sendable {
         self.fileCount = snapshot.fileCount > 0 ? snapshot.fileCount : retainedFileCount
         self.directoryCount = snapshot.directoryCount > 0 ? snapshot.directoryCount : retainedDirectoryCount
         self.symlinkCount = snapshot.symlinkCount > 0 ? snapshot.symlinkCount : retainedSymlinkCount
-        self.queueableCount = queueableCount
-        self.queueableBytes = queueableBytes
+        self.queueableCount = queueableRoots.count
+        self.queueableBytes = queueableRoots.reduce(Int64(0)) { $0 + $1.node.effectiveSize }
         self.reviewCount = reviewCount
         self.protectedCount = protectedCount
         self.activeCount = activeCount
@@ -104,4 +101,5 @@ public struct ScanStatistics: Hashable, Sendable {
     public func count(for level: SafetyLevel) -> Int {
         levelCounts[level, default: 0]
     }
+
 }
