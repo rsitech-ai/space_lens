@@ -41,6 +41,7 @@ The implementation continues to use user-selected file access, a security-scoped
 | Xcode Debug clean test, warnings as errors | 60 tests, 0 failures | `/private/tmp/SpaceLens-xcode-test-final-20260717.log` |
 | Xcode Release clean analyze, warnings as errors | Passed | `/private/tmp/SpaceLens-xcode-analyze-final-20260717.log` |
 | App Store metadata/readiness | Passed; version 1.0 (1); generated project unchanged | `/private/tmp/SpaceLens-app-store-readiness-final-20260717.log` |
+| Signed App Store archive/export | Passed from source `ef75269f6c0128424860100668ca1453290753a4`; archive, export, code signature, installer signature, sandbox/bookmark entitlements, privacy manifest, universal binary, dSYM, and provisioning profile verified | `/private/tmp/SpaceLens-AppStore-audit-final-20260717/SpaceLens.xcarchive`; `/private/tmp/SpaceLens-AppStore-audit-final-20260717/export/SpaceLens.pkg` |
 | Shell syntax | Passed for every script | `bash -n script/*.sh` |
 | Secret/material scan | No credential or private-key matches | Repository-local `rg` signature scan |
 | Unsafe/debt scan | No source `TODO`, `FIXME`, forced cast, forced try, or fatal-error match | Repository-local `rg` scan |
@@ -80,6 +81,7 @@ No unresolved correctness, security, data-loss, maintainability, or performance 
 
 ## Release and publication status
 
-- Repository/runtime label: `runtime-proven` and `repo-ready`; signed archive is the remaining local packaging gate.
+- Repository/runtime label: `runtime-proven`, `repo-ready`, and `package-ready`.
+- Exported package: `/private/tmp/SpaceLens-AppStore-audit-final-20260717/export/SpaceLens.pkg` (SHA-256 `09688e570c73f4f8e148383e960fd8ad62ac1091dc6c6daafd1bed92206fbc58`).
 - Apple review label: not claimed; App Store Connect upload and review are external.
-- GitHub label: branch is local until the final gates pass; PR/check/merge evidence will be recorded here before completion.
+- GitHub label: [PR #10](https://github.com/s1korrrr/space_lens/pull/10) is open from `feat/andrzej_end-to-end-audit`; hosted-check and merge evidence will be recorded here before completion.

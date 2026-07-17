@@ -89,7 +89,9 @@
 - 2026-07-17: Completed source/contract mapping, official Apple documentation review, static scans, build/test/analyze baselines, and App Store metadata validation.
 - 2026-07-17: Reproduced and fixed overlapping cleanup roots/byte inflation, stale-root authorization state, over-broad old-log safety, silently discarded smart-scan errors, ambiguous validation destination selection, and nested SwiftUI projection publishing.
 - 2026-07-17: Completed fixture-backed native launch, scan, search/filter, seven-category sidebar, selection, queue, exact-path confirmation/cancel, settings, resize, and quit/relaunch/queue-restoration proof. A disposable cleanup integration test exercised the successful Bin path.
-- 2026-07-17: Final native replay is free of app runtime-issue faults. Next: final consolidated checks, signed App Store archive, diff/PR review, hosted gates, and merge decision.
+- 2026-07-17: Final native replay is free of app runtime-issue faults. Final SwiftPM/Xcode test, build, analyze, App Store readiness, shell, secret, and debt gates passed.
+- 2026-07-17: Signed App Store archive/export passed from `ef75269f6c0128424860100668ca1453290753a4`; the exported package and embedded app passed signature, entitlement, privacy-manifest, architecture, dSYM, provisioning-profile, and provenance checks.
+- 2026-07-17: Published ready-for-review PR #10. Its first hosted workflow completed as a failure without exposing any job steps or downloadable logs; the final evidence commit will retrigger the workflow before the merge decision.
 
 ## Rollback / Recovery
 

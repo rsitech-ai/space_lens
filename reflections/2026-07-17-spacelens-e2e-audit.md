@@ -35,7 +35,7 @@
 - **Root cause or remaining unknown:** Cleanup semantics were duplicated across consumers, and `@Published` property observers synchronously published additional derived properties while SwiftUI was updating views.
 - **Retained fix / direction:** Shared cleanup-root normalization; one observable transaction per projection mutation; selection pruning inside that transaction; deferred sidebar binding writes; location-sensitive log safety; honest scan error accumulation.
 - **Why alternatives were rejected:** Per-call-site normalization would drift; fully computed large projections would move scan-sized work into rendering; suppressing logs would hide undefined behavior.
-- **Residual risk:** Xcode/macOS development services emit App Intents/Core Spotlight noise for the ad-hoc bundle; signed archive and hosted CI remain separate gates.
+- **Residual risk:** Xcode/macOS development services emit App Intents/Core Spotlight noise for the development bundle. The signed App Store archive passed; hosted CI remains a separate publication gate.
 - **Rollback trigger:** Any regression in scan responsiveness, selection synchronization, cleanup containment, signed archive validation, or hosted checks.
 
 ## Reusable lesson
