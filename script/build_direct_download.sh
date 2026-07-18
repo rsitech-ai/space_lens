@@ -89,12 +89,73 @@ for release_path in "$OUTPUT_DIR" "$DERIVED_DATA"; do
   fi
 done
 
+validate_release_path_scope() {
+  local release_path="$1"
+  local relative_release_path
+
+  if [[ "$release_path" != "$ROOT_DIR"/* ]]; then
+    return
+  fi
+
+  relative_release_path="${release_path#"$ROOT_DIR"/}"
+  if ! git -C "$ROOT_DIR" check-ignore -q --no-index -- "$relative_release_path"; then
+    echo "Release paths inside the source tree must be ignored by Git: $release_path" >&2
+    exit 1
+  fi
+}
+
+# Validate the lexical paths before creating them, then validate their resolved
+# locations as well so a symlinked parent cannot bypass the source-tree guard.
+validate_release_path_scope "$OUTPUT_DIR"
+validate_release_path_scope "$DERIVED_DATA"
+mkdir -p "$OUTPUT_DIR" "$DERIVED_DATA"
+OUTPUT_DIR="$(/bin/realpath "$OUTPUT_DIR")"
+DERIVED_DATA="$(/bin/realpath "$DERIVED_DATA")"
+
+RESOLVED_HOME="$(/bin/realpath "$HOME")"
+for release_path in "$OUTPUT_DIR" "$DERIVED_DATA"; do
+  if [[ "$release_path" == "/" ||
+        "$release_path" == "$RESOLVED_HOME" ||
+        "$release_path" == "$ROOT_DIR" ]]; then
+    echo "Refusing unsafe resolved release path: $release_path" >&2
+    exit 1
+  fi
+done
+
+if [[ "$OUTPUT_DIR" == "$DERIVED_DATA" ||
+      "$OUTPUT_DIR" == "$DERIVED_DATA"/* ||
+      "$DERIVED_DATA" == "$OUTPUT_DIR"/* ]]; then
+  echo "Release output and DerivedData paths must not overlap." >&2
+  exit 1
+fi
+
+validate_release_path_scope "$OUTPUT_DIR"
+validate_release_path_scope "$DERIVED_DATA"
+
 if [[ -n "$(git -C "$ROOT_DIR" status --porcelain=v1 --untracked-files=all)" ]]; then
   echo "Refusing to package a dirty source tree. Commit the exact release source first." >&2
   exit 1
 fi
 
-mkdir -p "$OUTPUT_DIR" "$DERIVED_DATA"
+SOURCE_SHA="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+SOURCE_TREE="$(git -C "$ROOT_DIR" rev-parse HEAD^{tree})"
+
+verify_source_revision() {
+  local current_source_sha
+  local current_source_tree
+  local current_source_status
+
+  current_source_sha="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+  current_source_tree="$(git -C "$ROOT_DIR" rev-parse HEAD^{tree})"
+  current_source_status="$(git -C "$ROOT_DIR" status --porcelain=v1 --untracked-files=all)"
+
+  if [[ "$current_source_sha" != "$SOURCE_SHA" ||
+        "$current_source_tree" != "$SOURCE_TREE" ||
+        -n "$current_source_status" ]]; then
+    echo "Source changed during packaging; refusing to publish mismatched provenance." >&2
+    exit 1
+  fi
+}
 
 xcodebuild \
   -project "$PROJECT_FILE" \
@@ -138,8 +199,6 @@ lipo -archs "$RELEASE_APP/Contents/MacOS/$APP_NAME" | grep -q x86_64
 
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$RELEASE_APP" "$ZIP_PATH"
 
-SOURCE_SHA="$(git -C "$ROOT_DIR" rev-parse HEAD)"
-SOURCE_TREE="$(git -C "$ROOT_DIR" rev-parse HEAD^{tree})"
 ARCHITECTURES="$(lipo -archs "$RELEASE_APP/Contents/MacOS/$APP_NAME")"
 
 cat >"$BUILD_INFO" <<EOF
@@ -160,6 +219,8 @@ EOF
   cd "$OUTPUT_DIR"
   shasum -a 256 "$ZIP_NAME" >"$(basename "$CHECKSUMS")"
 )
+
+verify_source_revision
 
 printf 'Created %s\n' "$RELEASE_APP"
 printf 'Created %s\n' "$ZIP_PATH"

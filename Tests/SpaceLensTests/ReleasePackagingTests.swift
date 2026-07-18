@@ -51,6 +51,43 @@ final class ReleasePackagingTests: XCTestCase {
         XCTAssertTrue(result.stdout.contains("Developer ID"))
     }
 
+    func testDirectDownloadScriptPinsAndRevalidatesSourceRevision() throws {
+        let scriptURL = repositoryRoot.appendingPathComponent("script/build_direct_download.sh")
+        let script = try String(contentsOf: scriptURL, encoding: .utf8)
+
+        let buildRange = try XCTUnwrap(script.range(of: "xcodebuild \\"))
+        let pinnedCommitRange = try XCTUnwrap(
+            script.range(of: "SOURCE_SHA=\"$(git -C \"$ROOT_DIR\" rev-parse HEAD)\"")
+        )
+        let pinnedTreeRange = try XCTUnwrap(
+            script.range(of: "SOURCE_TREE=\"$(git -C \"$ROOT_DIR\" rev-parse HEAD^{tree})\"")
+        )
+
+        XCTAssertLessThan(pinnedCommitRange.lowerBound, buildRange.lowerBound)
+        XCTAssertLessThan(pinnedTreeRange.lowerBound, buildRange.lowerBound)
+        XCTAssertTrue(
+            script.contains("current_source_sha=\"$(git -C \"$ROOT_DIR\" rev-parse HEAD)\"")
+        )
+        XCTAssertTrue(
+            script.contains("current_source_tree=\"$(git -C \"$ROOT_DIR\" rev-parse HEAD^{tree})\"")
+        )
+        XCTAssertTrue(script.contains("-n \"$current_source_status\""))
+        XCTAssertTrue(
+            script.contains("git -C \"$ROOT_DIR\" check-ignore -q --no-index -- \"$relative_release_path\"")
+        )
+        XCTAssertTrue(
+            script.contains("Release paths inside the source tree must be ignored by Git")
+        )
+        XCTAssertTrue(script.contains("Refusing unsafe resolved release path"))
+        XCTAssertTrue(script.contains("Release output and DerivedData paths must not overlap"))
+
+        let finalVerificationRange = try XCTUnwrap(
+            script.range(of: "verify_source_revision\n", options: .backwards)
+        )
+        let checksumRange = try XCTUnwrap(script.range(of: "shasum -a 256"))
+        XCTAssertGreaterThan(finalVerificationRange.lowerBound, checksumRange.lowerBound)
+    }
+
     private func run(_ executableURL: URL, arguments: [String]) throws -> (
         status: Int32,
         stdout: String,
