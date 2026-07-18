@@ -25,8 +25,6 @@
   "existingProductIDs": [],
   "remoteProductIDs": null,
   "reviewInformation": {
-    "contactName": "Rafal Sikora",
-    "contactEmail": "info@rsitech.ai",
     "notes": "No login, backend, purchase, subscription, or demo credentials are required. Select a disposable folder through the macOS folder picker, inspect the local safety classifications, and use generated test data when exercising the exact-path Move to Bin confirmation. Cancel or move only the disposable fixture.",
     "requiresLogin": false,
     "demoCredentialsReference": null,
