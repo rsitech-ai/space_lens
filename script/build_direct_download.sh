@@ -111,6 +111,24 @@ validate_release_path_scope "$DERIVED_DATA"
 mkdir -p "$OUTPUT_DIR" "$DERIVED_DATA"
 OUTPUT_DIR="$(/bin/realpath "$OUTPUT_DIR")"
 DERIVED_DATA="$(/bin/realpath "$DERIVED_DATA")"
+
+RESOLVED_HOME="$(/bin/realpath "$HOME")"
+for release_path in "$OUTPUT_DIR" "$DERIVED_DATA"; do
+  if [[ "$release_path" == "/" ||
+        "$release_path" == "$RESOLVED_HOME" ||
+        "$release_path" == "$ROOT_DIR" ]]; then
+    echo "Refusing unsafe resolved release path: $release_path" >&2
+    exit 1
+  fi
+done
+
+if [[ "$OUTPUT_DIR" == "$DERIVED_DATA" ||
+      "$OUTPUT_DIR" == "$DERIVED_DATA"/* ||
+      "$DERIVED_DATA" == "$OUTPUT_DIR"/* ]]; then
+  echo "Release output and DerivedData paths must not overlap." >&2
+  exit 1
+fi
+
 validate_release_path_scope "$OUTPUT_DIR"
 validate_release_path_scope "$DERIVED_DATA"
 

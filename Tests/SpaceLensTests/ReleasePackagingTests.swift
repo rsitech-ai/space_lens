@@ -78,6 +78,8 @@ final class ReleasePackagingTests: XCTestCase {
         XCTAssertTrue(
             script.contains("Release paths inside the source tree must be ignored by Git")
         )
+        XCTAssertTrue(script.contains("Refusing unsafe resolved release path"))
+        XCTAssertTrue(script.contains("Release output and DerivedData paths must not overlap"))
 
         let finalVerificationRange = try XCTUnwrap(
             script.range(of: "verify_source_revision\n", options: .backwards)
