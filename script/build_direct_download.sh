@@ -98,7 +98,8 @@ validate_release_path_scope() {
   fi
 
   relative_release_path="${release_path#"$ROOT_DIR"/}"
-  if ! git -C "$ROOT_DIR" check-ignore -q --no-index -- "$relative_release_path"; then
+  if ! git -C "$ROOT_DIR" check-ignore -q --no-index -- "$relative_release_path" &&
+     ! git -C "$ROOT_DIR" check-ignore -q --no-index -- "${relative_release_path}/"; then
     echo "Release paths inside the source tree must be ignored by Git: $release_path" >&2
     exit 1
   fi

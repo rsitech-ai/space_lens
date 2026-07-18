@@ -76,6 +76,9 @@ final class ReleasePackagingTests: XCTestCase {
             script.contains("git -C \"$ROOT_DIR\" check-ignore -q --no-index -- \"$relative_release_path\"")
         )
         XCTAssertTrue(
+            script.contains("git -C \"$ROOT_DIR\" check-ignore -q --no-index -- \"${relative_release_path}/\"")
+        )
+        XCTAssertTrue(
             script.contains("Release paths inside the source tree must be ignored by Git")
         )
         XCTAssertTrue(script.contains("Refusing unsafe resolved release path"))
