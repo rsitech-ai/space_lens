@@ -76,7 +76,8 @@ final class ReleasePackagingTests: XCTestCase {
         let finalVerificationRange = try XCTUnwrap(
             script.range(of: "verify_source_revision\n", options: .backwards)
         )
-        XCTAssertGreaterThan(finalVerificationRange.lowerBound, buildRange.lowerBound)
+        let checksumRange = try XCTUnwrap(script.range(of: "shasum -a 256"))
+        XCTAssertGreaterThan(finalVerificationRange.lowerBound, checksumRange.lowerBound)
     }
 
     private func run(_ executableURL: URL, arguments: [String]) throws -> (
