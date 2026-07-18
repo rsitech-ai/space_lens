@@ -94,6 +94,26 @@ if [[ -n "$(git -C "$ROOT_DIR" status --porcelain=v1 --untracked-files=all)" ]];
   exit 1
 fi
 
+SOURCE_SHA="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+SOURCE_TREE="$(git -C "$ROOT_DIR" rev-parse HEAD^{tree})"
+
+verify_source_revision() {
+  local current_source_sha
+  local current_source_tree
+  local current_source_status
+
+  current_source_sha="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+  current_source_tree="$(git -C "$ROOT_DIR" rev-parse HEAD^{tree})"
+  current_source_status="$(git -C "$ROOT_DIR" status --porcelain=v1 --untracked-files=all)"
+
+  if [[ "$current_source_sha" != "$SOURCE_SHA" ||
+        "$current_source_tree" != "$SOURCE_TREE" ||
+        -n "$current_source_status" ]]; then
+    echo "Source changed during packaging; refusing to publish mismatched provenance." >&2
+    exit 1
+  fi
+}
+
 mkdir -p "$OUTPUT_DIR" "$DERIVED_DATA"
 
 xcodebuild \
@@ -138,8 +158,6 @@ lipo -archs "$RELEASE_APP/Contents/MacOS/$APP_NAME" | grep -q x86_64
 
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$RELEASE_APP" "$ZIP_PATH"
 
-SOURCE_SHA="$(git -C "$ROOT_DIR" rev-parse HEAD)"
-SOURCE_TREE="$(git -C "$ROOT_DIR" rev-parse HEAD^{tree})"
 ARCHITECTURES="$(lipo -archs "$RELEASE_APP/Contents/MacOS/$APP_NAME")"
 
 cat >"$BUILD_INFO" <<EOF
@@ -160,6 +178,8 @@ EOF
   cd "$OUTPUT_DIR"
   shasum -a 256 "$ZIP_NAME" >"$(basename "$CHECKSUMS")"
 )
+
+verify_source_revision
 
 printf 'Created %s\n' "$RELEASE_APP"
 printf 'Created %s\n' "$ZIP_PATH"
