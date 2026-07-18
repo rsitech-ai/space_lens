@@ -40,4 +40,8 @@ Do not use personal reviewer data for destructive testing. A disposable test fol
 
 ## Owner-Controlled Fields
 
-Owner-confirmed release details: legal name `Rafal Sikora`; private App Review contact `Rafal Sikora`, `info@rsitech.ai`, `private contact stored only in App Store Connect`; free pricing; all available territories; automatic release; current agreements, tax, banking, developer-program membership and upload/submission role. Public support uses `info@rsitech.ai`. The Privacy and Support URLs at `https://www.rsitech.ai/spacelens/privacy` and `https://www.rsitech.ai/spacelens/support` return signed-out HTTP 200. The owner confirmed Data Not Collected, all age-rating content frequencies None, no restricted encryption, content rights and DSA Trader status. Trader contact details are entered, but Apple phone verification remains pending. Accessibility labels remain unconfirmed until human evidence exists.
+Enter private App Review contact details, legal declarations, pricing,
+territories, release controls, and trader verification directly in App Store
+Connect. Do not store private contact data, verification codes, agreements, or
+account-state snapshots in the source repository. Accessibility labels must be
+declared only when supported by current human evidence.

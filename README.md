@@ -41,6 +41,23 @@ swift build
 swift build -c release
 ```
 
+## Download
+
+The latest verified universal macOS build is published on the repository's
+[Releases page](https://github.com/s1korrrr/space_lens/releases). Each release
+includes the app ZIP, `SHA256SUMS.txt`, and `BUILD_INFO.txt` so the downloaded
+artifact can be matched to its source commit.
+
+Maintainers can reproduce the Developer ID-signed download from a clean commit:
+
+```bash
+SPACE_LENS_DEVELOPER_ID='Developer ID Application: Name (TEAMID)' \
+  ./script/build_direct_download.sh
+```
+
+Developer ID signing and Apple notarization are separate gates. The release
+notes state the notarization status of the attached artifact explicitly.
+
 ## App Store
 
 SpaceLens includes a reproducible Xcode/App Store packaging lane:
@@ -50,15 +67,15 @@ SpaceLens includes a reproducible Xcode/App Store packaging lane:
 SPACE_LENS_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./script/archive_app_store.sh
 ```
 
-Retired App Store exports have been removed. The current signed package and its
-hold conditions are recorded in the canonical 1.0 release dossier; generate a
-new archive only if code or packaging inputs change.
+Direct-download packaging and Mac App Store packaging are independent. Generate
+a new artifact whenever source or packaging inputs change; never reuse an older
+signed app or installer as evidence for current source.
 
 See [docs/APP_STORE.md](docs/APP_STORE.md) for signing, archive, upload, and
 App Store Connect metadata steps.
 
 Production readiness notes live in [docs/production-plan.md](docs/production-plan.md).
-The canonical SpaceLens 1.0 gate matrix and remaining blockers live in
+The canonical SpaceLens 1.0 download and signing status lives in
 [docs/release/1.0/RELEASE_STATUS.md](docs/release/1.0/RELEASE_STATUS.md).
 
 ## Workflow
@@ -89,10 +106,9 @@ SpaceLens 1.0.
 
 ## Support
 
-Privacy and support drafts:
+Privacy and support:
 
 - [Privacy Policy](docs/PRIVACY.md)
 - [Support](docs/SUPPORT.md)
-
-The public privacy-policy and support URLs required by App Store Connect remain
-external release blockers until they return HTTP 200 without authentication.
+- [Published Privacy Policy](https://www.rsitech.ai/spacelens/privacy)
+- [Published Support](https://www.rsitech.ai/spacelens/support)

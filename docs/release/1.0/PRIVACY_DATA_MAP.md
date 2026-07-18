@@ -1,6 +1,7 @@
 # SpaceLens 1.0 Privacy Data Map
 
-This map describes repository-observable behavior as of 2026-07-15. The owner confirmed the matching Data Not Collected declaration on 2026-07-16.
+This map describes behavior observable in the current repository. Account-side
+privacy declarations must be rechecked against the exact submitted artifact.
 
 | Data | Purpose | Storage and retention | Recipient / tracking |
 | --- | --- | --- | --- |
@@ -18,9 +19,12 @@ This map describes repository-observable behavior as of 2026-07-15. The owner co
 - `NSPrivacyCollectedDataTypes` is empty.
 - `NSPrivacyTracking` is `false`; no tracking domains are declared.
 - Required-reason API code `3B52.1` covers file timestamps inside user-granted folders.
-- The signed exported package contains the same privacy manifest and passes the repository lint.
+- The direct-download and App Store build scripts verify that the packaged app
+  contains the repository privacy manifest unchanged.
 - Official reference: [Apple privacy manifest documentation](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files).
 
-## Owner Confirmation
+## Account-side confirmation
 
-The account/privacy owner confirmed Data Not Collected, including that no operational support, web, backend, analytics, crash-reporting, or other workflow outside this repository collects SpaceLens user data. The public privacy policy must continue to match both the shipped app and that operational reality.
+The account/privacy owner must confirm that operational support, web, backend,
+analytics, crash-reporting, and other workflows outside this repository still
+match the public privacy policy before every submission.
