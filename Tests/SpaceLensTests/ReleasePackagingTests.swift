@@ -72,6 +72,12 @@ final class ReleasePackagingTests: XCTestCase {
             script.contains("current_source_tree=\"$(git -C \"$ROOT_DIR\" rev-parse HEAD^{tree})\"")
         )
         XCTAssertTrue(script.contains("-n \"$current_source_status\""))
+        XCTAssertTrue(
+            script.contains("git -C \"$ROOT_DIR\" check-ignore -q --no-index -- \"$relative_release_path\"")
+        )
+        XCTAssertTrue(
+            script.contains("Release paths inside the source tree must be ignored by Git")
+        )
 
         let finalVerificationRange = try XCTUnwrap(
             script.range(of: "verify_source_revision\n", options: .backwards)

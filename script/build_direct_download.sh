@@ -89,6 +89,31 @@ for release_path in "$OUTPUT_DIR" "$DERIVED_DATA"; do
   fi
 done
 
+validate_release_path_scope() {
+  local release_path="$1"
+  local relative_release_path
+
+  if [[ "$release_path" != "$ROOT_DIR"/* ]]; then
+    return
+  fi
+
+  relative_release_path="${release_path#"$ROOT_DIR"/}"
+  if ! git -C "$ROOT_DIR" check-ignore -q --no-index -- "$relative_release_path"; then
+    echo "Release paths inside the source tree must be ignored by Git: $release_path" >&2
+    exit 1
+  fi
+}
+
+# Validate the lexical paths before creating them, then validate their resolved
+# locations as well so a symlinked parent cannot bypass the source-tree guard.
+validate_release_path_scope "$OUTPUT_DIR"
+validate_release_path_scope "$DERIVED_DATA"
+mkdir -p "$OUTPUT_DIR" "$DERIVED_DATA"
+OUTPUT_DIR="$(/bin/realpath "$OUTPUT_DIR")"
+DERIVED_DATA="$(/bin/realpath "$DERIVED_DATA")"
+validate_release_path_scope "$OUTPUT_DIR"
+validate_release_path_scope "$DERIVED_DATA"
+
 if [[ -n "$(git -C "$ROOT_DIR" status --porcelain=v1 --untracked-files=all)" ]]; then
   echo "Refusing to package a dirty source tree. Commit the exact release source first." >&2
   exit 1
@@ -113,8 +138,6 @@ verify_source_revision() {
     exit 1
   fi
 }
-
-mkdir -p "$OUTPUT_DIR" "$DERIVED_DATA"
 
 xcodebuild \
   -project "$PROJECT_FILE" \
