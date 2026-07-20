@@ -7,9 +7,11 @@ cleanup-ready items to the Bin.
 
 ![SpaceLens main window](docs/screenshots/spacelens-main.png)
 
-> **Release status:** SpaceLens 1.0 source is released under the Apache License 2.0.
-> No signed public app or GitHub release asset exists yet; current Developer ID
-> signing and notarization evidence remain external release gates. See
+> **Release status:** The SpaceLens 1.0 source release is published as
+> [`v1.0.0`](https://github.com/rsitech-ai/space_lens/releases/tag/v1.0.0) under
+> the Apache License 2.0, with a source archive and checksums. A signed,
+> notarized downloadable macOS binary is not yet published; it remains blocked
+> on Apple notarization credentials. See
 > [Open-source readiness](docs/OPEN_SOURCE_READINESS.md).
 
 ## What SpaceLens does
