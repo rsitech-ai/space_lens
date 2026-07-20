@@ -1,8 +1,9 @@
 # Open-Source Readiness
 
-SpaceLens is **open-source source-ready under the MIT License**. A signed,
-notarized direct-download package remains **blocked:external** until an Apple
-Developer ID Application identity and notarization credentials are available.
+SpaceLens is **open-source source-ready under the Apache License 2.0**. A valid
+Developer ID Application identity is installed. The notarized direct-download
+package remains **blocked:external** until notarization credentials are stored
+for `notarytool`.
 
 ## Completed in the repository
 
@@ -17,8 +18,12 @@ Developer ID Application identity and notarization credentials are available.
   machine paths or unrelated internal project identifiers.
 - README and release documents truthfully state that no public tag or release
   asset exists yet.
-- The owner approved the MIT License, contribution terms, and MIT coverage for
-  all inventoried app icons and screenshots on 2026-07-20.
+- The owner approved the Apache License 2.0, matching contribution terms, and
+  Apache-2.0 coverage for all inventoried app icons and screenshots on
+  2026-07-20.
+- Rafal Sikora is the copyright owner. RSI Tech is the public maintainer, with
+  `https://rsitech.ai` and `info@rsitech.ai` as the canonical public and
+  confidential project contacts.
 - The canonical repository is `rsitech-ai/space_lens`; transfer and public
   visibility, including publication of the existing Git author metadata, were
   explicitly approved by the owner.
@@ -26,9 +31,9 @@ Developer ID Application identity and notarization credentials are available.
 
 ## Remaining external package gates
 
-1. Install an appropriate Developer ID Application identity, build from the
-   final clean commit, notarize, staple, assess with Gatekeeper, and archive the
-   exact evidence.
+1. Build from the final clean commit with the installed Developer ID Application
+   identity. Store notarization credentials, then notarize, staple, assess with
+   Gatekeeper, and archive the exact evidence.
 2. Create and publish `v1.0.0` only after the signed and notarized artifact gate
    passes.
 

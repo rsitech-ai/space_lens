@@ -32,6 +32,6 @@ Security reports must follow [SECURITY.md](SECURITY.md), not a public issue.
 
 ## Licensing
 
-SpaceLens is licensed under the [MIT License](LICENSE). By submitting a
+SpaceLens is licensed under the [Apache License 2.0](LICENSE). By submitting a
 contribution, you agree that your contribution is licensed under the same
 terms.

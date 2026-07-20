@@ -7,7 +7,7 @@ cleanup-ready items to the Bin.
 
 ![SpaceLens main window](docs/screenshots/spacelens-main.png)
 
-> **Release status:** SpaceLens 1.0 source is released under the MIT License.
+> **Release status:** SpaceLens 1.0 source is released under the Apache License 2.0.
 > No signed public app or GitHub release asset exists yet; current Developer ID
 > signing and notarization evidence remain external release gates. See
 > [Open-source readiness](docs/OPEN_SOURCE_READINESS.md).
@@ -119,8 +119,15 @@ evidence for changed source.
 - [Release status](docs/release/1.0/RELEASE_STATUS.md)
 - [Production plan](docs/production-plan.md)
 
+## Maintainer
+
+SpaceLens is publicly maintained by [RSI Tech](https://rsitech.ai). Public and
+confidential project inquiries can be sent to
+[info@rsitech.ai](mailto:info@rsitech.ai).
+
 ## License
 
 SpaceLens source, bundled app icons, and repository screenshots are available
-under the [MIT License](LICENSE). See [asset provenance](docs/ASSET_PROVENANCE.md)
-for the reviewed binary-asset inventory.
+under the [Apache License 2.0](LICENSE). Copyright 2026 Rafal Sikora. See
+[NOTICE](NOTICE) and [asset provenance](docs/ASSET_PROVENANCE.md) for attribution
+and the reviewed binary-asset inventory.
