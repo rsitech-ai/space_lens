@@ -7,10 +7,9 @@ cleanup-ready items to the Bin.
 
 ![SpaceLens main window](docs/screenshots/spacelens-main.png)
 
-> **Release status:** SpaceLens 1.0 is a release candidate. No public GitHub tag
-> or release asset exists yet. Licensing, asset-rights confirmation, current
-> Developer ID signing/notarization evidence, repository visibility, and release
-> publication remain owner-controlled gates. See
+> **Release status:** SpaceLens 1.0 source is released under the MIT License.
+> No signed public app or GitHub release asset exists yet; current Developer ID
+> signing and notarization evidence remain external release gates. See
 > [Open-source readiness](docs/OPEN_SOURCE_READINESS.md).
 
 ## What SpaceLens does
@@ -122,6 +121,6 @@ evidence for changed source.
 
 ## License
 
-No open-source license has been declared yet. Until the owner approves and adds
-a license, the source is publicly reviewable only if the repository is made
-public; no open-source permissions are granted.
+SpaceLens source, bundled app icons, and repository screenshots are available
+under the [MIT License](LICENSE). See [asset provenance](docs/ASSET_PROVENANCE.md)
+for the reviewed binary-asset inventory.

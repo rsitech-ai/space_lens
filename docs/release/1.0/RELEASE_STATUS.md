@@ -1,6 +1,6 @@
 # SpaceLens 1.0 Release Status
 
-Status: **release candidate; not published**
+Status: **public source ready; production app not published**
 
 Last repository review: 2026-07-20
 
@@ -32,22 +32,22 @@ Last repository review: 2026-07-20
   `docs/audits/2026-07-17-end-to-end-audit.md`.
 
 Historical local artifacts are not evidence for the current source. The
-repository has no public tag or GitHub release at this status date.
+repository has no `v1.0.0` tag or GitHub release at this status date.
 
 ## Gates before a public open-source release
 
 | Gate | Status | Required evidence or decision |
 | --- | --- | --- |
-| Repository tests and builds | Pending final verification | Clean warnings-as-errors SwiftPM, Xcode, project-generation, and release-build checks on the final commit. |
-| Hosted CI | Blocked externally | A new GitHub Actions run must start and complete; current jobs are blocked by the account billing/spending state before any step executes. |
-| License | Blocked: owner decision | Approve the license, licensor/copyright holder, and contribution terms; add `LICENSE`. |
-| Asset provenance | Blocked: owner confirmation | Confirm rights and intended license coverage for all app icons and screenshots listed in `docs/ASSET_PROVENANCE.md`. |
+| Repository tests and builds | Passed | Warnings-as-errors SwiftPM, Xcode tests/analyze, project-generation, runtime smoke, and universal release-build checks passed for the release-readiness branch. |
+| Hosted CI | Passed | PR #14 completed on Xcode 26.6 with SwiftPM tests, Xcode tests, universal Release build, and metadata validation. |
+| License | Complete | MIT License; copyright 2026 Rafal Sikora. Contributions use the same terms. |
+| Asset provenance | Complete | The owner confirmed MIT coverage for the seven app icons and two repository screenshots on 2026-07-20. |
 | Security scan | Not performed | Excluded at owner direction; do not claim security-scan completeness. |
 | App Store age rating metadata | Needs reconciliation | `.codex/app-store/metadata.json` says the age rating is not declared while the owner attestation says it is complete; verify the live declaration before upload. |
 | Developer ID package | Blocked externally | Build from the final clean commit with an available Developer ID Application identity. |
 | Apple notarization | Blocked externally | Accepted notarization result, stapler validation, Gatekeeper acceptance, and checksums for the post-stapling ZIP. |
-| Repository visibility | Private | Owner must explicitly approve changing visibility. |
-| Canonical repository owner | Pending owner decision | Confirm whether the current personal repository remains canonical or is transferred to the RSI Tech organization. |
+| Repository visibility | Approved for public release | The owner explicitly approved public visibility and publication of the existing Git author metadata. |
+| Canonical repository owner | Complete | Repository transferred to `rsitech-ai/space_lens`. |
 | GitHub release | Not published | Create `v1.0.0` and publish only the source-bound accepted/stapled artifact, checksum, build info, and release notes. |
 
 ## App Store boundary

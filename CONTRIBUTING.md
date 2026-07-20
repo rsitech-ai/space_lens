@@ -32,6 +32,6 @@ Security reports must follow [SECURITY.md](SECURITY.md), not a public issue.
 
 ## Licensing
 
-The repository license is an owner-controlled release gate and is not yet
-declared. Contributions cannot be accepted as open-source contributions until
-a license and contribution terms are published.
+SpaceLens is licensed under the [MIT License](LICENSE). By submitting a
+contribution, you agree that your contribution is licensed under the same
+terms.
