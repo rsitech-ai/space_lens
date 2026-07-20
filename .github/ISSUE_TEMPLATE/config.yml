@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: SpaceLens support
+    url: https://www.rsitech.ai/spacelens/support
+    about: Get help without posting private file paths or file contents.
+  - name: Report a security issue privately
+    url: mailto:info@rsitech.ai?subject=SpaceLens%20security%20report
+    about: Do not disclose suspected vulnerabilities in a public issue.

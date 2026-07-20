@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.pbxproj text eol=lf
+*.png binary
+*.jpeg binary
+*.jpg binary
+*.xcassets/** linguist-vendored
