@@ -160,13 +160,13 @@ public struct RuleEngine: Sendable {
             )
         }
 
-        if isTradingResearchCache(path: path) {
+        if isResearchDataCache(path: path) {
             return SafetyClassification(
                 level: .unknownReview,
                 confidence: 0.84,
-                category: "Trading research cache",
-                summary: "This looks generated, but it belongs to trading research.",
-                evidence: ["Matched quants-lab cache/backtest paths.", "Large generated data may still be needed for reproducibility."],
+                category: "Research data cache",
+                summary: "This looks generated, but it belongs to a research project.",
+                evidence: ["Matched a research data cache or backtest output path.", "Large generated data may still be needed for reproducibility."],
                 recommendedAction: "Archive or delete only after confirming the run/data is reproducible or obsolete."
             )
         }
@@ -177,7 +177,7 @@ public struct RuleEngine: Sendable {
                 confidence: 0.9,
                 category: "Research corpus",
                 summary: "This looks like a downloaded research/library corpus.",
-                evidence: ["Matched the risercz downloaded library path.", "The content is user/project data, not a disposable cache."],
+                evidence: ["Matched a downloaded research library path.", "The content is user/project data, not a disposable cache."],
                 recommendedAction: "Do not delete unless you explicitly decide this corpus is disposable."
             )
         }
@@ -340,13 +340,19 @@ public struct RuleEngine: Sendable {
             || path.contains("/library/application support/cursor/user/globalstorage")
     }
 
-    private func isTradingResearchCache(path: String) -> Bool {
-        path.contains("/dev/trading/rsibot/quants-lab/app/data/cache/lob")
-            || path.contains("/dev/trading/rsibot/quants-lab/output/backtests")
+    private func isResearchDataCache(path: String) -> Bool {
+        let isResearchPath = path.contains("/research-")
+            || path.contains("/research/")
+            || path.contains("/backtest")
+        let isGeneratedData = path.contains("/app/data/cache/")
+            || path.contains("/output/backtests")
+        return isResearchPath && isGeneratedData
     }
 
     private func isDownloadedResearchLibrary(path: String) -> Bool {
-        path.contains("/dev/new/alpha-vistula/risercz/python/universal/downloads/library")
+        path.contains("/downloads/researchlibrary")
+            || path.contains("/downloads/research-library")
+            || (path.contains("/research/") && path.contains("/downloads/library"))
     }
 
     private func isAIModelStore(path: String) -> Bool {

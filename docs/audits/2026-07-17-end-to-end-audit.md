@@ -64,7 +64,7 @@ Fixture: `/private/tmp/SpaceLens-PQ-20260717.IqSdbM`, with a `.build` directory,
 | Scenario | Actual | Status |
 | --- | --- | --- |
 | Full scan | 10 items, 1 MB, 0 errors; symlink not followed | Passed |
-| Classification | Three independent cleanup roots: `.build`, `financial-audit.log`, and `Documents/important.log`; document log remains review-only until explicitly selected | Passed |
+| Classification | Three independent cleanup roots: `.build`, `annual-report.log`, and `Documents/important.log`; document log remains review-only until explicitly selected | Passed |
 | Search and categories | Cmd-F focused search; `important` produced one row; Scan Errors showed contextual main and inspector empty states | Passed |
 | Queue and confirmation | Select All produced three exact roots; Move to Bin listed all paths; Cancel left the fixture intact | Passed |
 | Restored session | Quit/relaunch, then Rescan reused the bookmark without a picker and restored the three queue roots | Passed |

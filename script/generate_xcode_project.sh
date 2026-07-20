@@ -7,7 +7,7 @@ cd "$ROOT_DIR"
 EXPECTED_XCODEGEN_VERSION="2.45.4"
 
 if ! command -v xcodegen >/dev/null 2>&1; then
-    echo "xcodegen is required. Install it with: brew install xcodegen" >&2
+    echo "XcodeGen $EXPECTED_XCODEGEN_VERSION is required. Install that exact release from https://github.com/yonaskolb/XcodeGen/releases/tag/$EXPECTED_XCODEGEN_VERSION." >&2
     exit 1
 fi
 
