@@ -6,5 +6,12 @@ DerivedData/
 xcuserdata/
 *.xcworkspace/xcuserdata/
 build/AppStore/
-.codex/apple-release/evidence/
-.codex/apple-release/state/
+# Agent, editor, and local planning material (not part of the public product)
+.codex/
+.cursor/
+.claude/
+.agents/
+reflections/
+plans/
+docs/monetization/
+docs/superpowers/
