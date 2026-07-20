@@ -1,0 +1,17 @@
+.DS_Store
+.build/
+dist/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+build/AppStore/
+# Agent, editor, and local planning material (not part of the public product)
+.codex/
+.cursor/
+.claude/
+.agents/
+reflections/
+plans/
+docs/monetization/
+docs/superpowers/

@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      XCODEGEN_VERSION: 2.45.4
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select and verify production Xcode
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+          xcodebuild -version
+          XCODE_VERSION="$(xcodebuild -version | awk '/Xcode/ { print $2 }')"
+          test "$XCODE_VERSION" = "26.6"
+
+      - name: Install verified XcodeGen
+        run: |
+          set -euo pipefail
+          XCODEGEN_ZIP="$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip"
+          curl -fsSL \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip" \
+            -o "$XCODEGEN_ZIP"
+          echo "090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef  $XCODEGEN_ZIP" \
+            | shasum -a 256 -c -
+          unzip -q "$XCODEGEN_ZIP" -d "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION"
+          echo "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION/xcodegen/bin" >>"$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION/xcodegen/bin/xcodegen" --version
+
+      - name: Resolve package graph
+        run: swift package resolve
+
+      - name: Regenerate Xcode project from pinned source of truth
+        run: |
+          set -euo pipefail
+          ./script/generate_xcode_project.sh
+          git diff --exit-code -- SpaceLens.xcodeproj
+
+      - name: Run SwiftPM tests with warnings as errors
+        run: swift test -Xswiftc -warnings-as-errors
+
+      - name: Run Xcode tests
+        run: >-
+          xcodebuild
+          -project SpaceLens.xcodeproj
+          -scheme SpaceLens
+          -configuration Debug
+          -destination 'platform=macOS,arch=arm64'
+          CODE_SIGNING_ALLOWED=NO
+          test
+
+      - name: Build unsigned universal Release app
+        run: >-
+          xcodebuild
+          -project SpaceLens.xcodeproj
+          -scheme SpaceLens
+          -configuration Release
+          -destination 'generic/platform=macOS'
+          -derivedDataPath "$RUNNER_TEMP/SpaceLensDerivedData"
+          CODE_SIGNING_ALLOWED=NO
+          ARCHS='arm64 x86_64'
+          ONLY_ACTIVE_ARCH=NO
+          SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+          build
+
+      - name: Validate release metadata
+        run: |
+          set -euo pipefail
+          plutil -lint Config/Info.plist
+          plutil -lint Config/SpaceLens.entitlements
+          plutil -lint Config/ExportOptions-AppStore.plist
+          plutil -lint Resources/PrivacyInfo.xcprivacy
+          APP_PATH="$RUNNER_TEMP/SpaceLensDerivedData/Build/Products/Release/SpaceLens.app"
+          test -d "$APP_PATH"
+          EXPECTED_VERSION="$(awk -F '"' '/MARKETING_VERSION:/ { print $2; exit }' project.yml)"
+          EXPECTED_BUILD="$(awk -F '"' '/CURRENT_PROJECT_VERSION:/ { print $2; exit }' project.yml)"
+          test -f "$APP_PATH/Contents/Resources/PrivacyInfo.xcprivacy"
+          cmp Resources/PrivacyInfo.xcprivacy "$APP_PATH/Contents/Resources/PrivacyInfo.xcprivacy"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Contents/Info.plist")" = "$EXPECTED_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Contents/Info.plist")" = "$EXPECTED_BUILD"
+          lipo -archs "$APP_PATH/Contents/MacOS/SpaceLens" | grep -q arm64
+          lipo -archs "$APP_PATH/Contents/MacOS/SpaceLens" | grep -q x86_64
