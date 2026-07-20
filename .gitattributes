@@ -3,4 +3,4 @@
 *.png binary
 *.jpeg binary
 *.jpg binary
-*.xcassets/** linguist-vendored
+Resources/Assets.xcassets/** linguist-vendored
