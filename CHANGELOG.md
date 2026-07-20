@@ -23,4 +23,4 @@ versions will use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Public documentation no longer claims a GitHub release exists before a tag
   and release assets are actually published.
 
-[Unreleased]: https://github.com/s1korrrr/space_lens/compare/main...HEAD
+[Unreleased]: https://github.com/rsitech-ai/space_lens/compare/main...HEAD
