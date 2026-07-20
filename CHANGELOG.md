@@ -20,7 +20,8 @@ versions will use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - CI now selects Xcode 26.6 exactly and verifies the pinned XcodeGen 2.45.4
   archive before use.
-- Public documentation no longer claims a GitHub release exists before a tag
-  and release assets are actually published.
+- Public documentation now reflects the published `v1.0.0` source release
+  (source archive and checksums) while noting the notarized macOS binary asset
+  is still pending Apple notarization credentials.
 
 [Unreleased]: https://github.com/rsitech-ai/space_lens/compare/main...HEAD

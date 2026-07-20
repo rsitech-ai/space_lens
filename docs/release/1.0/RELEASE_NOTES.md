@@ -23,7 +23,9 @@ SpaceLens works locally, with no account, analytics, advertising, or tracking SD
 
 ## Publication Status
 
-These are release-candidate notes. No public `v1.0.0` tag or GitHub release has
-been published yet. A downloadable artifact must be built from the final clean
+The public `v1.0.0` tag and GitHub source release are published, providing the
+source archive and its checksums. A downloadable notarized macOS binary is not
+yet part of the release: that artifact must still be built from the final clean
 commit, signed with Developer ID, accepted by Apple notarization, stapled,
-Gatekeeper-assessed, and checksummed before publication.
+Gatekeeper-assessed, and checksummed before it can be published, and it remains
+blocked on Apple notarization credentials.

@@ -16,8 +16,9 @@ for `notarytool`.
   changelog, editor settings, and line-ending rules are present.
 - Test fixtures use fictional paths and project names rather than contributor
   machine paths or unrelated internal project identifiers.
-- README and release documents truthfully state that no public tag or release
-  asset exists yet.
+- README and release documents truthfully state that the `v1.0.0` source
+  release is published (source archive and checksums) while the notarized macOS
+  binary asset is still pending.
 - The owner approved the Apache License 2.0, matching contribution terms, and
   Apache-2.0 coverage for all inventoried app icons and screenshots on
   2026-07-20.
@@ -34,16 +35,16 @@ for `notarytool`.
 1. Build from the final clean commit with the installed Developer ID Application
    identity. Store notarization credentials, then notarize, staple, assess with
    Gatekeeper, and archive the exact evidence.
-2. Create and publish `v1.0.0` only after the signed and notarized artifact gate
-   passes.
+2. Attach the signed and notarized downloadable macOS binary and its checksums
+   to the already-published `v1.0.0` release once the notarization gate passes.
 
 ## Explicit exclusions
 
 - A Gitleaks 8.30.1 secret scan of the working tree and full Git history found
   no leaks. Broader static analysis or formal security-audit completeness is not
   claimed.
-- No Apple notarization, App Store Connect upload, tag, or release publication
-  is implied by the public source repository.
+- The published `v1.0.0` release covers source only. No Apple notarization,
+  notarized macOS binary asset, or App Store Connect upload is implied by it.
 - Historical local artifacts are not promoted as evidence for the current
   source revision.
 
