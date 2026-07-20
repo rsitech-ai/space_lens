@@ -6,7 +6,7 @@ final class RuleEngineTests: XCTestCase {
     private let rules = RuleEngine()
 
     func testGenericBuildFolderNeedsReview() {
-        let node = node(path: "/Users/s1kor/dev/flutter/usafe/mobile/build", isDirectory: true)
+        let node = node(path: "/Users/example/dev/MobileApp/build", isDirectory: true)
         let classification = rules.classify(node)
 
         XCTAssertEqual(classification.level, .largeButValuable)
@@ -14,7 +14,7 @@ final class RuleEngineTests: XCTestCase {
     }
 
     func testPackageCacheIsRebuildable() {
-        let node = node(path: "/Users/s1kor/dev/app/.build", isDirectory: true)
+        let node = node(path: "/Users/example/Projects/SampleApp/.build", isDirectory: true)
         let classification = rules.classify(node)
 
         XCTAssertEqual(classification.level, .rebuildableCache)
@@ -56,7 +56,7 @@ final class RuleEngineTests: XCTestCase {
     }
 
     func testApplicationSupportDatabaseNeedsReview() {
-        let node = node(path: "/Users/s1kor/Library/Application Support/ExampleApp/state.sqlite")
+        let node = node(path: "/Users/example/Library/Application Support/ExampleApp/state.sqlite")
         let classification = rules.classify(node)
 
         XCTAssertEqual(classification.level, .unknownReview)
@@ -64,7 +64,7 @@ final class RuleEngineTests: XCTestCase {
     }
 
     func testDockerRawIsActiveToolOwned() {
-        let node = node(path: "/Users/s1kor/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
+        let node = node(path: "/Users/example/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
         let classification = rules.classify(node)
 
         XCTAssertEqual(classification.level, .activeOrInUse)
@@ -72,26 +72,29 @@ final class RuleEngineTests: XCTestCase {
     }
 
     func testAIModelStoreIsValuable() {
-        let node = node(path: "/Users/s1kor/.lmstudio/models/openai/gpt-oss-120b-MLX-8bit", isDirectory: true)
+        let node = node(path: "/Users/example/.lmstudio/models/example-model", isDirectory: true)
         let classification = rules.classify(node)
 
         XCTAssertEqual(classification.level, .largeButValuable)
         XCTAssertEqual(classification.category, "AI models")
     }
 
-    func testSourceProjectDataIsNotSafe() {
-        let node = node(path: "/Users/s1kor/dev/trading/rsibot/quants-lab/app/data/cache/lob", isDirectory: true)
+    func testResearchDataCacheIsNotSafe() {
+        let node = node(
+            path: "/Users/example/dev/research-experiments/app/data/cache/orderbook",
+            isDirectory: true
+        )
         let classification = rules.classify(node)
 
         XCTAssertEqual(classification.level, .unknownReview)
-        XCTAssertEqual(classification.category, "Trading research cache")
+        XCTAssertEqual(classification.category, "Research data cache")
         XCTAssertFalse(classification.level.isQueueable)
     }
 
     func testSmartScanSafeCachePathsAreQueueable() {
         let simulatorCache = node(path: "/Library/Developer/CoreSimulator/Caches", isDirectory: true)
         let wallpaperVideos = node(
-            path: "/Users/s1kor/Library/Application Support/com.apple.wallpaper/aerials/videos",
+            path: "/Users/example/Library/Application Support/com.apple.wallpaper/aerials/videos",
             isDirectory: true
         )
 
@@ -100,13 +103,13 @@ final class RuleEngineTests: XCTestCase {
     }
 
     func testSmartScanReviewFirstPathsAreNotQueueable() {
-        let condaPackages = node(path: "/Users/s1kor/anaconda3/pkgs", isDirectory: true)
-        let codexSessions = node(path: "/Users/s1kor/.codex/sessions", isDirectory: true)
+        let condaPackages = node(path: "/Users/example/anaconda3/pkgs", isDirectory: true)
+        let codexSessions = node(path: "/Users/example/.codex/sessions", isDirectory: true)
         let cursorHistory = node(
-            path: "/Users/s1kor/Library/Application Support/Cursor/User/History",
+            path: "/Users/example/Library/Application Support/Cursor/User/History",
             isDirectory: true
         )
-        let androidDevice = node(path: "/Users/s1kor/.android/avd/Medium_Phone.avd", isDirectory: true)
+        let androidDevice = node(path: "/Users/example/.android/avd/Medium_Phone.avd", isDirectory: true)
 
         for candidate in [condaPackages, codexSessions, cursorHistory, androidDevice] {
             XCTAssertEqual(rules.classify(candidate).level, .unknownReview)
@@ -117,12 +120,13 @@ final class RuleEngineTests: XCTestCase {
     func testSmartScanDoNotRawDeletePathsStayProtected() {
         let virtualMemory = node(path: "/System/Volumes/VM", isDirectory: true)
         let researchLibrary = node(
-            path: "/Users/s1kor/dev/new/alpha-vistula/risercz/python/universal/downloads/library",
+            path: "/Users/example/Downloads/ResearchLibrary",
             isDirectory: true
         )
 
         XCTAssertEqual(rules.classify(virtualMemory).level, .systemCritical)
         XCTAssertEqual(rules.classify(researchLibrary).level, .largeButValuable)
+        XCTAssertEqual(rules.classify(researchLibrary).category, "Research corpus")
     }
 
     func testCrashpadDumpInTempIsSafeCandidate() {
@@ -133,7 +137,7 @@ final class RuleEngineTests: XCTestCase {
     }
 
     func testOldLogInUserDocumentsStillRequiresReview() {
-        let node = node(path: "/Users/s1kor/Documents/financial-audit.log")
+        let node = node(path: "/Users/example/Documents/annual-report.log")
 
         let classification = rules.classify(node)
 

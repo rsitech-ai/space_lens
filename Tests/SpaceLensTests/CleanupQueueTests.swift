@@ -8,7 +8,7 @@ final class CleanupQueueTests: XCTestCase {
     func testQueueProjectionAddsQueueableCandidate() {
         let appState = AppState()
         let node = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
             isDirectory: true,
             logicalSize: 500,
             allocatedSize: 700
@@ -23,7 +23,7 @@ final class CleanupQueueTests: XCTestCase {
     func testQueueRejectsValuableCandidate() {
         let appState = AppState()
         let node = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/.lmstudio/models/model"),
+            url: URL(fileURLWithPath: "/Users/example/.lmstudio/models/model"),
             isDirectory: true,
             logicalSize: 500,
             allocatedSize: 700
@@ -38,19 +38,19 @@ final class CleanupQueueTests: XCTestCase {
     func testSearchFilterAndSelectCleanupReadyVisible() {
         let appState = AppState()
         let cacheNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
             isDirectory: true,
             logicalSize: 1_000,
             allocatedSize: 1_000
         )
         let sourceNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/main.swift"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/main.swift"),
             isDirectory: false,
             logicalSize: 2_000,
             allocatedSize: 2_000
         )
         appState.rootNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp"),
             isDirectory: true,
             logicalSize: 3_000,
             allocatedSize: 3_000,
@@ -74,20 +74,20 @@ final class CleanupQueueTests: XCTestCase {
     func testCleanupSelectionCollapsesDescendantsWhenParentIsSelected() {
         let appState = AppState()
         let artifactNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build/artifact.o"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build/artifact.o"),
             isDirectory: false,
             logicalSize: 400,
             allocatedSize: 400
         )
         let buildNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
             isDirectory: true,
             logicalSize: 400,
             allocatedSize: 400,
             children: [artifactNode]
         )
         appState.rootNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp"),
             isDirectory: true,
             logicalSize: 400,
             allocatedSize: 400,
@@ -103,19 +103,19 @@ final class CleanupQueueTests: XCTestCase {
     func testSelectingCleanupReadyRowsPublishesOneStateChange() {
         let appState = AppState()
         let cacheNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
             isDirectory: true,
             logicalSize: 1_000,
             allocatedSize: 1_000
         )
         let sourceNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/main.swift"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/main.swift"),
             isDirectory: false,
             logicalSize: 1_000,
             allocatedSize: 1_000
         )
         appState.rootNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp"),
             isDirectory: true,
             logicalSize: 2_000,
             allocatedSize: 2_000,
@@ -138,13 +138,13 @@ final class CleanupQueueTests: XCTestCase {
     func testProjectionMutationsPublishOneStateChangeEach() {
         let appState = AppState()
         let cacheNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
             isDirectory: true,
             logicalSize: 1_000,
             allocatedSize: 1_000
         )
         appState.rootNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp"),
             isDirectory: true,
             logicalSize: 1_000,
             allocatedSize: 1_000,
@@ -177,13 +177,13 @@ final class CleanupQueueTests: XCTestCase {
     func testQueueReplacesDescendantWithSelectedParent() {
         let appState = AppState()
         let artifactNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build/artifact.o"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build/artifact.o"),
             isDirectory: false,
             logicalSize: 400,
             allocatedSize: 400
         )
         let buildNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
             isDirectory: true,
             logicalSize: 400,
             allocatedSize: 400,
@@ -200,19 +200,19 @@ final class CleanupQueueTests: XCTestCase {
     func testCachedVisibleNodesUpdateForSidebarFilterAndQueue() {
         let appState = AppState()
         let cacheNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
             isDirectory: true,
             logicalSize: 1_000,
             allocatedSize: 1_000
         )
         let sourceNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/main.swift"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/main.swift"),
             isDirectory: false,
             logicalSize: 2_000,
             allocatedSize: 2_000
         )
         appState.rootNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp"),
             isDirectory: true,
             logicalSize: 3_000,
             allocatedSize: 3_000,
@@ -235,19 +235,19 @@ final class CleanupQueueTests: XCTestCase {
     func testSelectAllAndPruneSelectionToVisibleFilter() {
         let appState = AppState()
         let cacheNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/.build"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
             isDirectory: true,
             logicalSize: 1_000,
             allocatedSize: 1_000
         )
         let sourceNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app/main.swift"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/main.swift"),
             isDirectory: false,
             logicalSize: 2_000,
             allocatedSize: 2_000
         )
         appState.rootNode = FileNode(
-            url: URL(fileURLWithPath: "/Users/s1kor/dev/app"),
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp"),
             isDirectory: true,
             logicalSize: 3_000,
             allocatedSize: 3_000,
