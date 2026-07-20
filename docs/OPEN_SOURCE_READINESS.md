@@ -39,8 +39,9 @@ for `notarytool`.
 
 ## Explicit exclusions
 
-- A formal security scan was not performed, at the owner's direction. This
-  repository does not claim scan coverage or security completeness.
+- A Gitleaks 8.30.1 secret scan of the working tree and full Git history found
+  no leaks. Broader static analysis or formal security-audit completeness is not
+  claimed.
 - No Apple notarization, App Store Connect upload, tag, or release publication
   is implied by the public source repository.
 - Historical local artifacts are not promoted as evidence for the current

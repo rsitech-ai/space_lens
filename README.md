@@ -117,7 +117,6 @@ evidence for changed source.
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
 - [Release status](docs/release/1.0/RELEASE_STATUS.md)
-- [Production plan](docs/production-plan.md)
 
 ## Maintainer
 

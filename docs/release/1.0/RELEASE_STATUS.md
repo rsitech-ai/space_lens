@@ -28,8 +28,6 @@ Last repository review: 2026-07-20
   artifact provenance, submits the exact input ZIP, requires Apple acceptance,
   staples and validates a copy of the app, runs Gatekeeper assessment, then
   creates a new final ZIP.
-- The end-to-end application evidence is recorded in
-  `docs/audits/2026-07-17-end-to-end-audit.md`.
 
 Historical local artifacts are not evidence for the current source. The
 repository has no `v1.0.0` tag or GitHub release at this status date.
@@ -42,8 +40,8 @@ repository has no `v1.0.0` tag or GitHub release at this status date.
 | Hosted CI | Passed | PR #14 completed on Xcode 26.6 with SwiftPM tests, Xcode tests, universal Release build, and metadata validation. |
 | License | Complete | Apache License 2.0; copyright 2026 Rafal Sikora. Contributions use the same terms. |
 | Asset provenance | Complete | The owner confirmed Apache-2.0 coverage for the seven app icons and two repository screenshots on 2026-07-20. |
-| Security scan | Not performed | Excluded at owner direction; do not claim security-scan completeness. |
-| App Store age rating metadata | Needs reconciliation | `.codex/app-store/metadata.json` says the age rating is not declared while the owner attestation says it is complete; verify the live declaration before upload. |
+| Secret scan | Passed | Gitleaks 8.30.1 found no leaks across the working tree and full Git history. Broader static/security-completeness coverage is not claimed. |
+| App Store age rating metadata | Needs reconciliation | Verify the live age-rating declaration in App Store Connect before upload. |
 | Developer ID package | Ready to build | A valid `Developer ID Application: Rafal Sikora (2NY8A789TN)` identity is installed; build from the final clean commit. |
 | Apple notarization | Blocked externally | Store a `notarytool` credential profile, then obtain an accepted result, stapler validation, Gatekeeper acceptance, and post-stapling ZIP checksums. |
 | Repository visibility | Approved for public release | The owner explicitly approved public visibility and publication of the existing Git author metadata. |
