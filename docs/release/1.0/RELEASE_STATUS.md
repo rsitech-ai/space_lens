@@ -1,6 +1,6 @@
 # SpaceLens 1.0 Release Status
 
-Status: **public source ready; production app not published**
+Status: **source release v1.0.0 published; notarized macOS binary not published**
 
 Last repository review: 2026-07-20
 
@@ -30,7 +30,10 @@ Last repository review: 2026-07-20
   creates a new final ZIP.
 
 Historical local artifacts are not evidence for the current source. The
-repository has no `v1.0.0` tag or GitHub release at this status date.
+repository has a published `v1.0.0` tag and GitHub source release (source
+archive and checksums) at this status date. A notarized downloadable macOS
+binary is not part of that release and remains blocked on Apple notarization
+credentials.
 
 ## Gates before a public open-source release
 
@@ -46,7 +49,8 @@ repository has no `v1.0.0` tag or GitHub release at this status date.
 | Apple notarization | Blocked externally | Store a `notarytool` credential profile, then obtain an accepted result, stapler validation, Gatekeeper acceptance, and post-stapling ZIP checksums. |
 | Repository visibility | Approved for public release | The owner explicitly approved public visibility and publication of the existing Git author metadata. |
 | Canonical repository owner | Complete | Repository transferred to `rsitech-ai/space_lens`. |
-| GitHub release | Not published | Create `v1.0.0` and publish only the source-bound accepted/stapled artifact, checksum, build info, and release notes. |
+| GitHub source release | Published | `v1.0.0` is published with the source archive `space_lens-1.0.0-source.tar.gz` and `SOURCE-SHA256SUMS.txt`. |
+| Notarized macOS binary asset | Blocked externally | Not yet published; build the source-bound accepted/stapled artifact with checksums once Apple notarization credentials are available, then attach it to the release. |
 
 ## App Store boundary
 
