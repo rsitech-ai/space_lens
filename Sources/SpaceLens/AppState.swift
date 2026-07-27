@@ -586,10 +586,30 @@ final class AppState: ObservableObject {
 
     func addSelectedToCleanupQueue() {
         let nodes = selectedCleanupEligibleNodes
-        nodes.forEach { addToCleanupQueue(node: $0) }
-        if !nodes.isEmpty {
-            cleanupStatusMessage = "Queued \(nodes.count) cleanup-ready items"
+        guard !nodes.isEmpty else {
+            return
         }
+
+        let selectedCandidates = nodes.map { node in
+            CleanupCandidate(
+                fileNode: node,
+                classification: classification(for: node),
+                estimatedRecoverableBytes: node.effectiveSize,
+                action: .queueForFutureTrash
+            )
+        }
+        let updatedQueue = CleanupTargetNormalizer.collapsingDescendants(
+            cleanupQueue + selectedCandidates,
+            url: { $0.fileNode.url }
+        )
+        let didChangeQueue = updatedQueue.count != cleanupQueue.count
+            || zip(updatedQueue, cleanupQueue).contains { updated, existing in
+                updated.id != existing.id
+            }
+        if didChangeQueue {
+            cleanupQueue = updatedQueue
+        }
+        cleanupStatusMessage = "Queued \(nodes.count) cleanup-ready items"
     }
 
     func selectAllVisible() {

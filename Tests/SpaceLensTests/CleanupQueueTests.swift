@@ -174,6 +174,40 @@ final class CleanupQueueTests: XCTestCase {
         withExtendedLifetime(subscription) {}
     }
 
+    func testBulkQueuePublishesOneQueueMutationInsteadOfOnePerSelectedItem() {
+        let cacheNodes = (0..<64).map { index in
+            FileNode(
+                url: URL(fileURLWithPath: "/Users/example/Projects/Project-\(index)/.build"),
+                isDirectory: true,
+                logicalSize: 1_000,
+                allocatedSize: 1_000
+            )
+        }
+        let appState = AppState()
+        appState.rootNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/example/Projects"),
+            isDirectory: true,
+            logicalSize: 64_000,
+            allocatedSize: 64_000,
+            children: cacheNodes
+        )
+        appState.selectedNodeIDs = Set(cacheNodes.map(\.id))
+        var publishedChangeCount = 0
+        let subscription = appState.objectWillChange.sink {
+            publishedChangeCount += 1
+        }
+
+        appState.addSelectedToCleanupQueue()
+
+        XCTAssertEqual(appState.cleanupQueue.count, 64)
+        XCTAssertEqual(
+            publishedChangeCount,
+            2,
+            "Bulk queueing should publish once for the queue and once for its status, regardless of selection size"
+        )
+        withExtendedLifetime(subscription) {}
+    }
+
     func testQueueReplacesDescendantWithSelectedParent() {
         let appState = AppState()
         let artifactNode = FileNode(

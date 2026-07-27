@@ -67,13 +67,13 @@ and [custom workflow guidance](https://developer.apple.com/documentation/securit
 ## 4. Create the GitHub release
 
 Verify the final commit has a green hosted CI run and that the repository is at
-the approved canonical owner and visibility. Create annotated tag `v1.0.0` at
+the approved canonical owner and visibility. Create annotated tag `v1.0.1` at
 that exact commit. Start a draft GitHub release and attach only:
 
-- `SpaceLens-1.0-macOS-universal.zip` from the notarized output directory
+- `SpaceLens-1.0.1-macOS-universal.zip` from the notarized output directory
 - `SHA256SUMS.txt`
 - `BUILD_INFO.txt`
-- release notes derived from `docs/release/1.0/RELEASE_NOTES.md`
+- release notes derived from `docs/release/1.0.1/RELEASE_NOTES.md`
 
 Verify downloaded release assets again before publishing. GitHub documents the
 release workflow in [Managing releases in a repository](https://docs.github.com/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
