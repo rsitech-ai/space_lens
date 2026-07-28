@@ -201,12 +201,82 @@ struct FileTableView: View {
     }
 
     private func nameCell(_ item: FlattenedFileNode, layout: FileTableLayout) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: item.node.isDirectory ? "folder" : "doc")
-                .foregroundStyle(item.node.isDirectory ? .blue : .secondary)
-            Text(layout.isCompact ? item.node.displayName : indentedName(item))
-                .lineLimit(1)
-                .truncationMode(.middle)
+        let presentation = FileRowPresentation(
+            node: item.node,
+            isSelected: appState.selectedNodeIDs.contains(item.node.id),
+            isQueued: appState.isQueued(node: item.node)
+        )
+
+        return HStack(spacing: 8) {
+            Image(systemName: item.node.isDirectory ? "folder.fill" : "doc")
+                .foregroundStyle(iconColor(for: presentation, isDirectory: item.node.isDirectory))
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(layout.isCompact ? presentation.name : indentedName(item))
+                        .fontWeight(presentation.isSelected ? .semibold : .regular)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+
+                    if presentation.isQueued {
+                        queuedIndicator(showsText: layout.showsQueuedText)
+                    }
+                }
+
+                Text(presentation.location)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .padding(.vertical, 3)
+        .padding(.leading, 5)
+        .background(alignment: .leading) {
+            if presentation.isQueued {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Color.green.opacity(0.09))
+            }
+        }
+        .overlay(alignment: .leading) {
+            if presentation.isSelected {
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: 3)
+            }
+        }
+        .help(presentation.absolutePath)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(presentation.accessibilityLabel)
+    }
+
+    private func iconColor(
+        for presentation: FileRowPresentation,
+        isDirectory: Bool
+    ) -> Color {
+        if presentation.isQueued {
+            return .green
+        }
+        if presentation.isSelected {
+            return .accentColor
+        }
+        return isDirectory ? .blue : .secondary
+    }
+
+    @ViewBuilder
+    private func queuedIndicator(showsText: Bool) -> some View {
+        if showsText {
+            Label("Queued", systemImage: "checkmark.circle.fill")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.green)
+                .labelStyle(.titleAndIcon)
+                .fixedSize()
+        } else {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.green)
+                .accessibilityHidden(true)
         }
     }
 
@@ -251,6 +321,10 @@ struct FileTableLayout {
 
     var isCompact: Bool {
         width < 620
+    }
+
+    var showsQueuedText: Bool {
+        !isCompact
     }
 
     var isTight: Bool {
