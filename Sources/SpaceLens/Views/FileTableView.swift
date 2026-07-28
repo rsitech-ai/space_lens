@@ -58,14 +58,6 @@ struct FileTableView: View {
         appState.visibleNodes.map(\.node.id)
     }
 
-    private var tableRenderIdentity: FileTableRenderIdentity {
-        FileTableRenderIdentity(
-            visibleNodeIDs: sortedVisibleNodes.map(\.node.id),
-            selectedNodeIDs: appState.selectedNodeIDs,
-            queuedNodeIDs: appState.queuedNodeIDs
-        )
-    }
-
     @ViewBuilder
     private func responsiveTable(layout: FileTableLayout) -> some View {
         Group {
@@ -102,7 +94,7 @@ struct FileTableView: View {
     private func compactTable(layout: FileTableLayout) -> some View {
         Table(sortedVisibleNodes, selection: $appState.selectedNodeIDs, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.sortName) { item in
-                nameCell(item, layout: layout)
+                FileTableNameCell(appState: appState, item: item, layout: layout)
             }
             .width(min: layout.nameColumnMinimum, ideal: layout.nameColumnIdeal)
 
@@ -111,14 +103,13 @@ struct FileTableView: View {
             }
             .width(layout.sizeColumnWidth)
         }
-        .environment(\.defaultMinListRowHeight, layout.rowHeight)
-        .id(tableRenderIdentity)
+        .background(NativeTableHostConfigurator(configuration: .init(rowHeight: layout.rowHeight)))
     }
 
     private func middleTable(layout: FileTableLayout) -> some View {
         Table(sortedVisibleNodes, selection: $appState.selectedNodeIDs, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.sortName) { item in
-                nameCell(item, layout: layout)
+                FileTableNameCell(appState: appState, item: item, layout: layout)
             }
             .width(min: layout.nameColumnMinimum, ideal: layout.nameColumnIdeal)
 
@@ -138,14 +129,13 @@ struct FileTableView: View {
             }
             .width(layout.safetyColumnWidth)
         }
-        .environment(\.defaultMinListRowHeight, layout.rowHeight)
-        .id(tableRenderIdentity)
+        .background(NativeTableHostConfigurator(configuration: .init(rowHeight: layout.rowHeight)))
     }
 
     private func detailedTable(layout: FileTableLayout) -> some View {
         Table(sortedVisibleNodes, selection: $appState.selectedNodeIDs, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.sortName) { item in
-                nameCell(item, layout: layout)
+                FileTableNameCell(appState: appState, item: item, layout: layout)
             }
             .width(min: layout.nameColumnMinimum, ideal: layout.nameColumnIdeal)
 
@@ -170,14 +160,13 @@ struct FileTableView: View {
             }
             .width(layout.safetyColumnWidth)
         }
-        .environment(\.defaultMinListRowHeight, layout.rowHeight)
-        .id(tableRenderIdentity)
+        .background(NativeTableHostConfigurator(configuration: .init(rowHeight: layout.rowHeight)))
     }
 
     private func fullTable(layout: FileTableLayout) -> some View {
         Table(sortedVisibleNodes, selection: $appState.selectedNodeIDs, sortOrder: $sortOrder) {
             TableColumn("Name", value: \.sortName) { item in
-                nameCell(item, layout: layout)
+                FileTableNameCell(appState: appState, item: item, layout: layout)
             }
             .width(min: layout.nameColumnMinimum, ideal: layout.nameColumnIdeal)
 
@@ -208,93 +197,11 @@ struct FileTableView: View {
             }
             .width(min: 180, ideal: 260)
         }
-        .environment(\.defaultMinListRowHeight, layout.rowHeight)
-        .id(tableRenderIdentity)
+        .background(NativeTableHostConfigurator(configuration: .init(rowHeight: layout.rowHeight)))
     }
 
     private func refreshSortedVisibleNodes() {
         sortedVisibleNodes = appState.visibleNodes.sorted(using: sortOrder)
-    }
-
-    private func nameCell(_ item: FlattenedFileNode, layout: FileTableLayout) -> some View {
-        let presentation = FileRowPresentation(
-            node: item.node,
-            isSelected: appState.selectedNodeIDs.contains(item.node.id),
-            isQueued: appState.isQueued(node: item.node)
-        )
-
-        return HStack(spacing: 8) {
-            Image(systemName: item.node.isDirectory ? "folder.fill" : "doc")
-                .foregroundStyle(iconColor(for: presentation, isDirectory: item.node.isDirectory))
-                .frame(width: 16)
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(layout.isCompact ? presentation.name : indentedName(item))
-                        .fontWeight(presentation.isSelected ? .semibold : .regular)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .accessibilityLabel(presentation.accessibilityLabel)
-
-                    if presentation.isQueued {
-                        queuedIndicator(showsText: layout.showsQueuedText)
-                    }
-                }
-
-                Text(presentation.location)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .accessibilityHidden(true)
-            }
-        }
-        .padding(.vertical, 3)
-        .padding(.leading, 5)
-        .background(alignment: .leading) {
-            if presentation.isQueued {
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(Color.green.opacity(0.09))
-            }
-        }
-        .overlay(alignment: .leading) {
-            if presentation.isSelected {
-                Capsule()
-                    .fill(Color.accentColor)
-                    .frame(width: 3)
-            }
-        }
-        .help(presentation.absolutePath)
-    }
-
-    private func iconColor(
-        for presentation: FileRowPresentation,
-        isDirectory: Bool
-    ) -> Color {
-        if presentation.isQueued {
-            return .green
-        }
-        if presentation.isSelected {
-            return .accentColor
-        }
-        return isDirectory ? .blue : .secondary
-    }
-
-    @ViewBuilder
-    private func queuedIndicator(showsText: Bool) -> some View {
-        if showsText {
-            Label("Queued", systemImage: "checkmark.circle.fill")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.green)
-                .labelStyle(.titleAndIcon)
-                .fixedSize()
-                .accessibilityHidden(true)
-        } else {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.green)
-                .accessibilityHidden(true)
-        }
     }
 
     private func sizeCell(_ item: FlattenedFileNode) -> some View {
@@ -324,9 +231,6 @@ struct FileTableView: View {
             .lineLimit(1)
     }
 
-    private func indentedName(_ item: FlattenedFileNode) -> String {
-        String(repeating: "  ", count: max(item.depth - 1, 0)) + item.node.displayName
-    }
 }
 
 struct FileTableLayout {
@@ -395,28 +299,98 @@ struct FileTableLayout {
     }
 }
 
-struct FileTableRenderIdentity: Hashable {
-    private let rowStates: [FileTableRowState]
+private struct FileTableNameCell: View {
+    @ObservedObject var appState: AppState
+    let item: FlattenedFileNode
+    let layout: FileTableLayout
 
-    init(
-        visibleNodeIDs: [UUID],
-        selectedNodeIDs: Set<UUID>,
-        queuedNodeIDs: Set<UUID>
-    ) {
-        rowStates = visibleNodeIDs.map { nodeID in
-            FileTableRowState(
-                nodeID: nodeID,
-                isSelected: selectedNodeIDs.contains(nodeID),
-                isQueued: queuedNodeIDs.contains(nodeID)
-            )
+    var body: some View {
+        let presentation = FileRowPresentation(
+            node: item.node,
+            isSelected: appState.selectedNodeIDs.contains(item.node.id),
+            isQueued: appState.isQueued(node: item.node)
+        )
+
+        HStack(spacing: 8) {
+            Image(systemName: item.node.isDirectory ? "folder.fill" : "doc")
+                .foregroundStyle(iconColor(for: presentation, isDirectory: item.node.isDirectory))
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(layout.isCompact ? presentation.name : indentedName)
+                        .fontWeight(presentation.isSelected ? .semibold : .regular)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+
+                    if presentation.isQueued {
+                        queuedIndicator(showsText: layout.showsQueuedText)
+                    }
+                }
+
+                Text(presentation.location)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .padding(.vertical, 3)
+        .padding(.leading, 5)
+        .background(alignment: .leading) {
+            if presentation.isQueued {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Color.green.opacity(0.09))
+            }
+        }
+        .overlay(alignment: .leading) {
+            if presentation.isSelected {
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: 3)
+            }
+        }
+        .help(presentation.absolutePath)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(presentation.accessibilityLabel)
+        .background {
+            NativeTableCellAccessibilityBridge(label: presentation.accessibilityLabel)
         }
     }
-}
 
-private struct FileTableRowState: Hashable {
-    let nodeID: UUID
-    let isSelected: Bool
-    let isQueued: Bool
+    private var indentedName: String {
+        String(repeating: "  ", count: max(item.depth - 1, 0)) + item.node.displayName
+    }
+
+    private func iconColor(
+        for presentation: FileRowPresentation,
+        isDirectory: Bool
+    ) -> Color {
+        if presentation.isQueued {
+            return .green
+        }
+        if presentation.isSelected {
+            return .accentColor
+        }
+        return isDirectory ? .blue : .secondary
+    }
+
+    @ViewBuilder
+    private func queuedIndicator(showsText: Bool) -> some View {
+        if showsText {
+            Label("Queued", systemImage: "checkmark.circle.fill")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.green)
+                .labelStyle(.titleAndIcon)
+                .fixedSize()
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.green)
+                .accessibilityHidden(true)
+        }
+    }
 }
 
 private struct TableControlBar: View {

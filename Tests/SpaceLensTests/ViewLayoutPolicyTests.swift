@@ -22,32 +22,6 @@ final class ViewLayoutPolicyTests: XCTestCase {
         XCTAssertEqual(FileTableLayout(width: 1_200).rowHeight, 42)
     }
 
-    func testTableRenderIdentityChangesWhenVisibleRowStateChanges() {
-        let nodeID = UUID()
-        let base = FileTableRenderIdentity(
-            visibleNodeIDs: [nodeID],
-            selectedNodeIDs: [],
-            queuedNodeIDs: []
-        )
-
-        XCTAssertNotEqual(
-            base,
-            FileTableRenderIdentity(
-                visibleNodeIDs: [nodeID],
-                selectedNodeIDs: [nodeID],
-                queuedNodeIDs: []
-            )
-        )
-        XCTAssertNotEqual(
-            base,
-            FileTableRenderIdentity(
-                visibleNodeIDs: [nodeID],
-                selectedNodeIDs: [],
-                queuedNodeIDs: [nodeID]
-            )
-        )
-    }
-
     func testScanMotionStopsWhenReduceMotionIsEnabled() {
         XCTAssertFalse(ScanMotionPolicy.allowsContinuousMotion(reduceMotion: true))
         XCTAssertTrue(ScanMotionPolicy.allowsContinuousMotion(reduceMotion: false))
