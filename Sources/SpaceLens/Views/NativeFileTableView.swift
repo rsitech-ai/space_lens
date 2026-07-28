@@ -105,6 +105,19 @@ enum NativeFileTableSelection {
     static func rowIndexes(for nodeIDs: [UUID], selectedNodeIDs: Set<UUID>) -> IndexSet {
         IndexSet(nodeIDs.indices.filter { selectedNodeIDs.contains(nodeIDs[$0]) })
     }
+
+    static func rowIndexes(for rowIndexByID: [UUID: Int], selectedNodeIDs: Set<UUID>) -> IndexSet {
+        IndexSet(selectedNodeIDs.compactMap { rowIndexByID[$0] })
+    }
+}
+
+enum NativeFileTableNameCellLayout {
+    static func indentation(depth: Int, showsQueuedText: Bool) -> CGFloat {
+        guard showsQueuedText else {
+            return 0
+        }
+        return CGFloat(max(depth - 1, 0)) * 12
+    }
 }
 
 struct NativeFileTableSort: Equatable {
@@ -191,6 +204,10 @@ struct NativeFileTableView: NSViewRepresentable {
         private var isSynchronizingSelection = false
         private var isSynchronizingSort = false
 
+        var nativeTableView: NSTableView {
+            tableView
+        }
+
         init(
             onSelectionChange: @escaping (Set<UUID>) -> Void,
             onSortChange: @escaping (NativeFileTableSort) -> Void
@@ -229,31 +246,41 @@ struct NativeFileTableView: NSViewRepresentable {
             configuration: NativeFileTableConfiguration,
             sort: NativeFileTableSort
         ) {
-            if configuration != appliedConfiguration {
+            let configurationChanged = configuration != appliedConfiguration
+            let rowsChanged = rowsVersion != appliedRowsVersion
+            let queuedChangedIDs = queuedNodeIDs.symmetricDifference(self.queuedNodeIDs)
+            let selectionChangedIDs = selectedNodeIDs.symmetricDifference(self.selectedNodeIDs)
+
+            if configurationChanged {
                 configureColumns(configuration)
                 appliedConfiguration = configuration
             }
 
-            if rowsVersion != appliedRowsVersion {
+            if !queuedChangedIDs.isEmpty {
+                self.queuedNodeIDs = queuedNodeIDs
+            }
+
+            if !selectionChangedIDs.isEmpty {
+                self.selectedNodeIDs = selectedNodeIDs
+            }
+
+            if rowsChanged {
                 self.rows = rows
                 rowIndexByID = Dictionary(uniqueKeysWithValues: rows.enumerated().map { ($0.element.id, $0.offset) })
                 appliedRowsVersion = rowsVersion
                 tableView.reloadData()
             }
 
-            if queuedNodeIDs != self.queuedNodeIDs {
-                reloadNameCells(for: queuedNodeIDs.symmetricDifference(self.queuedNodeIDs))
-                self.queuedNodeIDs = queuedNodeIDs
-            }
-
-            if selectedNodeIDs != self.selectedNodeIDs {
-                let changedIDs = selectedNodeIDs.symmetricDifference(self.selectedNodeIDs)
-                self.selectedNodeIDs = selectedNodeIDs
+            if rowsChanged || !selectionChangedIDs.isEmpty {
                 synchronizeNativeSelection()
-                reloadNameCells(for: changedIDs)
             }
 
-            if sort != appliedSort {
+            if !rowsChanged {
+                reloadNameCells(for: queuedChangedIDs)
+                reloadNameCells(for: selectionChangedIDs)
+            }
+
+            if configurationChanged || sort != appliedSort {
                 synchronizeSort(sort)
                 appliedSort = sort
             }
@@ -316,7 +343,9 @@ struct NativeFileTableView: NSViewRepresentable {
             guard selection != selectedNodeIDs else {
                 return
             }
+            let changedIDs = selection.symmetricDifference(selectedNodeIDs)
             selectedNodeIDs = selection
+            reloadNameCells(for: changedIDs)
             onSelectionChange(selection)
         }
 
@@ -351,8 +380,10 @@ struct NativeFileTableView: NSViewRepresentable {
         }
 
         private func synchronizeNativeSelection() {
-            let visibleNodeIDs = rows.map(\.id)
-            let indexes = NativeFileTableSelection.rowIndexes(for: visibleNodeIDs, selectedNodeIDs: selectedNodeIDs)
+            let indexes = NativeFileTableSelection.rowIndexes(
+                for: rowIndexByID,
+                selectedNodeIDs: selectedNodeIDs
+            )
             guard indexes != tableView.selectedRowIndexes else {
                 return
             }
@@ -467,7 +498,10 @@ private final class NativeFileTableNameCellView: NSTableCellView {
 
     override func layout() {
         super.layout()
-        let indentation = CGFloat(max(configuredDepth - 1, 0)) * 12
+        let indentation = NativeFileTableNameCellLayout.indentation(
+            depth: configuredDepth,
+            showsQueuedText: showsQueuedText
+        )
         let left = 8 + indentation
         let badgeWidth: CGFloat = showsQueuedText ? 72 : 18
         let badgeOrigin = max(bounds.width - badgeWidth - 8, left + 24)

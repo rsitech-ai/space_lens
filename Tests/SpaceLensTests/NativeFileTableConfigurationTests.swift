@@ -36,6 +36,20 @@ final class NativeFileTableConfigurationTests: XCTestCase {
         )
     }
 
+    func testSelectionProjectionUsesTheCurrentRowIndexMap() {
+        let first = UUID()
+        let second = UUID()
+        let hidden = UUID()
+
+        XCTAssertEqual(
+            NativeFileTableSelection.rowIndexes(
+                for: [first: 1, second: 0],
+                selectedNodeIDs: [second, hidden]
+            ),
+            IndexSet(integer: 0)
+        )
+    }
+
     func testOnlyTheFormerValueColumnsExposeHeaderSorting() {
         let columns = NativeFileTableConfiguration(layout: FileTableLayout(width: 980)).columns
 
@@ -56,6 +70,17 @@ final class NativeFileTableConfigurationTests: XCTestCase {
 
         XCTAssertEqual(state.selectedNodeIDs, [selected])
         XCTAssertEqual(state.queuedNodeIDs, [queued])
+    }
+
+    func testCompactRowsDoNotSpendTheirMinimumNameWidthOnDeepIndentation() {
+        XCTAssertEqual(
+            NativeFileTableNameCellLayout.indentation(depth: 8, showsQueuedText: false),
+            0
+        )
+        XCTAssertEqual(
+            NativeFileTableNameCellLayout.indentation(depth: 3, showsQueuedText: true),
+            24
+        )
     }
 
     func testSizeSortChangesTheVisibleRowOrderInBothDirections() {
