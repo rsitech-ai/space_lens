@@ -16,6 +16,9 @@ final class NativeFileTableLifecycleTests: XCTestCase {
             configuration: wideConfiguration,
             sort: sizeSort
         )
+        let nameCell = realizedNameCell(from: coordinator, row: 0)
+        XCTAssertFalse((nameCell.accessibilityLabel() ?? "").contains("Queued for cleanup"))
+
         coordinator.apply(
             rows: [row],
             rowsVersion: 1,
@@ -25,7 +28,7 @@ final class NativeFileTableLifecycleTests: XCTestCase {
             sort: sizeSort
         )
 
-        XCTAssertTrue(nameCellLabel(from: coordinator, row: 0).contains("Queued for cleanup"))
+        XCTAssertTrue((nameCell.accessibilityLabel() ?? "").contains("Queued for cleanup"))
     }
 
     func testDelegateSelectionReloadsNameCellAndPublishesTheNewIdentifier() {
@@ -40,12 +43,14 @@ final class NativeFileTableLifecycleTests: XCTestCase {
             configuration: wideConfiguration,
             sort: sizeSort
         )
+        let nameCell = realizedNameCell(from: coordinator, row: 0)
+        XCTAssertFalse((nameCell.accessibilityLabel() ?? "").contains("Selected"))
 
         coordinator.nativeTableView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         coordinator.tableViewSelectionDidChange(Notification(name: NSTableView.selectionDidChangeNotification))
 
         XCTAssertEqual(publishedSelections, [[row.id]])
-        XCTAssertTrue(nameCellLabel(from: coordinator, row: 0).contains("Selected"))
+        XCTAssertTrue((nameCell.accessibilityLabel() ?? "").contains("Selected"))
     }
 
     func testRowsVersionReprojectsSelectionByIdentifierAfterReorder() {
@@ -120,9 +125,13 @@ final class NativeFileTableLifecycleTests: XCTestCase {
         return coordinator
     }
 
-    private func nameCellLabel(from coordinator: NativeFileTableView.Coordinator, row: Int) -> String {
+    private func realizedNameCell(from coordinator: NativeFileTableView.Coordinator, row: Int) -> NSView {
         coordinator.nativeTableView.layoutSubtreeIfNeeded()
-        return coordinator.nativeTableView.view(atColumn: 0, row: row, makeIfNecessary: true)?.accessibilityLabel() ?? ""
+        guard let nameCell = coordinator.nativeTableView.view(atColumn: 0, row: row, makeIfNecessary: true) else {
+            XCTFail("Expected a realized Name cell at row \(row)")
+            fatalError("Missing Name cell")
+        }
+        return nameCell
     }
 
     private func makeRow(name: String) -> NativeFileTableRow {
