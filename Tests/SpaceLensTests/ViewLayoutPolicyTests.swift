@@ -11,6 +11,17 @@ final class ViewLayoutPolicyTests: XCTestCase {
         XCTAssertFalse(FileTableLayout(width: 1_200).usesStackedControls)
     }
 
+    func testQueuedTextIsHiddenOnlyInCompactTable() {
+        XCTAssertFalse(FileTableLayout(width: 619).showsQueuedText)
+        XCTAssertTrue(FileTableLayout(width: 620).showsQueuedText)
+        XCTAssertTrue(FileTableLayout(width: 1_200).showsQueuedText)
+    }
+
+    func testFileRowsReserveHeightForTheirSecondaryLocation() {
+        XCTAssertEqual(FileTableLayout(width: 619).rowHeight, 42)
+        XCTAssertEqual(FileTableLayout(width: 1_200).rowHeight, 42)
+    }
+
     func testScanMotionStopsWhenReduceMotionIsEnabled() {
         XCTAssertFalse(ScanMotionPolicy.allowsContinuousMotion(reduceMotion: true))
         XCTAssertTrue(ScanMotionPolicy.allowsContinuousMotion(reduceMotion: false))

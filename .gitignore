@@ -11,6 +11,7 @@ build/AppStore/
 .cursor/
 .claude/
 .agents/
+.worktrees/
 reflections/
 plans/
 docs/monetization/

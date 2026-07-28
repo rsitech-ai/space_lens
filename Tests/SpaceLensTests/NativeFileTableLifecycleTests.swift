@@ -1,0 +1,239 @@
+import AppKit
+import XCTest
+@testable import SpaceLens
+
+@MainActor
+final class NativeFileTableLifecycleTests: XCTestCase {
+    func testQueuedStateIsStoredBeforeTheNameCellReloads() {
+        let row = makeRow(name: "queued.tmp")
+        let coordinator = makeCoordinator()
+
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+        let nameCell = realizedNameCell(from: coordinator, row: 0)
+        XCTAssertFalse((nameCell.accessibilityLabel() ?? "").contains("Queued for cleanup"))
+
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+
+        XCTAssertTrue((nameCell.accessibilityLabel() ?? "").contains("Queued for cleanup"))
+    }
+
+    func testDelegateSelectionReloadsNameCellAndPublishesTheNewIdentifier() {
+        let row = makeRow(name: "selection.tmp")
+        var publishedSelections: [Set<UUID>] = []
+        let coordinator = makeCoordinator { publishedSelections.append($0) }
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+        let nameCell = realizedNameCell(from: coordinator, row: 0)
+        XCTAssertFalse((nameCell.accessibilityLabel() ?? "").contains("Selected"))
+
+        coordinator.nativeTableView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        coordinator.tableViewSelectionDidChange(Notification(name: NSTableView.selectionDidChangeNotification))
+
+        XCTAssertEqual(publishedSelections, [[row.id]])
+        XCTAssertTrue((nameCell.accessibilityLabel() ?? "").contains("Selected"))
+    }
+
+    func testRowsVersionReprojectsSelectionByIdentifierAfterReorder() {
+        let first = makeRow(name: "first.tmp")
+        let second = makeRow(name: "second.tmp")
+        let coordinator = makeCoordinator()
+        coordinator.apply(
+            rows: [first, second],
+            rowsVersion: 1,
+            selectedNodeIDs: [second.id],
+            queuedNodeIDs: [],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+        XCTAssertEqual(coordinator.nativeTableView.selectedRowIndexes, IndexSet(integer: 1))
+
+        coordinator.apply(
+            rows: [second, first],
+            rowsVersion: 2,
+            selectedNodeIDs: [second.id],
+            queuedNodeIDs: [],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+
+        XCTAssertEqual(coordinator.nativeTableView.selectedRowIndexes, IndexSet(integer: 0))
+    }
+
+    func testColumnRebuildRestoresTheCurrentSortDescriptor() {
+        let row = makeRow(name: "sort.tmp")
+        let coordinator = makeCoordinator()
+        let sort = NativeFileTableSort(key: .size, order: .reverse)
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [],
+            configuration: wideConfiguration,
+            sort: sort
+        )
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [],
+            configuration: NativeFileTableConfiguration(layout: FileTableLayout(width: 499)),
+            sort: sort
+        )
+
+        XCTAssertEqual(coordinator.nativeTableView.sortDescriptors.first?.key, NativeFileTableColumnKind.size.rawValue)
+        XCTAssertEqual(coordinator.nativeTableView.sortDescriptors.first?.ascending, false)
+    }
+
+    func testCompactConfigurationReconfiguresTheSameRealizedQueuedDeepNameCell() {
+        let row = makeRow(name: "compact-transition.tmp")
+        let coordinator = makeCoordinator()
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+        let nameCell = realizedNameCell(from: coordinator, row: 0)
+        assertQueuedDeepNameCell(nameCell, showsQueuedText: true, contentIconX: 92)
+
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: compactConfiguration,
+            sort: sizeSort
+        )
+
+        XCTAssertTrue(nameCell === realizedNameCell(from: coordinator, row: 0))
+        assertQueuedDeepNameCell(nameCell, showsQueuedText: false, contentIconX: 8)
+    }
+
+    func testWideConfigurationReconfiguresTheSameRealizedQueuedDeepNameCell() {
+        let row = makeRow(name: "wide-transition.tmp")
+        let coordinator = makeCoordinator()
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: compactConfiguration,
+            sort: sizeSort
+        )
+        let nameCell = realizedNameCell(from: coordinator, row: 0)
+        assertQueuedDeepNameCell(nameCell, showsQueuedText: false, contentIconX: 8)
+
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+
+        XCTAssertTrue(nameCell === realizedNameCell(from: coordinator, row: 0))
+        assertQueuedDeepNameCell(nameCell, showsQueuedText: true, contentIconX: 92)
+    }
+
+    private var wideConfiguration: NativeFileTableConfiguration {
+        NativeFileTableConfiguration(layout: FileTableLayout(width: 980))
+    }
+
+    private var compactConfiguration: NativeFileTableConfiguration {
+        NativeFileTableConfiguration(layout: FileTableLayout(width: 499))
+    }
+
+    private var sizeSort: NativeFileTableSort {
+        NativeFileTableSort(key: .size, order: .reverse)
+    }
+
+    private func makeCoordinator(
+        onSelectionChange: @escaping (Set<UUID>) -> Void = { _ in }
+    ) -> NativeFileTableView.Coordinator {
+        let coordinator = NativeFileTableView.Coordinator(
+            onSelectionChange: onSelectionChange,
+            onSortChange: { _ in }
+        )
+        let scrollView = coordinator.makeScrollView()
+        scrollView.frame = NSRect(x: 0, y: 0, width: 980, height: 320)
+        coordinator.nativeTableView.frame = scrollView.bounds
+        return coordinator
+    }
+
+    private func realizedNameCell(from coordinator: NativeFileTableView.Coordinator, row: Int) -> NSView {
+        coordinator.nativeTableView.layoutSubtreeIfNeeded()
+        guard let nameCell = coordinator.nativeTableView.view(atColumn: 0, row: row, makeIfNecessary: true) else {
+            XCTFail("Expected a realized Name cell at row \(row)")
+            fatalError("Missing Name cell")
+        }
+        return nameCell
+    }
+
+    private func assertQueuedDeepNameCell(
+        _ nameCell: NSView,
+        showsQueuedText: Bool,
+        contentIconX: CGFloat,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        nameCell.layoutSubtreeIfNeeded()
+        let contentIcon = nameCellSubview(nameCell, identifier: "NativeFileTableNameCell.contentIcon")
+        let queuedIcon = nameCellSubview(nameCell, identifier: "NativeFileTableNameCell.queuedIcon")
+        let queuedLabel = nameCellSubview(nameCell, identifier: "NativeFileTableNameCell.queuedLabel")
+
+        XCTAssertEqual(contentIcon.frame.minX, contentIconX, accuracy: 0.001, file: file, line: line)
+        XCTAssertFalse(queuedIcon.isHidden, file: file, line: line)
+        XCTAssertEqual(queuedLabel.isHidden, !showsQueuedText, file: file, line: line)
+    }
+
+    private func nameCellSubview(_ nameCell: NSView, identifier: String) -> NSView {
+        guard let subview = nameCell.subviews.first(where: { $0.identifier?.rawValue == identifier }) else {
+            XCTFail("Expected Name-cell subview \(identifier)")
+            fatalError("Missing Name-cell subview")
+        }
+        return subview
+    }
+
+    private func makeRow(name: String) -> NativeFileTableRow {
+        let node = FileNode(
+            url: URL(fileURLWithPath: "/tmp/\\(name)"),
+            isDirectory: false,
+            logicalSize: 1,
+            allocatedSize: 1
+        )
+        return NativeFileTableRow(
+            item: FlattenedFileNode(node: node, depth: 8),
+            classification: SafetyClassification(
+                level: .safeTemp,
+                confidence: 1,
+                category: "Temporary",
+                summary: "Test fixture",
+                evidence: [],
+                recommendedAction: "Queue"
+            )
+        )
+    }
+}

@@ -35,7 +35,7 @@ to the Bin rather than permanently deleting them.
 
 ## Publication Status
 
-This release is prepared as a source release. A downloadable notarized macOS
-binary remains a separate publication gate: it must be built from the final
-clean commit, signed with Developer ID, accepted by Apple notarization, stapled,
-Gatekeeper-assessed, and checksummed before it can be attached publicly.
+The public `v1.0.1` release includes a universal macOS app built from commit
+`ef2fc0d7c01ff9fdfd3dbc4d435ec1236626c9ea`, signed with Developer ID,
+accepted by Apple notarization, stapled, Gatekeeper-assessed, checksummed, and
+verified through a fresh public download.

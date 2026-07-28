@@ -2,10 +2,11 @@ import SwiftUI
 
 struct FileTableView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var sortOrder = [
-        KeyPathComparator(\FlattenedFileNode.sortSize, order: .reverse)
-    ]
+    @State private var nativeTableSort = NativeFileTableSort(key: .size, order: .reverse)
     @State private var sortedVisibleNodes: [FlattenedFileNode] = []
+    @State private var nativeRows: [NativeFileTableRow] = []
+    @State private var nativeRowsVersion = 0
+    @State private var nativeRenderState = NativeFileTableRenderState(selectedNodeIDs: [], queuedNodeIDs: [])
     @State private var binSelectionConfirmation = false
 
     var body: some View {
@@ -69,181 +70,62 @@ struct FileTableView: View {
                     description: Text(presentation.description)
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if layout.showsRecommendationColumn {
-                fullTable(layout: layout)
-            } else if layout.showsModifiedColumn {
-                detailedTable(layout: layout)
-            } else if layout.showsKindColumn {
-                middleTable(layout: layout)
             } else {
-                compactTable(layout: layout)
+                NativeFileTableView(
+                    rows: nativeRows,
+                    rowsVersion: nativeRowsVersion,
+                    selectedNodeIDs: nativeRenderState.selectedNodeIDs,
+                    queuedNodeIDs: nativeRenderState.queuedNodeIDs,
+                    configuration: NativeFileTableConfiguration(layout: layout),
+                    sort: nativeTableSort,
+                    onSelectionChange: { selectedNodeIDs in
+                        appState.selectedNodeIDs = selectedNodeIDs
+                    },
+                    onSortChange: { sort in
+                        nativeTableSort = sort
+                    }
+                )
             }
         }
         .onAppear {
             refreshSortedVisibleNodes()
+            refreshNativeRenderState()
+        }
+        .onReceive(appState.objectWillChange) { _ in
+            DispatchQueue.main.async {
+                refreshNativeRenderState()
+            }
         }
         .onChange(of: visibleSelectionFingerprint) {
             appState.pruneSelectionToVisible()
             refreshSortedVisibleNodes()
         }
-        .onChange(of: sortOrder) {
+        .onChange(of: nativeTableSort) {
             refreshSortedVisibleNodes()
         }
     }
 
-    private func compactTable(layout: FileTableLayout) -> some View {
-        Table(sortedVisibleNodes, selection: $appState.selectedNodeIDs, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.sortName) { item in
-                nameCell(item, layout: layout)
-            }
-            .width(min: layout.nameColumnMinimum, ideal: layout.nameColumnIdeal)
-
-            TableColumn("Size", value: \.sortSize) { item in
-                sizeCell(item)
-            }
-            .width(layout.sizeColumnWidth)
-        }
-    }
-
-    private func middleTable(layout: FileTableLayout) -> some View {
-        Table(sortedVisibleNodes, selection: $appState.selectedNodeIDs, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.sortName) { item in
-                nameCell(item, layout: layout)
-            }
-            .width(min: layout.nameColumnMinimum, ideal: layout.nameColumnIdeal)
-
-            TableColumn("Size", value: \.sortSize) { item in
-                sizeCell(item)
-            }
-            .width(layout.sizeColumnWidth)
-
-            TableColumn("Kind", value: \.sortKind) { item in
-                Text(item.sortKind)
-                    .lineLimit(1)
-            }
-            .width(78)
-
-            TableColumn("Safety") { item in
-                safetyCell(item)
-            }
-            .width(layout.safetyColumnWidth)
-        }
-    }
-
-    private func detailedTable(layout: FileTableLayout) -> some View {
-        Table(sortedVisibleNodes, selection: $appState.selectedNodeIDs, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.sortName) { item in
-                nameCell(item, layout: layout)
-            }
-            .width(min: layout.nameColumnMinimum, ideal: layout.nameColumnIdeal)
-
-            TableColumn("Size", value: \.sortSize) { item in
-                sizeCell(item)
-            }
-            .width(layout.sizeColumnWidth)
-
-            TableColumn("Kind", value: \.sortKind) { item in
-                Text(item.sortKind)
-                    .lineLimit(1)
-            }
-            .width(78)
-
-            TableColumn("Modified", value: \.sortModifiedAt) { item in
-                modifiedCell(item)
-            }
-            .width(layout.modifiedColumnWidth)
-
-            TableColumn("Safety") { item in
-                safetyCell(item)
-            }
-            .width(layout.safetyColumnWidth)
-        }
-    }
-
-    private func fullTable(layout: FileTableLayout) -> some View {
-        Table(sortedVisibleNodes, selection: $appState.selectedNodeIDs, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.sortName) { item in
-                nameCell(item, layout: layout)
-            }
-            .width(min: layout.nameColumnMinimum, ideal: layout.nameColumnIdeal)
-
-            TableColumn("Size", value: \.sortSize) { item in
-                sizeCell(item)
-            }
-            .width(layout.sizeColumnWidth)
-
-            TableColumn("Kind", value: \.sortKind) { item in
-                Text(item.sortKind)
-                    .lineLimit(1)
-            }
-            .width(78)
-
-            TableColumn("Modified", value: \.sortModifiedAt) { item in
-                modifiedCell(item)
-            }
-            .width(layout.modifiedColumnWidth)
-
-            TableColumn("Safety") { item in
-                safetyCell(item)
-            }
-            .width(layout.safetyColumnWidth)
-
-            TableColumn("Recommendation") { item in
-                Text(appState.classification(for: item.node).recommendedAction)
-                    .lineLimit(1)
-            }
-            .width(min: 180, ideal: 260)
-        }
-    }
-
     private func refreshSortedVisibleNodes() {
-        sortedVisibleNodes = appState.visibleNodes.sorted(using: sortOrder)
-    }
-
-    private func nameCell(_ item: FlattenedFileNode, layout: FileTableLayout) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: item.node.isDirectory ? "folder" : "doc")
-                .foregroundStyle(item.node.isDirectory ? .blue : .secondary)
-            Text(layout.isCompact ? item.node.displayName : indentedName(item))
-                .lineLimit(1)
-                .truncationMode(.middle)
+        sortedVisibleNodes = nativeTableSort.sorted(appState.visibleNodes)
+        nativeRows = sortedVisibleNodes.map {
+            NativeFileTableRow(item: $0, classification: appState.classification(for: $0.node))
         }
+        nativeRowsVersion &+= 1
     }
 
-    private func sizeCell(_ item: FlattenedFileNode) -> some View {
-        Text(ByteFormat.string(item.node.effectiveSize))
-            .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
+    private func refreshNativeRenderState() {
+        nativeRenderState = NativeFileTableRenderState(
+            selectedNodeIDs: appState.selectedNodeIDs,
+            queuedNodeIDs: appState.queuedNodeIDs
+        )
     }
 
-    @ViewBuilder
-    private func modifiedCell(_ item: FlattenedFileNode) -> some View {
-        if let modifiedAt = item.node.modifiedAt {
-            Text(modifiedAt.formatted(date: .abbreviated, time: .shortened))
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
-        } else {
-            Text("-")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func safetyCell(_ item: FlattenedFileNode) -> some View {
-        let classification = appState.classification(for: item.node)
-
-        return Label(classification.level.displayName, systemImage: "circle.fill")
-            .foregroundStyle(classification.level.color)
-            .lineLimit(1)
-    }
-
-    private func indentedName(_ item: FlattenedFileNode) -> String {
-        String(repeating: "  ", count: max(item.depth - 1, 0)) + item.node.displayName
-    }
 }
 
 struct FileTableLayout {
     let width: CGFloat
+
+    let rowHeight: CGFloat = 42
 
     var isVeryNarrow: Bool {
         width < 440
@@ -251,6 +133,10 @@ struct FileTableLayout {
 
     var isCompact: Bool {
         width < 620
+    }
+
+    var showsQueuedText: Bool {
+        !isCompact
     }
 
     var isTight: Bool {

@@ -170,11 +170,13 @@ final class AppState: ObservableObject {
     @Published var scanStatistics: ScanStatistics?
     @Published var scanIntelligenceSummary: ScanIntelligenceSummary?
     private var storedCleanupQueue: [CleanupCandidate] = []
+    private(set) var queuedNodeIDs: Set<UUID> = []
     var cleanupQueue: [CleanupCandidate] {
         get { storedCleanupQueue }
         set {
             objectWillChange.send()
             storedCleanupQueue = newValue
+            queuedNodeIDs = Set(newValue.lazy.map(\.fileNode.id))
             rebuildVisibleNodes()
             persistSession()
         }
@@ -658,6 +660,10 @@ final class AppState: ObservableObject {
         cleanupInProgressIDs.contains(node.id)
     }
 
+    func isQueued(node: FileNode) -> Bool {
+        queuedNodeIDs.contains(node.id)
+    }
+
     func moveToBin(node: FileNode) async {
         guard let authorizedRoot = authorizedScanRoot else {
             latestError = "Select and scan a folder before cleaning up files."
@@ -816,8 +822,7 @@ final class AppState: ObservableObject {
         case .errors:
             sidebarFilteredNodes = allNodes.filter { $0.node.scanError != nil }
         case .queue:
-            let queuedIDs = Set(cleanupQueue.map { $0.fileNode.id })
-            sidebarFilteredNodes = allNodes.filter { queuedIDs.contains($0.node.id) }
+            sidebarFilteredNodes = allNodes.filter { queuedNodeIDs.contains($0.node.id) }
         }
 
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
