@@ -269,13 +269,15 @@ struct NativeFileTableView: NSViewRepresentable {
                 rowIndexByID = Dictionary(uniqueKeysWithValues: rows.enumerated().map { ($0.element.id, $0.offset) })
                 appliedRowsVersion = rowsVersion
                 tableView.reloadData()
+            } else if configurationChanged {
+                reloadNameCells(for: Set(rowIndexByID.keys))
             }
 
             if rowsChanged || !selectionChangedIDs.isEmpty {
                 synchronizeNativeSelection()
             }
 
-            if !rowsChanged {
+            if !rowsChanged && !configurationChanged {
                 reloadNameCells(for: queuedChangedIDs)
                 reloadNameCells(for: selectionChangedIDs)
             }
@@ -481,6 +483,9 @@ private final class NativeFileTableNameCellView: NSTableCellView {
         queuedIconView.imageScaling = .scaleProportionallyDown
         iconView.imageScaling = .scaleProportionallyDown
         selectionAccent.wantsLayer = true
+        iconView.identifier = NSUserInterfaceItemIdentifier("NativeFileTableNameCell.contentIcon")
+        queuedIconView.identifier = NSUserInterfaceItemIdentifier("NativeFileTableNameCell.queuedIcon")
+        queuedLabel.identifier = NSUserInterfaceItemIdentifier("NativeFileTableNameCell.queuedLabel")
 
         [selectionAccent, iconView, primaryLabel, secondaryLabel, queuedIconView, queuedLabel].forEach(addSubview)
         [iconView, primaryLabel, secondaryLabel, queuedIconView, queuedLabel].forEach { $0.setAccessibilityElement(false) }

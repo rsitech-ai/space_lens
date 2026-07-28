@@ -104,8 +104,66 @@ final class NativeFileTableLifecycleTests: XCTestCase {
         XCTAssertEqual(coordinator.nativeTableView.sortDescriptors.first?.ascending, false)
     }
 
+    func testCompactConfigurationReconfiguresTheSameRealizedQueuedDeepNameCell() {
+        let row = makeRow(name: "compact-transition.tmp")
+        let coordinator = makeCoordinator()
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+        let nameCell = realizedNameCell(from: coordinator, row: 0)
+        assertQueuedDeepNameCell(nameCell, showsQueuedText: true, contentIconX: 92)
+
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: compactConfiguration,
+            sort: sizeSort
+        )
+
+        XCTAssertTrue(nameCell === realizedNameCell(from: coordinator, row: 0))
+        assertQueuedDeepNameCell(nameCell, showsQueuedText: false, contentIconX: 8)
+    }
+
+    func testWideConfigurationReconfiguresTheSameRealizedQueuedDeepNameCell() {
+        let row = makeRow(name: "wide-transition.tmp")
+        let coordinator = makeCoordinator()
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: compactConfiguration,
+            sort: sizeSort
+        )
+        let nameCell = realizedNameCell(from: coordinator, row: 0)
+        assertQueuedDeepNameCell(nameCell, showsQueuedText: false, contentIconX: 8)
+
+        coordinator.apply(
+            rows: [row],
+            rowsVersion: 1,
+            selectedNodeIDs: [],
+            queuedNodeIDs: [row.id],
+            configuration: wideConfiguration,
+            sort: sizeSort
+        )
+
+        XCTAssertTrue(nameCell === realizedNameCell(from: coordinator, row: 0))
+        assertQueuedDeepNameCell(nameCell, showsQueuedText: true, contentIconX: 92)
+    }
+
     private var wideConfiguration: NativeFileTableConfiguration {
         NativeFileTableConfiguration(layout: FileTableLayout(width: 980))
+    }
+
+    private var compactConfiguration: NativeFileTableConfiguration {
+        NativeFileTableConfiguration(layout: FileTableLayout(width: 499))
     }
 
     private var sizeSort: NativeFileTableSort {
@@ -132,6 +190,31 @@ final class NativeFileTableLifecycleTests: XCTestCase {
             fatalError("Missing Name cell")
         }
         return nameCell
+    }
+
+    private func assertQueuedDeepNameCell(
+        _ nameCell: NSView,
+        showsQueuedText: Bool,
+        contentIconX: CGFloat,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        nameCell.layoutSubtreeIfNeeded()
+        let contentIcon = nameCellSubview(nameCell, identifier: "NativeFileTableNameCell.contentIcon")
+        let queuedIcon = nameCellSubview(nameCell, identifier: "NativeFileTableNameCell.queuedIcon")
+        let queuedLabel = nameCellSubview(nameCell, identifier: "NativeFileTableNameCell.queuedLabel")
+
+        XCTAssertEqual(contentIcon.frame.minX, contentIconX, accuracy: 0.001, file: file, line: line)
+        XCTAssertFalse(queuedIcon.isHidden, file: file, line: line)
+        XCTAssertEqual(queuedLabel.isHidden, !showsQueuedText, file: file, line: line)
+    }
+
+    private func nameCellSubview(_ nameCell: NSView, identifier: String) -> NSView {
+        guard let subview = nameCell.subviews.first(where: { $0.identifier?.rawValue == identifier }) else {
+            XCTFail("Expected Name-cell subview \(identifier)")
+            fatalError("Missing Name-cell subview")
+        }
+        return subview
     }
 
     private func makeRow(name: String) -> NativeFileTableRow {
