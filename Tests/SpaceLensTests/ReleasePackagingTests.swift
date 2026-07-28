@@ -26,8 +26,8 @@ final class ReleasePackagingTests: XCTestCase {
             result.stdout,
             """
             bundle_id=com.rsitech.spacelens
-            version=1.0.1
-            build=2
+            version=1.0.2
+            build=3
             minimum_macos=14.0
 
             """

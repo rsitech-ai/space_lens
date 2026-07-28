@@ -7,11 +7,10 @@ cleanup-ready items to the Bin.
 
 ![SpaceLens main window](docs/screenshots/spacelens-main.png)
 
-> **Release status:** The SpaceLens 1.0 source release is published as
-> [`v1.0.0`](https://github.com/rsitech-ai/space_lens/releases/tag/v1.0.0) under
-> the Apache License 2.0, with a source archive and checksums. A signed,
-> notarized downloadable macOS binary is not yet published; it remains blocked
-> on Apple notarization credentials. See
+> **Release status:** SpaceLens is published under the Apache License 2.0.
+> The [latest release](https://github.com/rsitech-ai/space_lens/releases/latest)
+> provides a Developer ID-signed, Apple-notarized universal macOS download,
+> checksums, and build provenance. See
 > [Open-source readiness](docs/OPEN_SOURCE_READINESS.md).
 
 ## What SpaceLens does
@@ -56,7 +55,7 @@ swift build -c release
 ## Architecture
 
 ```text
-SwiftUI views
+SwiftUI application shell · native AppKit file table
     ↓
 AppState and session state
     ↓
@@ -118,7 +117,7 @@ evidence for changed source.
 - [Security reporting](SECURITY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
-- [Release status](docs/release/1.0/RELEASE_STATUS.md)
+- [Latest release](https://github.com/rsitech-ai/space_lens/releases/latest)
 
 ## Maintainer
 

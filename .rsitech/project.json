@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "identity": {
+    "slug": "space-lens",
+    "name": "SpaceLens",
+    "repository": "rsitech-ai/space_lens"
+  },
+  "positioning": {
+    "oneLine": "Local-first macOS disk intelligence with reviewable cleanup safety.",
+    "description": "Scans a user-selected folder, explains disk usage, classifies cleanup risk with deterministic local rules, and moves confirmed cleanup-ready items to the Bin.",
+    "category": "macOS utilities"
+  },
+  "lifecycle": {
+    "stage": "released",
+    "version": "1.0.2"
+  },
+  "platforms": [
+    "macOS 14+"
+  ],
+  "languages": [
+    "Swift"
+  ],
+  "links": {
+    "repository": "https://github.com/rsitech-ai/space_lens",
+    "documentation": "https://github.com/rsitech-ai/space_lens#readme",
+    "release": "https://github.com/rsitech-ai/space_lens/releases/tag/v1.0.2",
+    "download": "https://github.com/rsitech-ai/space_lens/releases/download/v1.0.2/SpaceLens-1.0.2-macOS-universal.zip",
+    "appStore": null
+  },
+  "media": {
+    "cardImage": "docs/screenshots/spacelens-main.png",
+    "screenshots": [
+      {
+        "path": "docs/screenshots/spacelens-main.png",
+        "alt": "SpaceLens disk scan results with cleanup safety classifications"
+      }
+    ]
+  },
+  "openSource": {
+    "license": "Apache-2.0",
+    "readme": "README.md",
+    "contributing": "CONTRIBUTING.md",
+    "security": "SECURITY.md",
+    "support": "SUPPORT.md",
+    "codeOfConduct": "CODE_OF_CONDUCT.md"
+  },
+  "capabilities": [
+    {
+      "claim": "Scans metadata within a user-selected filesystem scope",
+      "evidence": [
+        "Sources/SpaceLens/Services/DiskScanner.swift",
+        "Tests/SpaceLensTests/DiskScannerTests.swift"
+      ]
+    },
+    {
+      "claim": "Classifies cleanup risk with deterministic local rules",
+      "evidence": [
+        "Sources/SpaceLens/Rules/RuleEngine.swift",
+        "Tests/SpaceLensTests/RuleEngineTests.swift"
+      ]
+    },
+    {
+      "claim": "Moves only confirmed cleanup-ready targets to the Bin",
+      "evidence": [
+        "Sources/SpaceLens/Services/FileCleanupService.swift",
+        "Tests/SpaceLensTests/FileCleanupServiceTests.swift"
+      ]
+    }
+  ],
+  "limitations": [
+    "Scans only folders explicitly selected by the user.",
+    "Cannot override macOS privacy, sandbox, permission, or filesystem errors.",
+    "Smart Scan focuses on known rebuildable caches and generated outputs rather than every application-specific location."
+  ],
+  "safetyBoundaries": [
+    "Safety classifications are deterministic guidance and every exact path remains reviewable.",
+    "Cleanup moves eligible items to the Bin and never permanently erases files or empties the Bin.",
+    "No file contents or metadata are sent to an external service."
+  ]
+}

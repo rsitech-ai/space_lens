@@ -6,6 +6,27 @@ versions will use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-07-28
+
+### Added
+
+- File rows now show a compact home-relative parent location beneath the name,
+  while hover help and accessibility expose the complete absolute path.
+- Selected and cleanup-queued rows now retain distinct visual and accessibility
+  states, including when both states apply to the same item.
+
+### Changed
+
+- The large result table now uses reusable native AppKit cells with fixed
+  two-line rows, stable identifier-based selection, and responsive columns.
+- Cleanup queue membership is cached for constant-time visible-row lookups.
+
+### Fixed
+
+- Sorting, filtering, keyboard selection, queue updates, and responsive layout
+  transitions no longer leave reused rows with stale state or accessibility
+  labels.
+
 ## [1.0.1] - 2026-07-27
 
 ### Fixed
@@ -34,6 +55,7 @@ versions will use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (source archive and checksums) while noting the notarized macOS binary asset
   is still pending Apple notarization credentials.
 
-[Unreleased]: https://github.com/rsitech-ai/space_lens/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/rsitech-ai/space_lens/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/rsitech-ai/space_lens/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/rsitech-ai/space_lens/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/rsitech-ai/space_lens/releases/tag/v1.0.0

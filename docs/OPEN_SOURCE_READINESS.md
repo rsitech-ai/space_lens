@@ -1,9 +1,8 @@
 # Open-Source Readiness
 
-SpaceLens is **open-source source-ready under the Apache License 2.0**. A valid
-Developer ID Application identity is installed. The notarized direct-download
-package remains **blocked:external** until notarization credentials are stored
-for `notarytool`.
+SpaceLens is **released under the Apache License 2.0**. The latest public
+release includes a universal Developer ID-signed macOS app, Apple notarization,
+a stapled ticket, Gatekeeper acceptance, checksums, and source provenance.
 
 ## Completed in the repository
 
@@ -16,9 +15,8 @@ for `notarytool`.
   changelog, editor settings, and line-ending rules are present.
 - Test fixtures use fictional paths and project names rather than contributor
   machine paths or unrelated internal project identifiers.
-- README and release documents truthfully state that the `v1.0.0` source
-  release is published (source archive and checksums) while the notarized macOS
-  binary asset is still pending.
+- README and release documentation link to the current public release and keep
+  source, signing, notarization, and App Store evidence as separate gates.
 - The owner approved the Apache License 2.0, matching contribution terms, and
   Apache-2.0 coverage for all inventoried app icons and screenshots on
   2026-07-20.
@@ -30,23 +28,23 @@ for `notarytool`.
   explicitly approved by the owner.
 - GitHub Actions completed successfully on Xcode 26.6 for PR #14.
 
-## Remaining external package gates
+## Release procedure for changed source
 
-1. Build from the final clean commit with the installed Developer ID Application
-   identity. Store notarization credentials, then notarize, staple, assess with
-   Gatekeeper, and archive the exact evidence.
-2. Attach the signed and notarized downloadable macOS binary and its checksums
-   to the already-published `v1.0.0` release once the notarization gate passes.
+Every changed release must be rebuilt from its final clean `main` commit. The
+new artifact must independently pass Developer ID signing, Apple notarization,
+stapling, Gatekeeper assessment, checksum validation, and anonymous download
+verification before it replaces the current public download.
 
 ## Explicit exclusions
 
 - A Gitleaks 8.30.1 secret scan of the working tree and full Git history found
   no leaks. Broader static analysis or formal security-audit completeness is not
   claimed.
-- The published `v1.0.0` release covers source only. No Apple notarization,
-  notarized macOS binary asset, or App Store Connect upload is implied by it.
+- A successful direct-download release does not imply App Store Connect upload,
+  TestFlight qualification, App Review approval, or Mac App Store publication.
 - Historical local artifacts are not promoted as evidence for the current
   source revision.
 
-See [release status](release/1.0/RELEASE_STATUS.md) for the current evidence
-matrix and [the release runbook](RELEASING.md) for the exact sequence.
+See the [latest GitHub release](https://github.com/rsitech-ai/space_lens/releases/latest)
+for current artifact evidence and [the release runbook](RELEASING.md) for the
+exact sequence.

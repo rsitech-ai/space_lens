@@ -16,6 +16,13 @@ git diff --exit-code -- SpaceLens.xcodeproj
 
 Confirm `docs/OPEN_SOURCE_READINESS.md` has no unresolved release gate. In
 particular, require an approved license and asset-provenance confirmation.
+Derive the release version from `project.yml` and keep every later filename,
+tag, and documentation path aligned with it:
+
+```bash
+VERSION="$(awk -F '"' '/MARKETING_VERSION:/ { print $2; exit }' project.yml)"
+test -n "$VERSION"
+```
 
 ## 2. Build the pre-notarization direct download
 
@@ -67,13 +74,13 @@ and [custom workflow guidance](https://developer.apple.com/documentation/securit
 ## 4. Create the GitHub release
 
 Verify the final commit has a green hosted CI run and that the repository is at
-the approved canonical owner and visibility. Create annotated tag `v1.0.1` at
-that exact commit. Start a draft GitHub release and attach only:
+the approved canonical owner and visibility. Create annotated tag `v$VERSION`
+at that exact commit. Start a draft GitHub release and attach only:
 
-- `SpaceLens-1.0.1-macOS-universal.zip` from the notarized output directory
+- `SpaceLens-$VERSION-macOS-universal.zip` from the notarized output directory
 - `SHA256SUMS.txt`
 - `BUILD_INFO.txt`
-- release notes derived from `docs/release/1.0.1/RELEASE_NOTES.md`
+- release notes derived from `docs/release/$VERSION/RELEASE_NOTES.md`
 
 Verify downloaded release assets again before publishing. GitHub documents the
 release workflow in [Managing releases in a repository](https://docs.github.com/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
