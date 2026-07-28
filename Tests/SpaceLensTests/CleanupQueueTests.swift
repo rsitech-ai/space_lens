@@ -5,6 +5,49 @@ import XCTest
 
 @MainActor
 final class CleanupQueueTests: XCTestCase {
+    func testQueueMembershipUpdatesAfterAddAndRemoval() throws {
+        let appState = AppState()
+        let node = FileNode(
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
+            isDirectory: true,
+            logicalSize: 500,
+            allocatedSize: 700
+        )
+
+        XCTAssertFalse(appState.isQueued(node: node))
+
+        appState.addToCleanupQueue(node: node)
+        XCTAssertTrue(appState.isQueued(node: node))
+
+        let candidate = try XCTUnwrap(appState.cleanupQueue.first)
+        appState.removeFromCleanupQueue(candidate)
+        XCTAssertFalse(appState.isQueued(node: node))
+    }
+
+    func testQueueMembershipDropsDescendantWhenParentReplacesIt() {
+        let artifact = FileNode(
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build/artifact.o"),
+            isDirectory: false,
+            logicalSize: 400,
+            allocatedSize: 400
+        )
+        let build = FileNode(
+            url: URL(fileURLWithPath: "/Users/example/Projects/SampleApp/.build"),
+            isDirectory: true,
+            logicalSize: 400,
+            allocatedSize: 400,
+            children: [artifact]
+        )
+        let appState = AppState()
+
+        appState.addToCleanupQueue(node: artifact)
+        XCTAssertTrue(appState.isQueued(node: artifact))
+
+        appState.addToCleanupQueue(node: build)
+        XCTAssertTrue(appState.isQueued(node: build))
+        XCTAssertFalse(appState.isQueued(node: artifact))
+    }
+
     func testQueueProjectionAddsQueueableCandidate() {
         let appState = AppState()
         let node = FileNode(
