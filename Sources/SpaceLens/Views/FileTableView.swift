@@ -58,6 +58,14 @@ struct FileTableView: View {
         appState.visibleNodes.map(\.node.id)
     }
 
+    private var tableRenderIdentity: FileTableRenderIdentity {
+        FileTableRenderIdentity(
+            visibleNodeIDs: sortedVisibleNodes.map(\.node.id),
+            selectedNodeIDs: appState.selectedNodeIDs,
+            queuedNodeIDs: appState.queuedNodeIDs
+        )
+    }
+
     @ViewBuilder
     private func responsiveTable(layout: FileTableLayout) -> some View {
         Group {
@@ -103,6 +111,8 @@ struct FileTableView: View {
             }
             .width(layout.sizeColumnWidth)
         }
+        .environment(\.defaultMinListRowHeight, layout.rowHeight)
+        .id(tableRenderIdentity)
     }
 
     private func middleTable(layout: FileTableLayout) -> some View {
@@ -128,6 +138,8 @@ struct FileTableView: View {
             }
             .width(layout.safetyColumnWidth)
         }
+        .environment(\.defaultMinListRowHeight, layout.rowHeight)
+        .id(tableRenderIdentity)
     }
 
     private func detailedTable(layout: FileTableLayout) -> some View {
@@ -158,6 +170,8 @@ struct FileTableView: View {
             }
             .width(layout.safetyColumnWidth)
         }
+        .environment(\.defaultMinListRowHeight, layout.rowHeight)
+        .id(tableRenderIdentity)
     }
 
     private func fullTable(layout: FileTableLayout) -> some View {
@@ -194,6 +208,8 @@ struct FileTableView: View {
             }
             .width(min: 180, ideal: 260)
         }
+        .environment(\.defaultMinListRowHeight, layout.rowHeight)
+        .id(tableRenderIdentity)
     }
 
     private func refreshSortedVisibleNodes() {
@@ -218,6 +234,7 @@ struct FileTableView: View {
                         .fontWeight(presentation.isSelected ? .semibold : .regular)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        .accessibilityLabel(presentation.accessibilityLabel)
 
                     if presentation.isQueued {
                         queuedIndicator(showsText: layout.showsQueuedText)
@@ -229,6 +246,7 @@ struct FileTableView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, 3)
@@ -247,8 +265,6 @@ struct FileTableView: View {
             }
         }
         .help(presentation.absolutePath)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(presentation.accessibilityLabel)
     }
 
     private func iconColor(
@@ -272,6 +288,7 @@ struct FileTableView: View {
                 .foregroundStyle(.green)
                 .labelStyle(.titleAndIcon)
                 .fixedSize()
+                .accessibilityHidden(true)
         } else {
             Image(systemName: "checkmark.circle.fill")
                 .font(.caption2.weight(.semibold))
@@ -314,6 +331,8 @@ struct FileTableView: View {
 
 struct FileTableLayout {
     let width: CGFloat
+
+    let rowHeight: CGFloat = 42
 
     var isVeryNarrow: Bool {
         width < 440
@@ -374,6 +393,30 @@ struct FileTableLayout {
     var statTileMinimum: CGFloat {
         isCompact ? 104 : 126
     }
+}
+
+struct FileTableRenderIdentity: Hashable {
+    private let rowStates: [FileTableRowState]
+
+    init(
+        visibleNodeIDs: [UUID],
+        selectedNodeIDs: Set<UUID>,
+        queuedNodeIDs: Set<UUID>
+    ) {
+        rowStates = visibleNodeIDs.map { nodeID in
+            FileTableRowState(
+                nodeID: nodeID,
+                isSelected: selectedNodeIDs.contains(nodeID),
+                isQueued: queuedNodeIDs.contains(nodeID)
+            )
+        }
+    }
+}
+
+private struct FileTableRowState: Hashable {
+    let nodeID: UUID
+    let isSelected: Bool
+    let isQueued: Bool
 }
 
 private struct TableControlBar: View {
