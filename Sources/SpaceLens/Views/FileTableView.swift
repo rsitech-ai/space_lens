@@ -18,7 +18,13 @@ struct FileTableView: View {
                 if !appState.isScanning {
                     HeaderView(layout: layout)
                 }
-                ScanTelemetryPanel(layout: layout)
+                if appState.isScanning || appState.scanStatistics != nil || appState.scanIntelligenceSummary != nil {
+                    ScrollView {
+                        ScanTelemetryPanel(layout: layout)
+                    }
+                    .frame(height: min(380, geometry.size.height * 0.38))
+                    .background(.bar)
+                }
 
                 if appState.rootNode == nil && !appState.isScanning {
                     EmptyScanView()
