@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0
+
+- Queue Needs Review and Valuable Data for a deliberate manual cleanup decision.
+- Require acknowledgement before moving reviewed data to the Bin; preserve activity, identity, scope and protected-data checks.
+- Validate every descendant of manually selected folders, including undisplayed contents.
+- Restore manual queue entries without persisting cleanup approval.
+- Keep Smart Scan mode when rescanning.
+
+- Keep scan counters visible during discovery with pending sizing, and retain estimated Bin totals after selection clears.
+- Use one final activity probe for reviewed files, two for manual folders, and save the queue once per cleanup batch.
+
 ## 1.1.2
 
 - Drain temporary filesystem objects during Smart Scan discovery.

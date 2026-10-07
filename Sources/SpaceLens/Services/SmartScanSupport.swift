@@ -120,6 +120,14 @@ public struct PathUseSnapshot: Hashable, Sendable {
         self.activityCheckError = activityCheckError
     }
 
+    func hasNewlyRunningTools(comparedTo previous: PathUseSnapshot) -> Bool {
+        (xcodeFamilyActive && !previous.xcodeFamilyActive)
+            || (dockerActive && !previous.dockerActive)
+            || (cursorActive && !previous.cursorActive)
+            || (cargoActive && !previous.cargoActive)
+            || (nodePackageActive && !previous.nodePackageActive)
+    }
+
     public func isPathOpen(_ path: String) -> Bool { openPathIndex.contains(path) }
 
     public func withSimulatorInventory(_ inventory: SimulatorInventory) -> PathUseSnapshot {
@@ -760,5 +768,26 @@ public struct ScanSummaryContext: Hashable, Sendable {
         self.pathUse = pathUse
         self.didRemoveFiles = didRemoveFiles
         self.pendingDiscoveryPaths = pendingDiscoveryPaths
+    }
+}
+
+// Scoped to one cleanup batch. Manual moves always force a fresh probe after folder
+// inspection; short automatic batches reuse a snapshot for at most two seconds.
+actor CleanupActivityRefresh {
+    private var cached: PathUseSnapshot
+    private var checkedAt = ContinuousClock.now
+    private let provider: @Sendable () async -> PathUseSnapshot
+
+    init(initial: PathUseSnapshot, provider: @escaping @Sendable () async -> PathUseSnapshot) {
+        cached = initial
+        self.provider = provider
+    }
+
+    func snapshot(forceRefresh: Bool) async -> PathUseSnapshot {
+        if forceRefresh || checkedAt.duration(to: .now) >= .seconds(2) {
+            cached = await provider()
+            checkedAt = .now
+        }
+        return cached
     }
 }

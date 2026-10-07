@@ -44,12 +44,15 @@ public struct CleanupCandidate: Identifiable, Hashable, Sendable {
 }
 
 public enum CleanupProgressPhase: String, Sendable {
+    case checking
     case preparing
     case deleting
     case finished
 
     public var displayName: String {
         switch self {
+        case .checking:
+            "Checking contents"
         case .preparing:
             "Preparing"
         case .deleting:

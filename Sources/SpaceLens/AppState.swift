@@ -188,6 +188,7 @@ final class AppState: ObservableObject {
     @Published var cleanupInProgressIDs: Set<UUID> = []
     @Published var cleanupProgress: CleanupProgress?
     @Published private(set) var isCleaningUp = false
+    @Published private(set) var estimatedMovedToBinBytes: Int64 = 0
     @Published var cleanupStatusMessage: String?
     @Published var latestError: String?
     @Published private(set) var classificationRevision = 0
@@ -198,7 +199,7 @@ final class AppState: ObservableObject {
             return cachedSelectedCleanupEligibleNodes
         }
         let eligibleNodes = storedSelectedNodeIDs.compactMap { id -> FileNode? in
-            guard let node = nodeByID[id], classification(for: node).level.isQueueable else {
+            guard let node = nodeByID[id], isCleanupEligible(node) else {
                 return nil
             }
             return node
@@ -406,7 +407,7 @@ final class AppState: ObservableObject {
             return
         }
 
-        startScan(root: root)
+        if scanMode == .smart { startSmartScan(root: root) } else { startScan(root: root) }
     }
 
     func smartScan() {
@@ -730,7 +731,7 @@ final class AppState: ObservableObject {
         storedCleanupQueue = storedCleanupQueue.compactMap { candidate in
             guard FileManager.default.fileExists(atPath: candidate.fileNode.path) else { return nil }
             guard let item = currentItems[candidate.fileNode.path] else { return nil }
-            guard item.classification.level.isQueueable else { return nil }
+            guard isCleanupEligible(item.node, classification: item.classification) else { return nil }
             return CleanupCandidate(id: candidate.id, fileNode: item.node, classification: item.classification,
                 estimatedRecoverableBytes: item.node.effectiveSize, action: candidate.action)
         }
@@ -754,6 +755,16 @@ final class AppState: ObservableObject {
         let classification = ruleEngine.classify(node, pathUse: pathUseSnapshot)
         classificationCache[node.id] = classification
         return classification
+    }
+
+    func isCleanupEligible(_ node: FileNode, classification: SafetyClassification? = nil) -> Bool {
+        let classification = classification ?? self.classification(for: node)
+        return classification.level.isQueueable || FileCleanupService.isManuallyReviewable(
+            node, classification: classification, pathUse: pathUseSnapshot)
+    }
+
+    var selectedManualReviewCount: Int {
+        selectedCleanupEligibleNodes.filter { !classification(for: $0).level.isQueueable }.count
     }
 
     private func replaceCleanupQueueWithConservativeCandidates(_ roots: [FileNode]) {
@@ -789,8 +800,8 @@ final class AppState: ObservableObject {
 
     func addToCleanupQueue(node: FileNode) {
         let classification = ruleEngine.classify(node, pathUse: pathUseSnapshot)
-        guard classification.level.isQueueable else {
-            latestError = "SpaceLens only queues known safe, rebuildable, or generated candidates."
+        guard isCleanupEligible(node, classification: classification) else {
+            latestError = "This item is active, protected, or could not be inspected completely. Resolve the issue and rescan before queueing."
             return
         }
 
@@ -841,7 +852,7 @@ final class AppState: ObservableObject {
         if didChangeQueue {
             cleanupQueue = updatedQueue
         }
-        cleanupStatusMessage = "Queued \(nodes.count) cleanup-ready items"
+        cleanupStatusMessage = "Queued \(nodes.count) items for review"
     }
 
     func selectAllVisible() {
@@ -905,37 +916,47 @@ final class AppState: ObservableObject {
         await moveToBin(nodes: selectedCleanupEligibleNodes)
     }
 
-    func moveToBin(nodes: [FileNode]) async {
+    func moveToBin(nodes: [FileNode], reviewedByUser: Bool = false) async {
         guard canCleanUp, let authorizedRoot = authorizedScanRoot, !nodes.isEmpty else {
             latestError = "Complete a scan and select cleanup-ready items before cleaning up files."
             return
         }
         isCleaningUp = true
-        defer { isCleaningUp = false }
+        defer { isCleaningUp = false; persistSession() }
         cleanupProgress = CleanupProgress(phase: .preparing, currentPath: authorizedRoot.path, completedItemCount: 0,
             totalItemCount: nodes.count, completedBytes: 0, totalBytes: nodes.reduce(0) { $0 + $1.effectiveSize })
-        pathUseSnapshot = await activitySnapshot()
+        // The service checks fresh activity after every manual target and before
+        // directory inspection. Reviewed files avoid a duplicate batch-wide probe.
+        if !reviewedByUser { pathUseSnapshot = await activitySnapshot() }
         classificationCache.removeAll(keepingCapacity: true)
         classificationRevision &+= 1
         cachedSelectedCleanupEligibleIDs = nil
         cleanupQueue = cleanupQueue.compactMap { candidate in
             let classification = ruleEngine.classify(candidate.fileNode, pathUse: pathUseSnapshot)
-            guard classification.level.isQueueable else { return nil }
+            guard isCleanupEligible(candidate.fileNode, classification: classification) else { return nil }
             return CleanupCandidate(id: candidate.id, fileNode: candidate.fileNode, classification: classification,
                 estimatedRecoverableBytes: candidate.estimatedRecoverableBytes, action: candidate.action)
         }
         rebuildVisibleNodes()
-        let invalid = nodes.contains { !ruleEngine.classify($0, pathUse: pathUseSnapshot).level.isQueueable }
+        let invalid = pathUseSnapshot.activityCheckError != nil || nodes.contains {
+            let classification = ruleEngine.classify($0, pathUse: pathUseSnapshot)
+            return !classification.level.isQueueable && !(reviewedByUser && isCleanupEligible($0, classification: classification))
+        }
         guard !invalid else {
             cleanupProgress = nil
             latestError = "Cleanup stopped: an item is active, unverified, or no longer cleanup-ready. Close its tools and rescan."
             await refreshSummaryAfterCleanup()
             return
         }
-        await performBulkCleanup(nodes: nodes, operationName: "Moved to Bin") { node, progress in
+        let freshActivity = pathUseSnapshot
+        let activityRefresh = CleanupActivityRefresh(initial: freshActivity, provider: activitySnapshot)
+        await performBulkCleanup(nodes: nodes, operationName: "Moved to Bin", reviewedByUser: reviewedByUser) { node, progress in
             try await FileCleanupService.moveToBin(
                 node: node,
                 authorizedRoot: authorizedRoot,
+                reviewedByUser: reviewedByUser,
+                pathUse: freshActivity,
+                activitySnapshot: { await activityRefresh.snapshot(forceRefresh: reviewedByUser) },
                 progress: progress
             )
         }
@@ -962,10 +983,11 @@ final class AppState: ObservableObject {
     private func performCleanup(
         node: FileNode,
         operationName: String,
+        reviewedByUser: Bool,
         operation: @escaping @Sendable (FileCleanupService.ProgressHandler?) async throws -> Void
     ) async {
         let classification = ruleEngine.classify(node, pathUse: pathUseSnapshot)
-        guard classification.level.isQueueable else {
+        guard classification.level.isQueueable || (reviewedByUser && isCleanupEligible(node, classification: classification)) else {
             latestError = "Cleanup is disabled for this item because it is not classified as a safe, rebuildable, or generated candidate."
             return
         }
@@ -993,6 +1015,7 @@ final class AppState: ObservableObject {
         do {
             try await operation(cleanupProgressHandler(for: node))
             didRemoveFiles = true
+            estimatedMovedToBinBytes += node.effectiveSize
             cleanupInProgressIDs.remove(node.id)
             cleanupStatusMessage = "\(operationName): \(node.displayName)"
             cleanupProgress = nil
@@ -1009,6 +1032,7 @@ final class AppState: ObservableObject {
     private func performBulkCleanup(
         nodes: [FileNode],
         operationName: String,
+        reviewedByUser: Bool,
         operation: @escaping @Sendable (FileNode, FileCleanupService.ProgressHandler?) async throws -> Void
     ) async {
         guard !nodes.isEmpty else {
@@ -1018,16 +1042,22 @@ final class AppState: ObservableObject {
 
         var cleanedCount = 0
         var cleanedBytes: Int64 = 0
+        var failures: [String] = []
 
         for node in nodes {
-            let beforeIDs = selectedNodeIDs
-            await performCleanup(node: node, operationName: operationName) {
+            await performCleanup(node: node, operationName: operationName, reviewedByUser: reviewedByUser) {
                 try await operation(node, $0)
             }
-            if latestError == nil, beforeIDs.contains(node.id), !selectedNodeIDs.contains(node.id) {
+            if let latestError {
+                failures.append(latestError)
+            } else {
                 cleanedCount += 1
                 cleanedBytes += node.effectiveSize
             }
+        }
+        if !failures.isEmpty {
+            latestError = failures.prefix(5).joined(separator: "\n")
+                + (failures.count > 5 ? "\n\(failures.count - 5) more items could not be moved." : "")
         }
 
         if cleanedCount > 0 {
@@ -1147,7 +1177,7 @@ final class AppState: ObservableObject {
         var restoredNodes: [FileNode] = []
         for item in allNodes where !Self.pathMatchKeys(for: [item.node.path]).isDisjoint(with: pendingRestoredCleanupPaths) {
             let classification = classification(for: item.node)
-            guard classification.level.isQueueable else {
+            guard isCleanupEligible(item.node, classification: classification) else {
                 continue
             }
 
@@ -1229,6 +1259,10 @@ final class AppState: ObservableObject {
     }
 
     private func persistSession() {
+        // A batch may remove many queued items. Save the final queue once instead of
+        // rewriting its bookmark and JSON after every item; stale saved paths restore
+        // only after a new scan and never carry approval.
+        guard !isCleaningUp else { return }
         guard let sessionStore else {
             return
         }

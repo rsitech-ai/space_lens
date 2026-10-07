@@ -155,7 +155,7 @@ struct InspectorView: View {
                     .foregroundStyle(.green)
             }
 
-            Text(classification.level.isQueueable ? "Use the bottom action bar to queue or clean up this selected item." : "Cleanup is disabled for this item. SpaceLens only cleans safe temp, rebuildable cache, and generated output classifications.")
+            Text(classification.level.isQueueable ? "Use the bottom action bar to queue or clean up this selected item." : appState.isCleanupEligible(node) ? "You can queue this item for review. Moving it to the Bin requires acknowledging that this data may not be recreatable." : classification.kind == .simulator ? "Manage simulator device state in Xcode, simctl or Android Studio. Raw cleanup stays blocked here." : "Cleanup is blocked for active, protected, symbolic-link or incompletely inspected items. Resolve the issue and rescan.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

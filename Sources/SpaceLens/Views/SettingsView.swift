@@ -8,7 +8,7 @@ struct SettingsView: View {
         TabView {
             Form {
                 Section("Safety") {
-                    Text("Cleanup is enabled only for items classified as safe temp, rebuildable cache, or generated output. SpaceLens moves cleanup-ready items to the Bin and shows every target path before confirmation.")
+                    Text("Safe temp, rebuildable cache and generated output can be queued for cleanup. You can also queue Needs Review and Valuable Data, then acknowledge a manual review before moving them to the Bin. Active, protected and incompletely inspected items remain blocked. Every Bin operation shows the exact target paths and checks activity again.")
                         .foregroundStyle(.secondary)
                 }
 

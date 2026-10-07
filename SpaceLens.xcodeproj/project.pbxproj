@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		06B25AB1EB087869E481922A /* ReleasePackagingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554D3E3D40CEB1EA544FB7EC /* ReleasePackagingTests.swift */; };
 		117C78C7B61C31308FCF8E25 /* RuleEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD86503021601A17851A540A /* RuleEngineTests.swift */; };
+		177C8D115B74A036BA7DF8A0 /* ManualCleanupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954123D2B1104DBDBA00BA3B /* ManualCleanupTests.swift */; };
 		1E42013D66ACD1F3DA765683 /* FileTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A3DE9F89DA52CB37E895527 /* FileTableView.swift */; };
 		1E8C76EB17CEF1AAB3C373ED /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 418F002313B9F312F5608D7E /* PrivacyInfo.xcprivacy */; };
 		297608A67506EC6FD2C37268 /* CleanupCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 294D2B8A29B40131C3FE6542 /* CleanupCandidate.swift */; };
@@ -102,6 +103,7 @@
 		91C42FB6AA569A2EB530EBD8 /* SpaceLensTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SpaceLensTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9399116980D45B8B26CD6495 /* DiskScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskScanner.swift; sourceTree = "<group>"; };
 		950D30FA4736C62EF097F526 /* FocusedValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedValues.swift; sourceTree = "<group>"; };
+		954123D2B1104DBDBA00BA3B /* ManualCleanupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCleanupTests.swift; sourceTree = "<group>"; };
 		987E4D33F3354C9718AE504A /* AppSessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionStoreTests.swift; sourceTree = "<group>"; };
 		9BF108B5BFFD9D7D8E65A24F /* ScanClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanClassifierTests.swift; sourceTree = "<group>"; };
 		9D9689D8FA85667D5535A297 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -165,6 +167,7 @@
 				AC06BE8790E18752CBC031B1 /* FileIdentityTests.swift */,
 				AE981FD64E5EFDBACDFFCAA4 /* FileRowPresentationTests.swift */,
 				72D06CF49B654377B2E8EE73 /* IntelligenceServiceTests.swift */,
+				954123D2B1104DBDBA00BA3B /* ManualCleanupTests.swift */,
 				FEE3485D6353C6A900C24CC2 /* NativeFileTableConfigurationTests.swift */,
 				D3038E293643692FE48EB7DF /* NativeFileTableLifecycleTests.swift */,
 				554D3E3D40CEB1EA544FB7EC /* ReleasePackagingTests.swift */,
@@ -409,6 +412,7 @@
 				B2A6AF2E08DA37C1CCBAB544 /* FileIdentityTests.swift in Sources */,
 				6622A4390861A27DBFDD46AF /* FileRowPresentationTests.swift in Sources */,
 				7A5049BF6C0E0BEBBB7444ED /* IntelligenceServiceTests.swift in Sources */,
+				177C8D115B74A036BA7DF8A0 /* ManualCleanupTests.swift in Sources */,
 				8FCB0E6CCEF2BAA064B67425 /* NativeFileTableConfigurationTests.swift in Sources */,
 				B0F5F34A15DC41646DB52CD2 /* NativeFileTableLifecycleTests.swift in Sources */,
 				06B25AB1EB087869E481922A /* ReleasePackagingTests.swift in Sources */,
@@ -505,7 +509,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 2NY8A789TN;
 				ENABLE_APP_SANDBOX = NO;
@@ -521,7 +525,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.2;
+				MARKETING_VERSION = 1.2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -568,7 +572,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 2NY8A789TN;
 				ENABLE_APP_SANDBOX = NO;
@@ -590,7 +594,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.2;
+				MARKETING_VERSION = 1.2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
