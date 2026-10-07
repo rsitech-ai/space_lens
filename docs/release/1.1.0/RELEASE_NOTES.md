@@ -14,6 +14,6 @@ Smart Scan inventories common development caches and larger review items in the 
 
 Only the selected scope and accessible metadata are scanned. The discovery time budget reports unfinished roots; it is not a promise to inspect every file on every volume. Filesystem metadata and process snapshots cannot prove that every cache is disposable. Review the exact paths and close owning applications before cleanup. File size is an estimate: hard links, APFS clones, compression, sparse files, and the Bin affect actual reclaimed space. Moving to the Bin does not immediately free that space.
 
-Activity inspection uses bounded local process helpers. When the operating system or sandbox prevents that inspection, the app reports it and keeps candidates review-only. Simulator inspection may likewise be unavailable; use Xcode for tool-owned removals.
+The direct-distribution build uses Developer ID and Hardened Runtime without App Sandbox so bounded local process helpers can inspect activity. This gives the app broader filesystem access; selected-folder validation still bounds every cleanup. If activity inspection fails, candidates stay review-only. Simulator inspection may likewise be unavailable; use Xcode for tool-owned removals.
 
 This source version is prepared for local installation. Apple notarization and public release publication are separate distribution steps.

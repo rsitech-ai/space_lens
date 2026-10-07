@@ -9,7 +9,7 @@ settings:
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: "2NY8A789TN"
-    ENABLE_APP_SANDBOX: YES
+    ENABLE_APP_SANDBOX: NO
     ENABLE_HARDENED_RUNTIME: YES
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     MARKETING_VERSION: "1.1.0"
@@ -41,10 +41,7 @@ targets:
         NSSupportsAutomaticGraphicsSwitching: true
     entitlements:
       path: Config/SpaceLens.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-        com.apple.security.files.user-selected.read-write: true
-        com.apple.security.files.bookmarks.app-scope: true
+      properties: {}
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.rsitech.spacelens

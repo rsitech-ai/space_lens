@@ -78,9 +78,11 @@ changed identities, symlinks, unauthorized roots, incomplete scans, active
 paths, missing rebuild evidence, and non-queueable data. Moving to the Bin
 does not immediately reclaim disk space.
 
-The app reads filesystem metadata only within a folder selected through the
-macOS picker. Read the [privacy policy](docs/PRIVACY.md) and the documented
-[limitations](docs/release/1.0/RELEASE_NOTES.md#known-limitations) before use.
+The app scans filesystem metadata within a folder selected through the macOS
+picker. It also inspects local process names and open paths to protect in-use
+files. It runs with Hardened Runtime outside App Sandbox; cleanup remains
+bounded to the selected folder by explicit validation. Read the [privacy policy](docs/PRIVACY.md) and the documented
+[limitations](docs/release/1.1.0/RELEASE_NOTES.md#limits) before use.
 
 ## Distribution
 
@@ -102,16 +104,10 @@ SPACE_LENS_NOTARIZED_OUTPUT_DIR='/absolute/path/to/final-artifacts' \
   ./script/notarize_direct_download.sh
 ```
 
-The Mac App Store lane is independent:
-
-```bash
-./script/validate_app_store_readiness.sh
-SPACE_LENS_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./script/archive_app_store.sh
-```
-
-See [the release runbook](docs/RELEASING.md) and
-[App Store guide](docs/APP_STORE.md). Never reuse an older signed artifact as
-evidence for changed source.
+Version 1.1.0 targets private use and direct distribution. App Sandbox is disabled
+because it prevents the activity inspection needed for safe cleanup. The historical
+App Store scripts are unavailable for this configuration. See [the release runbook](docs/RELEASING.md).
+Never reuse an older signed artifact as evidence for changed source.
 
 ## Project documentation
 

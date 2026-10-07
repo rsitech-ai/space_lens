@@ -4,6 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+if ! /usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' Config/SpaceLens.entitlements 2>/dev/null | grep -q '^true$'; then
+  echo "This configuration targets direct distribution without App Sandbox; the App Store lane is unavailable." >&2
+  exit 2
+fi
+
 if [[ -z "${SPACE_LENS_DEVELOPMENT_TEAM:-}" ]]; then
   echo "Set SPACE_LENS_DEVELOPMENT_TEAM to your Apple Developer Team ID." >&2
   echo "Example: SPACE_LENS_DEVELOPMENT_TEAM=ABCDE12345 ./script/archive_app_store.sh" >&2

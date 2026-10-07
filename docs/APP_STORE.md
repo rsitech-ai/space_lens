@@ -1,7 +1,9 @@
 # SpaceLens App Store Release Runbook
 
-SpaceLens now has a reproducible Xcode/App Store packaging lane alongside the
-SwiftPM development lane.
+This historical lane is unavailable in 1.1.0. The current app uses Developer ID
+and Hardened Runtime without App Sandbox for private use and direct distribution.
+A future Store version would need a separately designed, sandbox-compatible
+activity inspection flow before cleanup could be enabled.
 
 ## Prerequisites
 

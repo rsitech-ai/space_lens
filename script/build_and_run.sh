@@ -30,7 +30,12 @@ BUILD_NUMBER="$(awk -F '"' '/CURRENT_PROJECT_VERSION:/ { print $2; exit }' proje
 swift build -c "$CONFIGURATION"
 BUILD_BINARY="$(swift build -c "$CONFIGURATION" --show-bin-path)/$APP_NAME"
 
-pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+# Restart only this development bundle; Xcode test hosts may also be named SpaceLens.
+while read -r process_id executable_path; do
+  if [[ "$executable_path" == "$APP_BINARY" ]]; then
+    kill "$process_id" >/dev/null 2>&1 || true
+  fi
+done < <(ps -axo pid=,comm=)
 
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES"
