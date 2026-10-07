@@ -170,6 +170,9 @@ struct NativeFileTableView: NSViewRepresentable {
     let sort: NativeFileTableSort
     let onSelectionChange: (Set<UUID>) -> Void
     let onSortChange: (NativeFileTableSort) -> Void
+    var showsHierarchy = false
+    var onDisplayedNodesChange: (Set<UUID>, Set<UUID>) -> Void = { _, _ in }
+    var onOpenFolder: (FileNode) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -185,22 +188,36 @@ struct NativeFileTableView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.onSelectionChange = onSelectionChange
         context.coordinator.onSortChange = onSortChange
+        context.coordinator.onDisplayedNodesChange = onDisplayedNodesChange
+        context.coordinator.onOpenFolder = onOpenFolder
         context.coordinator.apply(
             rows: rows,
             rowsVersion: rowsVersion,
             selectedNodeIDs: selectedNodeIDs,
             queuedNodeIDs: queuedNodeIDs,
             configuration: configuration,
-            sort: sort
+            sort: sort,
+            showsHierarchy: showsHierarchy
         )
     }
 
     @MainActor
-    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+    final class Coordinator: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate {
         var onSelectionChange: (Set<UUID>) -> Void
         var onSortChange: (NativeFileTableSort) -> Void
 
-        private let tableView = NSTableView()
+        var onDisplayedNodesChange: (Set<UUID>, Set<UUID>) -> Void = { _, _ in }
+        var onOpenFolder: (FileNode) -> Void = { _ in }
+        private let tableView = NSOutlineView()
+        private final class OutlineItem: NSObject {
+            var row: NativeFileTableRow
+            var children: [OutlineItem] = []
+            init(row: NativeFileTableRow) { self.row = row }
+        }
+        private var itemsByID: [UUID: OutlineItem] = [:]
+        private var roots: [OutlineItem] = []
+        private var showsHierarchy = false
+        private var isReloading = false
         private var rows: [NativeFileTableRow] = []
         private var rowIndexByID: [UUID: Int] = [:]
         private var appliedRowsVersion: Int?
@@ -235,7 +252,10 @@ struct NativeFileTableView: NSViewRepresentable {
             tableView.rowSizeStyle = .custom
             tableView.usesAutomaticRowHeights = false
             tableView.target = self
-            tableView.doubleAction = nil
+            tableView.doubleAction = #selector(toggleClickedFolder)
+            tableView.indentationPerLevel = 16
+            tableView.autoresizesOutlineColumn = false
+            tableView.setAccessibilityLabel("Files")
 
             let scrollView = NSScrollView()
             scrollView.hasVerticalScroller = true
@@ -251,10 +271,12 @@ struct NativeFileTableView: NSViewRepresentable {
             selectedNodeIDs: Set<UUID>,
             queuedNodeIDs: Set<UUID>,
             configuration: NativeFileTableConfiguration,
-            sort: NativeFileTableSort
+            sort: NativeFileTableSort,
+            showsHierarchy: Bool = false
         ) {
             let configurationChanged = configuration != appliedConfiguration
-            let rowsChanged = rowsVersion != appliedRowsVersion
+            let hierarchyChanged = self.showsHierarchy != showsHierarchy
+            let rowsChanged = rowsVersion != appliedRowsVersion || hierarchyChanged
             let queuedChangedIDs = queuedNodeIDs.symmetricDifference(self.queuedNodeIDs)
             let selectionChangedIDs = selectedNodeIDs.symmetricDifference(self.selectedNodeIDs)
 
@@ -273,9 +295,24 @@ struct NativeFileTableView: NSViewRepresentable {
 
             if rowsChanged {
                 self.rows = rows
-                rowIndexByID = Dictionary(uniqueKeysWithValues: rows.enumerated().map { ($0.element.id, $0.offset) })
+                let expandedIDs = Set(itemsByID.values.filter { tableView.isItemExpanded($0) }.map { $0.row.id })
+                let hadItems = !itemsByID.isEmpty
+                self.showsHierarchy = showsHierarchy
+                rebuildOutlineItems(rows)
                 appliedRowsVersion = rowsVersion
+                isReloading = true
                 tableView.reloadData()
+                if showsHierarchy {
+                    if hierarchyChanged || !hadItems {
+                        for root in roots { tableView.expandItem(root) }
+                    } else {
+                        for id in expandedIDs {
+                            if let item = itemsByID[id] { tableView.expandItem(item) }
+                        }
+                    }
+                }
+                isReloading = false
+                updateDisplayedRows()
             } else if configurationChanged {
                 reloadNameCells(for: Set(rowIndexByID.keys))
             }
@@ -295,8 +332,84 @@ struct NativeFileTableView: NSViewRepresentable {
             }
         }
 
-        func numberOfRows(in tableView: NSTableView) -> Int {
-            rows.count
+        private func rebuildOutlineItems(_ rows: [NativeFileTableRow]) {
+            let oldItems = itemsByID
+            itemsByID = Dictionary(uniqueKeysWithValues: rows.map { row in
+                let item = oldItems[row.id] ?? OutlineItem(row: row)
+                item.row = row
+                item.children = []
+                return (row.id, item)
+            })
+            var parentByID: [UUID: UUID] = [:]
+            if showsHierarchy {
+                for row in rows {
+                    for child in row.item.node.children where itemsByID[child.id] != nil {
+                        parentByID[child.id] = row.id
+                    }
+                }
+            }
+            roots = []
+            // Input is sorted; attach in that order to sort siblings, never flatten hierarchy.
+            for row in rows {
+                guard let item = itemsByID[row.id] else { continue }
+                if let parentID = parentByID[row.id], let parent = itemsByID[parentID] {
+                    parent.children.append(item)
+                } else { roots.append(item) }
+            }
+        }
+
+        private func updateDisplayedRows() {
+            rowIndexByID = [:]
+            for index in 0..<tableView.numberOfRows {
+                if let item = tableView.item(atRow: index) as? OutlineItem { rowIndexByID[item.row.id] = index }
+            }
+            onDisplayedNodesChange(Set(rowIndexByID.keys), Set(itemsByID.keys))
+        }
+
+        func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+            (item as? OutlineItem)?.children.count ?? roots.count
+        }
+
+        func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+            ((item as? OutlineItem)?.children ?? roots)[index]
+        }
+
+        func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+            showsHierarchy && (item as? OutlineItem)?.children.isEmpty == false
+        }
+
+        func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+            self.tableView(outlineView, viewFor: tableColumn, row: outlineView.row(forItem: item))
+        }
+
+        func outlineViewSelectionDidChange(_ notification: Notification) {
+            tableViewSelectionDidChange(notification)
+        }
+
+        func outlineView(_ outlineView: NSOutlineView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
+            tableView(outlineView, sortDescriptorsDidChange: oldDescriptors)
+        }
+
+        func outlineViewItemDidExpand(_ notification: Notification) {
+            guard !isReloading else { return }
+            updateDisplayedRows()
+        }
+
+        func outlineViewItemDidCollapse(_ notification: Notification) {
+            guard !isReloading else { return }
+            updateDisplayedRows()
+            tableViewSelectionDidChange(notification)
+        }
+
+        @objc private func toggleClickedFolder() {
+            guard let item = tableView.item(atRow: tableView.clickedRow) as? OutlineItem,
+                  item.row.item.node.isDirectory else { return }
+            if !showsHierarchy || item.children.isEmpty {
+                onOpenFolder(item.row.item.node)
+                return
+            }
+            if tableView.isItemExpanded(item) { tableView.collapseItem(item) }
+            else { tableView.expandItem(item) }
         }
 
         func tableView(
@@ -304,18 +417,19 @@ struct NativeFileTableView: NSViewRepresentable {
             viewFor tableColumn: NSTableColumn?,
             row: Int
         ) -> NSView? {
-            guard let tableColumn, rows.indices.contains(row),
+            guard let tableColumn, row >= 0,
                   let kind = NativeFileTableColumnKind(rawValue: tableColumn.identifier.rawValue)
             else {
                 return nil
             }
 
-            let tableRow = rows[row]
+            guard let item = self.tableView.item(atRow: row) as? OutlineItem else { return nil }
+            let tableRow = item.row
             switch kind {
             case .name:
                 let cell = reusableNameCell(for: tableColumn)
                 cell.configure(
-                    item: tableRow.item,
+                    item: showsHierarchy ? FlattenedFileNode(node: tableRow.item.node, depth: 1) : tableRow.item,
                     presentation: FileRowPresentation(
                         node: tableRow.item.node,
                         scanRoot: tableRow.scanRoot,
@@ -344,11 +458,11 @@ struct NativeFileTableView: NSViewRepresentable {
         }
 
         func tableViewSelectionDidChange(_ notification: Notification) {
-            guard !isSynchronizingSelection else {
+            guard !isSynchronizingSelection, !isReloading else {
                 return
             }
             let selection = Set(tableView.selectedRowIndexes.compactMap { index in
-                rows.indices.contains(index) ? rows[index].id : nil
+                (tableView.item(atRow: index) as? OutlineItem)?.row.id
             })
             guard selection != selectedNodeIDs else {
                 return
@@ -387,6 +501,7 @@ struct NativeFileTableView: NSViewRepresentable {
                 }
                 tableView.addTableColumn(column)
             }
+            tableView.outlineTableColumn = tableView.tableColumns.first
         }
 
         private func synchronizeNativeSelection() {

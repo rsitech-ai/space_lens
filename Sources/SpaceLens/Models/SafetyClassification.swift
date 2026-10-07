@@ -117,3 +117,13 @@ public struct SafetyClassification: Hashable, Sendable {
         self.kind = kind
     }
 }
+
+/// Shared by the displayed estimate and its drill-down list.
+public enum CleanupRecoveryPolicy {
+    public static func countsTowardTheoreticalRecovery(node: FileNode, classification: SafetyClassification) -> Bool {
+        if classification.level.isQueueable { return true }
+        if classification.level == .activeOrInUse { return classification.kind.countsTowardTheoreticalRecovery }
+        return node.scanError == nil && classification.level == .unknownReview
+            && classification.kind.countsTowardTheoreticalRecovery
+    }
+}
