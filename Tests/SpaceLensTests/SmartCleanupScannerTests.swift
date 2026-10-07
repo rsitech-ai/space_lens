@@ -17,6 +17,16 @@ final class SmartCleanupScannerTests: XCTestCase {
         }
     }
 
+    func testSmartScanRejectsVirtualPathNamespacesWithoutDiscovery() async {
+        for path in ["/.nofollow", "/.nofollow/Users", "/.resolve", "/dev"] {
+            let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: URL(fileURLWithPath: path))
+            XCTAssertEqual(result.snapshot.nodeCount, 1)
+            XCTAssertEqual(result.snapshot.errorCount, 1)
+            XCTAssertTrue(result.root.children.isEmpty)
+            XCTAssertFalse(RuleEngine().classify(result.root).level.isQueueable)
+        }
+    }
+
     func testSmartScanCollapsesDerivedDataTargetAndNodeModules() async throws {
         let derivedData = temporaryRoot.appendingPathComponent(
             "Library/Developer/XcodeBuildMCP/workspaces/heat-cycle/DerivedData",

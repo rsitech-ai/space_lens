@@ -81,13 +81,13 @@ public final class DiskScanner {
         }
 
         context.nodeCount += 1
-        if url.path == "/dev" || url.path.hasPrefix("/dev/") {
+        if let issue = Self.excludedNamespaceReason(url) {
             context.errorCount += 1
-            let isDirectory = url.path == "/dev"
+            let isDirectory = ["/dev", "/.nofollow", "/.resolve"].contains(url.path)
             if isDirectory { context.directoryCount += 1 }
             return makeNode(
                 url: url, isDirectory: isDirectory, logicalSize: 0, allocatedSize: 0,
-                scanError: "Virtual device filesystem is not disk storage and was skipped.", context: &context
+                scanError: issue, context: &context
             )
         }
 
@@ -223,6 +223,7 @@ public final class DiskScanner {
     }
 
     static func traversalIssue(_ url: URL, resolvedRootPath: String) -> String? {
+        if let issue = excludedNamespaceReason(url) { return issue }
         let candidate = url.standardizedFileURL.resolvingSymlinksInPath().path
         let prefix = resolvedRootPath == "/" ? "/" : resolvedRootPath + "/"
         guard candidate == resolvedRootPath || candidate.hasPrefix(prefix) else {
@@ -232,6 +233,20 @@ public final class DiskScanner {
         // Data-volume firmlinks again duplicates counts, work, and displayed paths.
         if resolvedRootPath == "/", candidate != url.standardizedFileURL.path {
             return "Filesystem alias skipped; its canonical folder is scanned separately."
+        }
+        return nil
+    }
+
+    /// Kernel path-control namespaces can expose the root again without being symlinks.
+    static func excludedNamespaceReason(_ url: URL) -> String? {
+        let path = url.standardizedFileURL.path
+        if path == "/dev" || path.hasPrefix("/dev/") {
+            return "Virtual device filesystem is not disk storage and was skipped."
+        }
+        for namespace in ["/.nofollow", "/.resolve"] {
+            if path == namespace || path.hasPrefix(namespace + "/") {
+                return "Virtual filesystem path namespace skipped; use its canonical folder instead."
+            }
         }
         return nil
     }
@@ -296,7 +311,7 @@ public final class DiskScanner {
                 guard let childURL = enumerator.nextObject() as? URL else { return false }
                 context.nodeCount += 1
                 context.errorCount += errors.transfer()
-                if enumerator.level == 1, childURL.path == "/dev" {
+                if Self.excludedNamespaceReason(childURL) != nil {
                     enumerator.skipDescendants()
                     context.directoryCount += 1
                     context.errorCount += 1

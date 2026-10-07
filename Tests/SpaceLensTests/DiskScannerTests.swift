@@ -152,6 +152,27 @@ final class DiskScannerTests: XCTestCase {
         }
     }
 
+    func testWholeDriveTraversalRejectsKernelRootAliases() {
+        for path in ["/.nofollow", "/.nofollow/Users", "/.resolve", "/.resolve/Users"] {
+            XCTAssertNotNil(DiskScanner.traversalIssue(URL(fileURLWithPath: path), resolvedRootPath: "/"))
+        }
+        XCTAssertNil(DiskScanner.traversalIssue(URL(fileURLWithPath: "/Users/.nofollow"), resolvedRootPath: "/"))
+        XCTAssertNil(DiskScanner.traversalIssue(URL(fileURLWithPath: "/.nofollow-other"), resolvedRootPath: "/"))
+    }
+
+    func testKernelPathNamespacesAreSkippedInBothRetentionModes() async {
+        for path in ["/.nofollow", "/.nofollow/Users", "/.resolve"] {
+            for options in [ScanOptions.appDefault, .collapsed] {
+                let result = await DiskScanner().scan(root: URL(fileURLWithPath: path), options: options)
+                XCTAssertEqual(result.snapshot.nodeCount, 1)
+                XCTAssertEqual(result.snapshot.errorCount, 1)
+                XCTAssertEqual(result.root.logicalSize, 0)
+                XCTAssertTrue(result.root.children.isEmpty)
+                XCTAssertFalse(RuleEngine().classify(result.root).level.isQueueable)
+            }
+        }
+    }
+
     func testScannerRecordsMissingRootAsError() async throws {
         let missing = temporaryRoot.appendingPathComponent("missing")
         let result = await DiskScanner().scan(root: missing)

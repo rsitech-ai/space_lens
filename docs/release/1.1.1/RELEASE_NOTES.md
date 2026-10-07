@@ -12,6 +12,8 @@ to a smaller folder or Smart Scan for additional cleanup candidates.
 - Stopping a scan cancels classification as well as filesystem traversal.
 - Preserve high-bit Darwin device identifiers without integer-conversion traps.
   Skip the virtual `/dev` namespace, which is not disk storage.
+- Full Scan and Smart Scan skip the kernel `/.nofollow` and `/.resolve` path
+  namespaces, which can expose the root tree again without being symlinks.
 - Full Scan rejects folders that resolve outside the selected root and skips
   duplicate Data-volume aliases during a whole-drive scan.
 - Scan Errors includes an affected parent when unreadable descendants were

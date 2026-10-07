@@ -35,6 +35,8 @@ this display budget. Traversal, application activity checks, safety classificati
 and summary preparation each report their current phase. Stop cancels processing
 as well as traversal.
 
+Whole-drive scans skip the virtual `/.nofollow` and `/.resolve` kernel path namespaces; these can expose the same root tree again without being symbolic links. Both Full Scan and Smart Scan use canonical folders instead.
+
 ## Requirements
 
 - macOS 14 or later
