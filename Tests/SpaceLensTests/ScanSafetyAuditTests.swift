@@ -202,4 +202,16 @@ final class ScanSafetyAuditTests: XCTestCase {
         XCTAssertTrue(SmartScanCatalog.extraSystemRoots(scanRoot: dataRoot, homeDirectory: FileManager.default.homeDirectoryForCurrentUser).isEmpty)
     }
 
+    func testSimulatorInspectionRunsOnlyForAnIntersectingScope() {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let scanner = SmartCleanupScanner(homeDirectory: home)
+        XCTAssertFalse(scanner.shouldLoadSimulatorInventory(for: home.appendingPathComponent("dev/app")))
+        XCTAssertTrue(scanner.shouldLoadSimulatorInventory(for: home))
+        XCTAssertTrue(scanner.shouldLoadSimulatorInventory(for: home.appendingPathComponent("Library/Developer/CoreSimulator/Devices")))
+        XCTAssertTrue(scanner.shouldLoadSimulatorInventory(for: home.appendingPathComponent("Library/Developer")))
+        XCTAssertTrue(scanner.shouldLoadSimulatorInventory(for: URL(fileURLWithPath: "/Library/Developer/CoreSimulator/Devices")))
+        XCTAssertTrue(scanner.shouldLoadSimulatorInventory(for: URL(fileURLWithPath: "/Library/Developer/CoreSimulator/Devices/booted-device")))
+        XCTAssertFalse(scanner.shouldLoadSimulatorInventory(for: URL(fileURLWithPath: "/System/Volumes/Data")))
+    }
+
 }

@@ -40,7 +40,7 @@ public final class SmartCleanupScanner: @unchecked Sendable {
         var seenPaths: Set<String> = []
         var scannedRoots: [String] = []
         let skipSimulatorDeviceTrees = shouldSkipSimulatorDeviceCatalog(for: rootURL)
-        async let loadedInventory = resolvedSimulatorInventory()
+        async let loadedInventory = resolvedSimulatorInventory(for: rootURL)
 
         let catalogURLs = (extraKnownRoots(containedIn: rootURL) + directCandidateURLs(
             containedIn: rootURL,
@@ -766,11 +766,19 @@ public final class SmartCleanupScanner: @unchecked Sendable {
             == FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath().standardizedFileURL.path
     }
 
-    private func resolvedSimulatorInventory() async -> SimulatorInventory {
+    func shouldLoadSimulatorInventory(for root: URL) -> Bool {
+        guard isRealUserHome else { return false }
+        let simulatorRoots = ["Library/Developer/CoreSimulator", "Library/Developer/XCTestDevices"]
+            .map { homeDirectory.appendingPathComponent($0, isDirectory: true) }
+            + [URL(fileURLWithPath: "/Library/Developer/CoreSimulator", isDirectory: true)]
+        return simulatorRoots.contains { contains($0, in: root) || contains(root, in: $0) }
+    }
+
+    private func resolvedSimulatorInventory(for root: URL) async -> SimulatorInventory {
         if let injectedSimulatorInventory {
             return injectedSimulatorInventory
         }
-        guard isRealUserHome else {
+        guard shouldLoadSimulatorInventory(for: root) else {
             return .empty
         }
         return await SimulatorInventory.loadCancellable()
