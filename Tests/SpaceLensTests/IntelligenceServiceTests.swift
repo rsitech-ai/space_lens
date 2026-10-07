@@ -50,7 +50,7 @@ final class IntelligenceServiceTests: XCTestCase {
             )
         ]
 
-        let summary = await LocalIntelligenceService().summarizeScan(snapshot: snapshot, items: items)
+        let summary = await LocalIntelligenceService().summarizeScan(snapshot: snapshot, items: items, context: .empty)
 
         XCTAssertEqual(summary.recoverableBytes, 400)
         XCTAssertEqual(summary.reviewCount, 1)

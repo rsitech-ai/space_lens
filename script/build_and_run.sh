@@ -11,19 +11,37 @@ DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
+APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
+case "$MODE" in
+  run|--debug|debug|--logs|logs|--telemetry|telemetry|--verify|verify) ;;
+  *) echo "usage: $0 [run|--debug|--logs|--telemetry|--verify]" >&2; exit 2 ;;
+esac
+
 cd "$ROOT_DIR"
+CONFIGURATION="${SPACE_LENS_BUILD_CONFIGURATION:-release}"
+if [[ "$MODE" = --debug || "$MODE" = debug ]]; then CONFIGURATION=debug; fi
+[[ "$CONFIGURATION" = debug || "$CONFIGURATION" = release ]] || { echo "Invalid build configuration" >&2; exit 2; }
+VERSION="$(awk -F '"' '/MARKETING_VERSION:/ { print $2; exit }' project.yml)"
+BUILD_NUMBER="$(awk -F '"' '/CURRENT_PROJECT_VERSION:/ { print $2; exit }' project.yml)"
 
-pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+swift build -c "$CONFIGURATION"
+BUILD_BINARY="$(swift build -c "$CONFIGURATION" --show-bin-path)/$APP_NAME"
 
-swift build
-BUILD_BINARY="$(swift build --show-bin-path)/$APP_NAME"
+# Restart only this development bundle; Xcode test hosts may also be named SpaceLens.
+while read -r process_id executable_path; do
+  if [[ "$executable_path" == "$APP_BINARY" ]]; then
+    kill "$process_id" >/dev/null 2>&1 || true
+  fi
+done < <(ps -axo pid=,comm=)
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_MACOS"
+mkdir -p "$APP_MACOS" "$APP_RESOURCES"
 cp "$BUILD_BINARY" "$APP_BINARY"
+cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_RESOURCES/AppIcon.icns"
+cp "$ROOT_DIR/Resources/PrivacyInfo.xcprivacy" "$APP_RESOURCES/PrivacyInfo.xcprivacy"
 chmod +x "$APP_BINARY"
 
 /usr/libexec/PlistBuddy -c "Clear dict" "$INFO_PLIST" >/dev/null 2>&1 || true
@@ -32,10 +50,11 @@ chmod +x "$APP_BINARY"
 /usr/libexec/PlistBuddy -c "Add :CFBundleName string SpaceLens" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string SpaceLens" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$INFO_PLIST"
-/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0-dev" "$INFO_PLIST"
-/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 0" "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION-dev" "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string $MIN_SYSTEM_VERSION" "$INFO_PLIST"
 /usr/libexec/PlistBuddy -c "Add :NSPrincipalClass string NSApplication" "$INFO_PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string AppIcon" "$INFO_PLIST"
 
 # This bundle is a local SwiftPM development smoke, not the App Store artifact.
 codesign --force --sign - --deep "$APP_BUNDLE"

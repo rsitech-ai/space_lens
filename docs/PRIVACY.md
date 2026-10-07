@@ -1,6 +1,6 @@
 # SpaceLens Privacy Policy
 
-Effective date: 2026-07-15
+Effective date: 2026-10-07
 
 SpaceLens is a local-first macOS disk intelligence app. It scans folders that
 you explicitly select, calculates file and folder metadata, and classifies
@@ -15,8 +15,8 @@ third-party telemetry services.
 
 ## Local File Access
 
-SpaceLens accesses only folders you select through the macOS file picker. For
-those selected folders, SpaceLens reads filesystem metadata such as:
+SpaceLens scans folders you select through the macOS file picker. For those
+selected folders, SpaceLens reads filesystem metadata such as:
 
 - file and folder names
 - paths inside the selected folder
@@ -27,6 +27,11 @@ those selected folders, SpaceLens reads filesystem metadata such as:
 
 SpaceLens uses this metadata locally to show disk usage, explain cleanup risk,
 and help you decide what to review.
+
+For activity protection, SpaceLens also reads local process names and open-file
+paths for your user account. These transient snapshots stay in memory and are
+used to block removal of in-use files. Version 1.1.0 uses Hardened Runtime
+without App Sandbox; scan and cleanup boundaries are enforced by the app.
 
 SpaceLens does not upload file contents or file metadata to external servers.
 
@@ -42,9 +47,8 @@ bookmark and queue. Removing SpaceLens app data also removes this local state.
 
 ## Cleanup Actions
 
-SpaceLens 1.0 can move cleanup-ready files to the Bin only after you confirm
-the exact target paths. Permanent deletion is not available in the Store v1
-interface. Cleanup actions are limited by local safety classification rules and
+SpaceLens can move cleanup-ready files to the Bin only after you confirm
+the exact target paths. Permanent deletion is not available. Cleanup actions are limited by local safety classification rules and
 your explicit selection.
 
 ## Contact

@@ -8,6 +8,7 @@ struct FileTableView: View {
     @State private var nativeRowsVersion = 0
     @State private var nativeRenderState = NativeFileTableRenderState(selectedNodeIDs: [], queuedNodeIDs: [])
     @State private var binSelectionConfirmation = false
+    @State private var confirmedNodes: [FileNode] = []
 
     var body: some View {
         GeometryReader { geometry in
@@ -17,7 +18,13 @@ struct FileTableView: View {
                 if !appState.isScanning {
                     HeaderView(layout: layout)
                 }
-                ScanTelemetryPanel(layout: layout)
+                if appState.isScanning || appState.scanStatistics != nil || appState.scanIntelligenceSummary != nil {
+                    ScrollView {
+                        ScanTelemetryPanel(layout: layout)
+                    }
+                    .frame(height: min(380, geometry.size.height * 0.38))
+                    .background(.bar)
+                }
 
                 if appState.rootNode == nil && !appState.isScanning {
                     EmptyScanView()
@@ -28,31 +35,38 @@ struct FileTableView: View {
 
                     BulkActionBar(
                         layout: layout,
-                        moveToBinConfirmation: $binSelectionConfirmation
+                        moveToBinConfirmation: Binding(get: { binSelectionConfirmation }, set: { presented in
+                            if presented { confirmedNodes = appState.selectedCleanupEligibleNodes }
+                            binSelectionConfirmation = presented
+                        })
                     )
                 }
             }
         }
-        .confirmationDialog(
-            "Move selected cleanup-ready items to the Bin?",
-            isPresented: $binSelectionConfirmation
-        ) {
-            Button("Move \(appState.selectedCleanupEligibleNodes.count) Items to Bin", role: .destructive) {
-                Task {
-                    await appState.moveSelectedToBin()
+        .sheet(isPresented: $binSelectionConfirmation) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Move \(confirmedNodes.count) \(confirmedNodes.count == 1 ? "item" : "items") to the Bin?").font(.title2.bold())
+                Text("\(ByteFormat.string(confirmedNodes.reduce(0) { $0 + $1.effectiveSize })) will be moved to the Bin. Review every target below. Space is reclaimed when you empty the Bin in Finder.")
+                    .foregroundStyle(.secondary)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(confirmedNodes) { node in
+                            Text(node.path).font(.callout.monospaced()).textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }.padding(12)
+                }.background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+                HStack {
+                    Spacer()
+                    Button("Cancel") { binSelectionConfirmation = false }.keyboardShortcut(.cancelAction)
+                    Button("Move to Bin", role: .destructive) {
+                        let nodes = confirmedNodes
+                        binSelectionConfirmation = false
+                        Task { await appState.moveToBin(nodes: nodes) }
+                    }.tint(.red).disabled(!appState.canCleanUp || confirmedNodes.isEmpty)
                 }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(moveToBinConfirmationMessage)
+            }.padding(24).frame(width: 560, height: 440)
         }
-    }
-
-    private var moveToBinConfirmationMessage: String {
-        let paths = appState.selectedCleanupEligibleNodes
-            .map(\.path)
-            .joined(separator: "\n")
-        return "\(ByteFormat.string(appState.selectedRecoverableBytes)) will be moved to the Bin. Review every target:\n\n\(paths)"
     }
 
     private var visibleSelectionFingerprint: [UUID] {
@@ -103,12 +117,15 @@ struct FileTableView: View {
         .onChange(of: nativeTableSort) {
             refreshSortedVisibleNodes()
         }
+        .onChange(of: appState.classificationRevision) {
+            refreshSortedVisibleNodes()
+        }
     }
 
     private func refreshSortedVisibleNodes() {
         sortedVisibleNodes = nativeTableSort.sorted(appState.visibleNodes)
         nativeRows = sortedVisibleNodes.map {
-            NativeFileTableRow(item: $0, classification: appState.classification(for: $0.node))
+            NativeFileTableRow(item: $0, classification: appState.classification(for: $0.node), scanRoot: appState.rootNode?.url)
         }
         nativeRowsVersion &+= 1
     }
@@ -184,7 +201,7 @@ struct FileTableLayout {
     }
 
     var statTileMinimum: CGFloat {
-        isCompact ? 104 : 126
+        isCompact ? 148 : 168
     }
 }
 
@@ -337,7 +354,7 @@ private struct BulkActionBar: View {
         .padding(.vertical, 12)
         .background(.bar)
         .opacity(selectedCount == 0 ? 0.74 : 1)
-        .animation(.easeInOut(duration: 0.18), value: selectedCount)
+            .animation(nil, value: selectedCount)
     }
 
     private func selectionSummary(selectedCount: Int, cleanupReadyCount: Int) -> some View {
@@ -387,7 +404,7 @@ private struct BulkActionBar: View {
             }
             .accessibilityLabel("Queue selected cleanup-ready items")
             .buttonStyle(AnimatedBulkButtonStyle(color: .blue, isProminent: false))
-            .disabled(!hasCleanupReadySelection || appState.cleanupProgress != nil)
+            .disabled(!hasCleanupReadySelection || !appState.canCleanUp)
 
             Button {
                 moveToBinConfirmation = true
@@ -395,8 +412,8 @@ private struct BulkActionBar: View {
                 AdaptiveActionLabel("Move to Bin", systemImage: "trash", isCompact: layout.isCompact)
             }
             .accessibilityLabel("Move selected cleanup-ready items to the Bin")
-            .buttonStyle(AnimatedBulkButtonStyle(color: .green, isProminent: true))
-            .disabled(!hasCleanupReadySelection || appState.cleanupProgress != nil)
+            .buttonStyle(AnimatedBulkButtonStyle(color: .red, isProminent: true))
+            .disabled(!hasCleanupReadySelection || !appState.canCleanUp)
 
         }
     }
@@ -595,8 +612,9 @@ private struct ScanTelemetryPanel: View {
         Label(statusTitle, systemImage: appState.isScanning ? "sparkle.magnifyingglass" : "checkmark.seal")
             .font(.headline)
             .foregroundStyle(appState.isScanning ? .cyan : .green)
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
+            .lineLimit(2)
+            .minimumScaleFactor(0.78)
+            .help(statusTitle)
     }
 
     @ViewBuilder
@@ -659,10 +677,35 @@ private struct ScanTelemetryPanel: View {
         return [
             StatTile(title: "Total", value: ByteFormat.string(statistics.totalAllocatedBytes), detail: "\(statistics.totalItems) items", icon: "chart.pie", color: .cyan),
             StatTile(title: "Files", value: "\(statistics.fileCount)", detail: "\(statistics.directoryCount) folders", icon: "doc.text.magnifyingglass", color: .blue),
-            StatTile(title: "Recoverable", value: ByteFormat.string(statistics.queueableBytes), detail: "\(statistics.queueableCount) candidates", icon: "checkmark.shield", color: .green),
+            StatTile(title: "Conservative", value: ByteFormat.string(statistics.queueableBytes), detail: "\(statistics.queueableCount) cleanup-ready", icon: "checkmark.shield", color: .green),
+            StatTile(
+                title: "Theoretical",
+                value: ByteFormat.string(appState.scanIntelligenceSummary?.theoreticalRecoverableBytes ?? statistics.queueableBytes),
+                detail: "after review",
+                icon: "arrow.triangle.2.circlepath",
+                color: .teal
+            ),
             StatTile(title: "Review", value: "\(statistics.reviewCount)", detail: "manual decisions", icon: "exclamationmark.magnifyingglass", color: .orange),
-            StatTile(title: "Protected", value: "\(statistics.protectedCount + statistics.activeCount)", detail: "do not raw-delete", icon: "lock.shield", color: .red),
+            StatTile(title: "Protected", value: "\(statistics.protectedCount + statistics.activeCount)", detail: "do not delete", icon: "lock.shield", color: .red),
             StatTile(title: "Largest", value: ByteFormat.string(statistics.largestItemBytes), detail: statistics.largestItemName, icon: "arrow.up.left.and.arrow.down.right", color: .purple)
+        ] + availableTile
+    }
+
+    private var availableTile: [StatTile] {
+        guard let availableBytes = appState.scanIntelligenceSummary?.immediatelyAvailableBytes ?? appState.volumePressure.map({
+            $0.opportunisticAvailableBytes > 0 ? $0.opportunisticAvailableBytes : $0.availableBytes
+        }) else {
+            return []
+        }
+
+        return [
+            StatTile(
+                title: "APFS free",
+                value: ByteFormat.string(availableBytes),
+                detail: appState.volumePressure?.isUnderPressure == true ? "under pressure" : "immediately available",
+                icon: "externaldrive.badge.exclamationmark",
+                color: appState.volumePressure?.isUnderPressure == true ? .red : .green
+            )
         ]
     }
 }
@@ -700,14 +743,16 @@ private struct StatTileView: View {
                     .minimumScaleFactor(0.75)
                 Text(tile.detail)
                     .font(.caption2)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 0)
         }
         .padding(10)
+        .help("\(tile.title): \(tile.value) · \(tile.detail)")
         .spaceLensGlassSurface(cornerRadius: 12)
     }
 }
@@ -726,14 +771,29 @@ private struct IntelligenceStrip: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(ProductCopy.localAnalysisTitle)
                     .font(.subheadline.weight(.semibold))
-                Text(summary.body)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(isCompact ? 3 : 2)
-                Text(summary.nextStep)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.primary)
-                    .lineLimit(isCompact ? 3 : 2)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(summary.body)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(summary.nextStep)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(summary.auditNote)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        ForEach(Array(summary.processCaveats.enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: isCompact ? 160 : 200)
             }
 
             Spacer(minLength: 8)
@@ -762,7 +822,7 @@ private struct DocumentScanMotionView: View {
     var body: some View {
         Group {
             if ScanMotionPolicy.allowsContinuousMotion(reduceMotion: reduceMotion) {
-                TimelineView(.animation) { timeline in
+                TimelineView(.periodic(from: .now, by: 1.0 / 12.0)) { timeline in
                     lane(time: timeline.date.timeIntervalSinceReferenceDate)
                 }
             } else {
@@ -853,7 +913,7 @@ private struct AnimatedScanBar: View {
                     .fill(.quaternary)
 
                 if isActive, ScanMotionPolicy.allowsContinuousMotion(reduceMotion: reduceMotion) {
-                    TimelineView(.animation) { timeline in
+                    TimelineView(.periodic(from: .now, by: 1.0 / 12.0)) { timeline in
                         let cycle = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.45) / 1.45
                         let width = min(max(availableWidth * 0.28, 80), availableWidth)
                         let offset = (availableWidth + width) * cycle - width

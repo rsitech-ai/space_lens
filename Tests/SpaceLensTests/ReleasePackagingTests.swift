@@ -26,8 +26,8 @@ final class ReleasePackagingTests: XCTestCase {
             result.stdout,
             """
             bundle_id=com.rsitech.spacelens
-            version=1.0.2
-            build=3
+            version=1.1.0
+            build=4
             minimum_macos=14.0
 
             """
@@ -159,6 +159,20 @@ final class ReleasePackagingTests: XCTestCase {
         )
         let checksumRange = try XCTUnwrap(script.range(of: "shasum -a 256"))
         XCTAssertGreaterThan(finalVerificationRange.lowerBound, checksumRange.lowerBound)
+    }
+
+    func testDirectDistributionRetainsHardenedRuntimeWithoutSandbox() throws {
+        let data = try Data(contentsOf: repositoryRoot.appendingPathComponent("Config/SpaceLens.entitlements"))
+        let entitlements = try XCTUnwrap(PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any])
+        XCTAssertNil(entitlements["com.apple.security.app-sandbox"])
+        let spec = try String(contentsOf: repositoryRoot.appendingPathComponent("project.yml"), encoding: .utf8)
+        XCTAssertTrue(spec.contains("ENABLE_APP_SANDBOX: NO"))
+        XCTAssertTrue(spec.contains("ENABLE_HARDENED_RUNTIME: YES"))
+        for script in ["archive_app_store.sh", "validate_app_store_readiness.sh"] {
+            let result = try run(repositoryRoot.appendingPathComponent("script/" + script), arguments: [])
+            XCTAssertEqual(result.status, 2)
+            XCTAssertTrue(result.stderr.contains("App Store lane is unavailable"))
+        }
     }
 
     private func run(_ executableURL: URL, arguments: [String]) throws -> (

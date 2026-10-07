@@ -3,6 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+
+if ! /usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' Config/SpaceLens.entitlements 2>/dev/null | grep -q '^true$'; then
+  echo "This configuration targets direct distribution without App Sandbox; the App Store lane is unavailable." >&2
+  exit 2
+fi
 DERIVED_DATA_PATH="${SPACE_LENS_VALIDATION_DERIVED_DATA:-${TMPDIR:-/tmp}/spacelens-app-store-validation}"
 HOST_ARCH="$(uname -m)"
 

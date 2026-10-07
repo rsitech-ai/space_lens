@@ -85,8 +85,8 @@ final class FileCleanupServiceTests: XCTestCase {
 
     func testMoveToBinMovesUnchangedDescendantAndReportsResult() async throws {
         let authorizedRoot = temporaryRoot.appendingPathComponent("authorized", isDirectory: true)
-        let candidateURL = authorizedRoot.appendingPathComponent("SpaceLens-(UUID().uuidString).tmp")
-        try FileManager.default.createDirectory(at: authorizedRoot, withIntermediateDirectories: true)
+        let candidateURL = authorizedRoot.appendingPathComponent(".build/SpaceLens-\(UUID().uuidString).tmp")
+        try FileManager.default.createDirectory(at: candidateURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("disposable audit fixture".utf8).write(to: candidateURL)
         let scannedNode = FileNode(
             url: candidateURL,

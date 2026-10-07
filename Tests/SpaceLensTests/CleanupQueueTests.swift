@@ -5,6 +5,65 @@ import XCTest
 
 @MainActor
 final class CleanupQueueTests: XCTestCase {
+    func testSelectAllAndQueueStayOnCollapsedCandidates() {
+        let cacheNodes = (0..<50).map { index in
+            FileNode(
+                url: URL(fileURLWithPath: "/Users/example/Projects/Project-\(index)/.build"),
+                isDirectory: true,
+                logicalSize: 1_000,
+                allocatedSize: 1_000
+            )
+        }
+        let appState = AppState()
+        appState.rootNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/example/Projects"),
+            isDirectory: true,
+            logicalSize: 50_000,
+            allocatedSize: 50_000,
+            children: cacheNodes
+        )
+
+        appState.selectAllVisible()
+        appState.addSelectedToCleanupQueue()
+
+        XCTAssertEqual(appState.visibleNodes.count, 50)
+        XCTAssertEqual(appState.selectedNodeIDs.count, 50)
+        XCTAssertEqual(appState.cleanupQueue.count, 50)
+        XCTAssertEqual(appState.projectedRecoverableBytes, 50_000)
+        XCTAssertTrue(cacheNodes.allSatisfy(\.children.isEmpty))
+    }
+
+    func testSelectAllAndQueueHundredsOfCandidatesStaysOnTheCandidateList() {
+        let cacheNodes = (0..<300).map { index in
+            FileNode(
+                url: URL(fileURLWithPath: "/Users/example/Projects/Project-\(index)/.build"),
+                isDirectory: true,
+                logicalSize: 1_000,
+                allocatedSize: 1_000,
+                captureIdentity: false
+            )
+        }
+        let appState = AppState()
+        appState.rootNode = FileNode(
+            url: URL(fileURLWithPath: "/Users/example/Projects"),
+            isDirectory: true,
+            logicalSize: 300_000,
+            allocatedSize: 300_000,
+            children: cacheNodes,
+            captureIdentity: false
+        )
+
+        let started = Date()
+        appState.selectAllVisible()
+        appState.addSelectedToCleanupQueue()
+        let elapsed = Date().timeIntervalSince(started)
+
+        XCTAssertEqual(appState.visibleNodes.count, 300)
+        XCTAssertEqual(appState.cleanupQueue.count, 300)
+        XCTAssertLessThan(elapsed, 0.5)
+        XCTAssertTrue(cacheNodes.allSatisfy(\.children.isEmpty))
+    }
+
     func testQueueMembershipUpdatesAfterAddAndRemoval() throws {
         let appState = AppState()
         let node = FileNode(

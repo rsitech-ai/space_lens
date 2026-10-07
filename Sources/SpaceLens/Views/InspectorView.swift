@@ -19,9 +19,11 @@ struct InspectorView: View {
                         }
                         .padding(layout.padding)
                     }
-                    .task(id: node.id) {
+                    .task(id: ExplanationIdentity(nodeID: node.id, classification: appState.classification(for: node))) {
                         let classification = appState.classification(for: node)
-                        explanation = await appState.intelligenceService.explain(node: node, classification: classification)
+                        let updated = await appState.intelligenceService.explain(node: node, classification: classification)
+                        guard !Task.isCancelled else { return }
+                        explanation = updated
                     }
                 } else if appState.rootNode != nil, appState.visibleNodes.isEmpty {
                     let presentation = appState.emptyResultsPresentation
@@ -68,10 +70,9 @@ struct InspectorView: View {
             }
 
             Text(node.path)
-                .font(.caption)
+                .font(.caption.monospaced())
                 .textSelection(.enabled)
-                .lineLimit(layout.isCompact ? 3 : 2)
-                .truncationMode(.middle)
+                .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.secondary)
         }
     }
@@ -85,6 +86,7 @@ struct InspectorView: View {
                 .font(.headline)
 
             InspectorField("Category", value: classification.category, isCompact: layout.isCompact)
+            InspectorField("Kind", value: classification.kind.displayName, isCompact: layout.isCompact)
             InspectorField("Confidence", value: "\(Int(classification.confidence * 100))%", isCompact: layout.isCompact)
             InspectorField("Recommendation", value: classification.recommendedAction, isCompact: layout.isCompact)
 
@@ -158,6 +160,11 @@ struct InspectorView: View {
                 .foregroundStyle(.secondary)
         }
     }
+}
+
+private struct ExplanationIdentity: Hashable {
+    let nodeID: UUID
+    let classification: SafetyClassification
 }
 
 private struct InspectorLayout {

@@ -7,6 +7,15 @@ final class AppStatePresentationTests: XCTestCase {
     }
 
     @MainActor
+    func testSmartScanEmptyStateExplainsCollapsedCandidates() {
+        let appState = AppState(requiresSecurityScopedAccess: false)
+        appState.scanMode = .smart
+        appState.isScanning = true
+
+        XCTAssertEqual(appState.emptyResultsPresentation.title, "Finding Cleanup Candidates")
+    }
+
+    @MainActor
     func testScanErrorsCategoryHasAContextualEmptyState() {
         let appState = AppState(requiresSecurityScopedAccess: false)
         appState.sidebarSelection = .errors
