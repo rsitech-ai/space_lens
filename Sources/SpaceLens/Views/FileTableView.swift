@@ -664,6 +664,9 @@ private struct ScanTelemetryPanel: View {
 
     private var statusDetail: String {
         if let progress = appState.scanProgress {
+            if progress.phase == .findingCandidates {
+                return "\(progress.scannedCount.formatted()) locations checked"
+            }
             if progress.phase == .classifying {
                 return "\(progress.processedCandidateCount) of \(progress.totalCandidateCount) candidates checked"
             }
@@ -679,6 +682,13 @@ private struct ScanTelemetryPanel: View {
 
     private var statTiles: [StatTile] {
         if let progress = appState.scanProgress {
+            if progress.phase == .findingCandidates {
+                return [
+                    StatTile(title: "Checked", value: "\(progress.scannedCount)", detail: "filesystem locations", icon: "number", color: .cyan),
+                    StatTile(title: "Sizing", value: "Pending", detail: "after discovery", icon: "externaldrive", color: .teal),
+                    StatTile(title: "Errors", value: "\(progress.errorCount)", detail: "blocked reads", icon: "exclamationmark.triangle", color: progress.errorCount == 0 ? .secondary : .orange)
+                ]
+            }
             return [
                 StatTile(title: "Scanned", value: "\(progress.scannedCount)", detail: "items", icon: "number", color: .cyan),
                 StatTile(title: "Files", value: "\(progress.fileCount)", detail: "regular files", icon: "doc", color: .blue),

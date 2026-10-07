@@ -70,6 +70,7 @@ public struct ScanResult: Sendable {
 }
 
 public enum ScanPhase: Int, Sendable, Equatable {
+    case findingCandidates
     case discovering
     case checkingActivity
     case classifying
@@ -77,6 +78,7 @@ public enum ScanPhase: Int, Sendable, Equatable {
 
     public var title: String {
         switch self {
+        case .findingCandidates: "Finding cleanup locations"
         case .discovering: "Scanning files"
         case .checkingActivity: "Checking active applications"
         case .classifying: "Checking candidate safety"
