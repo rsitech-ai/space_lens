@@ -28,19 +28,19 @@ struct SpaceLensApp: App {
                     appState.chooseFolder()
                 }
                 .keyboardShortcut("o", modifiers: [.command])
-                .disabled(appState.isCleaningUp)
+                .disabled(appState.isCleaningUp || appState.isAddingFiles)
 
                 Button("Smart Scan") {
                     appState.smartScan()
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
-                .disabled(appState.isCleaningUp)
+                .disabled(appState.isCleaningUp || appState.isAddingFiles)
 
                 Button("Rescan") {
                     appState.rescan()
                 }
                 .keyboardShortcut("r", modifiers: [.command])
-                .disabled(appState.isScanning || appState.isCleaningUp)
+                .disabled(appState.isScanning || appState.isCleaningUp || appState.isAddingFiles)
             }
 
             CommandMenu("Selection") {

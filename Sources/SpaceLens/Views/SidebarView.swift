@@ -81,6 +81,10 @@ struct SidebarView: View {
             "externaldrive"
         case .safe:
             "checkmark.shield"
+        case .theoretical:
+            "arrow.triangle.2.circlepath"
+        case .protected:
+            "lock.shield"
         case .review:
             "exclamationmark.magnifyingglass"
         case .valuable:
@@ -112,6 +116,10 @@ private struct SidebarLayout {
             return "All"
         case .safe:
             return "Safe"
+        case .theoretical:
+            return "Potential"
+        case .protected:
+            return "Protected"
         case .review:
             return "Review"
         case .valuable:

@@ -54,14 +54,7 @@ public struct LocalIntelligenceService: IntelligenceService {
         )
         let theoreticalRoots = CleanupTargetNormalizer.collapsingDescendants(
             items.filter { item in
-                if item.classification.level.isQueueable {
-                    return true
-                }
-                if item.classification.level == .activeOrInUse, item.classification.kind.countsTowardTheoreticalRecovery {
-                    return true
-                }
-                return item.node.scanError == nil && item.classification.level == .unknownReview
-                    && item.classification.kind.countsTowardTheoreticalRecovery
+                CleanupRecoveryPolicy.countsTowardTheoreticalRecovery(node: item.node, classification: item.classification)
             },
             url: { $0.node.url }
         )

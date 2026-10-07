@@ -27,6 +27,8 @@ final class AppState: ObservableObject {
     enum SidebarSelection: String, CaseIterable, Identifiable {
         case all
         case safe
+        case theoretical
+        case protected
         case review
         case valuable
         case active
@@ -43,6 +45,10 @@ final class AppState: ObservableObject {
                 "All Files"
             case .safe:
                 "Safe Candidates"
+            case .theoretical:
+                "Potential Recovery"
+            case .protected:
+                "Protected Items"
             case .review:
                 "Needs Review"
             case .valuable:
@@ -165,6 +171,30 @@ final class AppState: ObservableObject {
             rebuildVisibleNodes()
         }
     }
+    @Published private(set) var isAddingFiles = false
+    private var addFilesTask: Task<Void, Never>?
+    private var additionalNodes: [FileNode] = []
+    // Authority applies to these exact chooser targets only, never to arbitrary siblings.
+    private var additionalCleanupRoots: [UUID: URL] = [:]
+    private(set) var displayedNodeIDs: Set<UUID>?
+    var showsFileTree: Bool {
+        sidebarSelection == .all && tableFilter == .all
+            && searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    func setDisplayedNodeIDs(_ ids: Set<UUID>, matching availableIDs: Set<UUID>? = nil) {
+        if let availableIDs, availableIDs != Set(visibleNodes.map(\.id)) { return }
+        guard displayedNodeIDs != ids else { return }
+        objectWillChange.send()
+        displayedNodeIDs = ids
+        selectedNodeIDs.formIntersection(ids)
+    }
+    func showSummary(_ selection: SidebarSelection, filter: TableFilter = .all) {
+        searchText = ""
+        tableFilter = filter
+        sidebarSelection = selection
+        clearSelection()
+    }
+
     @Published var isScanning = false
     @Published var scanMode: ScanMode = .full
     @Published var scanProgress: ScanProgress?
@@ -301,7 +331,7 @@ final class AppState: ObservableObject {
         cleanupQueue.reduce(Int64(0)) { $0 + $1.estimatedRecoverableBytes }
     }
 
-    var canCleanUp: Bool { !isScanning && snapshot != nil && !isCleaningUp }
+    var canCleanUp: Bool { !isScanning && !isAddingFiles && snapshot != nil && !isCleaningUp }
 
     var emptyResultsPresentation: EmptyResultsPresentation {
         if isScanning {
@@ -336,6 +366,12 @@ final class AppState: ObservableObject {
                 systemImage: "checkmark.shield",
                 description: "SpaceLens did not find low-risk cleanup items in this scan."
             )
+        case .theoretical:
+            return EmptyResultsPresentation(title: "No Potential Recovery", systemImage: "arrow.triangle.2.circlepath",
+                description: "No retained candidates contribute to the theoretical cleanup estimate.")
+        case .protected:
+            return EmptyResultsPresentation(title: "No Protected Items", systemImage: "lock.shield",
+                description: "No retained items were classified as protected or active.")
         case .review:
             return EmptyResultsPresentation(
                 title: "Nothing Needs Review",
@@ -375,6 +411,98 @@ final class AppState: ObservableObject {
 
     var currentAuthorizedScanRoot: URL? {
         securityScopedRootURL
+    }
+
+    func chooseAdditionalFiles() {
+        guard canCleanUp else { return }
+        let panel = NSOpenPanel()
+        panel.title = "Choose files or folders to add to the cleanup queue"
+        panel.prompt = "Inspect and Queue"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.resolvesAliases = false
+        if panel.runModal() == .OK {
+            let urls = panel.urls
+            addFilesTask = Task { await addAdditionalFiles(urls) }
+        }
+    }
+
+    func cancelAddingFiles() { addFilesTask?.cancel() }
+
+    func addAdditionalFiles(_ urls: [URL]) async {
+        guard canCleanUp, !requiresSecurityScopedAccess else {
+            latestError = "Complete a scan before adding files. Additional targets require the desktop build with filesystem access."
+            return
+        }
+        isAddingFiles = true
+        defer { isAddingFiles = false; addFilesTask = nil }
+        let activity = await activitySnapshot()
+        guard !Task.isCancelled else { return }
+        pathUseSnapshot = activity
+        classificationCache.removeAll(keepingCapacity: true)
+        cachedSelectedCleanupEligibleIDs = nil
+        var accepted: [FileNode] = []
+        var rejected: [String] = []
+        let targets = CleanupTargetNormalizer.collapsingDescendants(urls.map { $0.standardizedFileURL }, url: { $0 })
+        for url in targets {
+            // Reject protected roots and symlinks before walking potentially huge folders.
+            guard activity.activityCheckError == nil,
+                  let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
+                  values.isSymbolicLink != true,
+                  DiskScanner.excludedNamespaceReason(url) == nil else {
+                rejected.append(url.path)
+                continue
+            }
+            let preliminary = FileNode(url: url, isDirectory: values.isDirectory == true,
+                logicalSize: 0, allocatedSize: 0, captureIdentity: false)
+            let level = ruleEngine.classify(preliminary, pathUse: activity).level
+            guard level != .systemCritical, level != .activeOrInUse else {
+                rejected.append(url.path)
+                continue
+            }
+            let worker = Task.detached(priority: .userInitiated) { await DiskScanner().scan(root: url, options: .collapsed) }
+            let result = await withTaskCancellationHandler(operation: { await worker.value }, onCancel: { worker.cancel() })
+            guard !Task.isCancelled else { return }
+            let node = result.root
+            let classification = ruleEngine.classify(node, pathUse: activity)
+            guard isCleanupEligible(node, classification: classification) else {
+                rejected.append(url.path)
+                continue
+            }
+            // Reuse a retained node when available, keeping queue and tree identity coherent.
+            if let retained = allNodes.first(where: { $0.node.url.standardizedFileURL == url })?.node {
+                guard retained.fileIdentity == node.fileIdentity,
+                      retained.effectiveSize == node.effectiveSize,
+                      retained.modifiedAt == node.modifiedAt else {
+                    rejected.append(url.path + " (changed since scan; scan this folder again)")
+                    continue
+                }
+                accepted.append(retained)
+            } else { accepted.append(node) }
+        }
+        guard !Task.isCancelled else { return }
+        for node in accepted {
+            if !allNodes.contains(where: { $0.id == node.id }) {
+                additionalNodes.append(node)
+                additionalCleanupRoots[node.id] = node.url.deletingLastPathComponent()
+            }
+            nodeByID[node.id] = node
+            classificationCache[node.id] = ruleEngine.classify(node, pathUse: activity)
+        }
+        rebuildNodeCaches()
+        let candidates = accepted.map { node in
+            CleanupCandidate(fileNode: node, classification: classification(for: node),
+                estimatedRecoverableBytes: node.effectiveSize, action: .queueForFutureTrash)
+        }
+        cleanupQueue = CleanupTargetNormalizer.collapsingDescendants(cleanupQueue + candidates, url: { $0.fileNode.url })
+        classificationRevision &+= 1
+        showSummary(.queue)
+        selectedNodeIDs = Set(accepted.map(\.id)).intersection(queuedNodeIDs)
+        cleanupStatusMessage = "Added \(accepted.count) items to the review queue"
+        if !rejected.isEmpty {
+            latestError = "Could not queue \(rejected.count) active, protected, unreadable or unsupported items:\n" + rejected.prefix(5).joined(separator: "\n")
+        }
     }
 
     func chooseFolder() {
@@ -419,6 +547,7 @@ final class AppState: ObservableObject {
     }
 
     func startScan(root: URL) {
+        guard !isAddingFiles else { return }
         guard !isCleaningUp else { return }
         scanTask?.cancel()
         guard beginAccessingSecurityScopedRoot(root) else {
@@ -476,6 +605,7 @@ final class AppState: ObservableObject {
     }
 
     func startSmartScan(root: URL) {
+        guard !isAddingFiles else { return }
         guard !isCleaningUp else { return }
         scanTask?.cancel()
         guard beginAccessingSecurityScopedRoot(root) else {
@@ -725,12 +855,22 @@ final class AppState: ObservableObject {
         scanIntelligenceSummary = intelligenceSummary
         classificationCache = Dictionary(uniqueKeysWithValues: items.map { ($0.node.id, $0.classification) })
         cachedSelectedCleanupEligibleIDs = nil
+        let scannedPaths = Set(items.map { $0.node.url.standardizedFileURL.path })
+        additionalNodes.removeAll { node in
+            guard scannedPaths.contains(node.url.standardizedFileURL.path) else { return false }
+            additionalCleanupRoots.removeValue(forKey: node.id)
+            return true
+        }
         rebuildNodeCachesKeepingClassification()
 
         let currentItems = Dictionary(uniqueKeysWithValues: items.map { ($0.node.path, $0) })
         storedCleanupQueue = storedCleanupQueue.compactMap { candidate in
             guard FileManager.default.fileExists(atPath: candidate.fileNode.path) else { return nil }
-            guard let item = currentItems[candidate.fileNode.path] else { return nil }
+            guard let item = currentItems[candidate.fileNode.path] else {
+                if additionalCleanupRoots[candidate.fileNode.id] != nil,
+                   isCleanupEligible(candidate.fileNode) { return candidate }
+                return nil
+            }
             guard isCleanupEligible(item.node, classification: item.classification) else { return nil }
             return CleanupCandidate(id: candidate.id, fileNode: item.node, classification: item.classification,
                 estimatedRecoverableBytes: item.node.effectiveSize, action: candidate.action)
@@ -856,11 +996,11 @@ final class AppState: ObservableObject {
     }
 
     func selectAllVisible() {
-        selectedNodeIDs = Set(visibleNodes.map(\.node.id))
+        selectedNodeIDs = displayedNodeIDs ?? Set(visibleNodes.map(\.node.id))
     }
 
     func selectCleanupReadyVisible() {
-        selectedNodeIDs = Set(visibleNodes.filter { classification(for: $0.node).level.isQueueable }.map(\.node.id))
+        selectedNodeIDs = Set(visibleNodes.filter { classification(for: $0.node).level.isQueueable }.map(\.node.id)).intersection(displayedNodeIDs ?? Set(visibleNodes.map(\.node.id)))
     }
 
     func clearSelection() {
@@ -869,6 +1009,9 @@ final class AppState: ObservableObject {
 
     func forgetSavedSession() {
         guard !isCleaningUp else { return }
+        cancelAddingFiles()
+        additionalNodes.removeAll()
+        additionalCleanupRoots.removeAll()
         cancelScan()
         stopAccessingSecurityScopedRoot()
         currentScanRootURL = nil
@@ -950,10 +1093,11 @@ final class AppState: ObservableObject {
         }
         let freshActivity = pathUseSnapshot
         let activityRefresh = CleanupActivityRefresh(initial: freshActivity, provider: activitySnapshot)
+        let additionalRoots = additionalCleanupRoots
         await performBulkCleanup(nodes: nodes, operationName: "Moved to Bin", reviewedByUser: reviewedByUser) { node, progress in
             try await FileCleanupService.moveToBin(
                 node: node,
-                authorizedRoot: authorizedRoot,
+                authorizedRoot: additionalRoots[node.id] ?? authorizedRoot,
                 reviewedByUser: reviewedByUser,
                 pathUse: freshActivity,
                 activitySnapshot: { await activityRefresh.snapshot(forceRefresh: reviewedByUser) },
@@ -966,7 +1110,7 @@ final class AppState: ObservableObject {
 
     private func refreshSummaryAfterCleanup() async {
         guard let snapshot else { return }
-        let items = allNodes.map { ClassifiedScanItem(node: $0.node, classification: classification(for: $0.node)) }
+        let items = allNodes.filter { additionalCleanupRoots[$0.id] == nil }.map { ClassifiedScanItem(node: $0.node, classification: classification(for: $0.node)) }
         scanStatistics = ScanStatistics(snapshot: snapshot, items: items)
         scanIntelligenceSummary = await intelligenceService.summarizeScan(snapshot: snapshot, items: items,
             context: ScanSummaryContext(volumePressure: volumePressure, pathUse: pathUseSnapshot, didRemoveFiles: didRemoveFiles))
@@ -994,6 +1138,8 @@ final class AppState: ObservableObject {
 
         guard FileManager.default.fileExists(atPath: node.path) else {
             latestError = "The selected item no longer exists on disk. Rescan this folder."
+            additionalNodes.removeAll { $0.id == node.id }
+            additionalCleanupRoots.removeValue(forKey: node.id)
             rootNode = rootNode?.removing(id: node.id)
             cleanupQueue.removeAll { $0.fileNode.id == node.id }
             selectedNodeIDs.remove(node.id)
@@ -1019,6 +1165,8 @@ final class AppState: ObservableObject {
             cleanupInProgressIDs.remove(node.id)
             cleanupStatusMessage = "\(operationName): \(node.displayName)"
             cleanupProgress = nil
+            additionalNodes.removeAll { $0.id == node.id }
+            additionalCleanupRoots.removeValue(forKey: node.id)
             rootNode = rootNode?.removing(id: node.id)
             cleanupQueue.removeAll { $0.fileNode.id == node.id }
             selectedNodeIDs.remove(node.id)
@@ -1078,7 +1226,7 @@ final class AppState: ObservableObject {
     }
 
     private func rebuildNodeCaches() {
-        allNodes = rootNode.map { Array($0.flattened().dropFirst()) } ?? []
+        allNodes = (rootNode.map { Array($0.flattened().dropFirst()) } ?? []) + additionalNodes.map { FlattenedFileNode(node: $0, depth: 1) }
         nodeByID = [:]
         if let rootNode {
             nodeByID[rootNode.id] = rootNode
@@ -1093,7 +1241,7 @@ final class AppState: ObservableObject {
     }
 
     private func rebuildNodeCachesKeepingClassification() {
-        allNodes = storedRootNode.map { Array($0.flattened().dropFirst()) } ?? []
+        allNodes = (storedRootNode.map { Array($0.flattened().dropFirst()) } ?? []) + additionalNodes.map { FlattenedFileNode(node: $0, depth: 1) }
         nodeByID = [:]
         if let storedRootNode {
             nodeByID[storedRootNode.id] = storedRootNode
@@ -1105,6 +1253,7 @@ final class AppState: ObservableObject {
     }
 
     private func rebuildVisibleNodes() {
+        let previousIDs = Set(visibleNodes.map(\.id))
         guard rootNode != nil else {
             visibleNodes = []
             visibleCleanupReadyCount = 0
@@ -1116,7 +1265,12 @@ final class AppState: ObservableObject {
         case .all:
             sidebarFilteredNodes = allNodes
         case .safe:
-            sidebarFilteredNodes = allNodes.filter { classification(for: $0.node).level.isQueueable }
+            sidebarFilteredNodes = CleanupTargetNormalizer.collapsingDescendants(allNodes.filter { classification(for: $0.node).level.isQueueable && additionalCleanupRoots[$0.id] == nil }, url: { $0.node.url })
+        case .theoretical:
+            sidebarFilteredNodes = CleanupTargetNormalizer.collapsingDescendants(
+                allNodes.filter { additionalCleanupRoots[$0.id] == nil && CleanupRecoveryPolicy.countsTowardTheoreticalRecovery(node: $0.node, classification: classification(for: $0.node)) }, url: { $0.node.url })
+        case .protected:
+            sidebarFilteredNodes = allNodes.filter { [.systemCritical, .activeOrInUse].contains(classification(for: $0.node).level) }
         case .review:
             sidebarFilteredNodes = allNodes.filter { classification(for: $0.node).level == .unknownReview }
         case .valuable:
@@ -1162,6 +1316,7 @@ final class AppState: ObservableObject {
                 count += 1
             }
         }
+        if Set(visibleNodes.map(\.id)) != previousIDs { displayedNodeIDs = nil }
         let retainedSelection = storedSelectedNodeIDs.intersection(Set(visibleNodes.lazy.map(\.node.id)))
         if retainedSelection != storedSelectedNodeIDs {
             storedSelectedNodeIDs = retainedSelection
@@ -1226,6 +1381,8 @@ final class AppState: ObservableObject {
             return
         }
 
+        additionalNodes.removeAll()
+        additionalCleanupRoots.removeAll()
         rootNode = nil
         snapshot = nil
         scanStatistics = nil

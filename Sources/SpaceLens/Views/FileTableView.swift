@@ -31,7 +31,7 @@ struct FileTableView: View {
                 if appState.rootNode == nil && !appState.isScanning {
                     EmptyScanView()
                 } else {
-                    TableControlBar(visibleCount: sortedVisibleNodes.count, layout: layout)
+                    TableControlBar(visibleCount: appState.displayedNodeIDs?.count ?? sortedVisibleNodes.count, layout: layout)
 
                     responsiveTable(layout: layout)
 
@@ -110,6 +110,16 @@ struct FileTableView: View {
                     },
                     onSortChange: { sort in
                         nativeTableSort = sort
+                    },
+                    showsHierarchy: appState.showsFileTree,
+                    onDisplayedNodesChange: { ids, availableIDs in
+                        // Publishing SwiftUI state during updateNSView is unsafe.
+                        DispatchQueue.main.async { appState.setDisplayedNodeIDs(ids, matching: availableIDs) }
+                    },
+                    onOpenFolder: { node in
+                        if !appState.isScanning && !appState.isCleaningUp && !appState.isAddingFiles {
+                            appState.startScan(root: node.url)
+                        }
                     }
                 )
             }
@@ -125,6 +135,9 @@ struct FileTableView: View {
         }
         .onChange(of: visibleSelectionFingerprint) {
             appState.pruneSelectionToVisible()
+            refreshSortedVisibleNodes()
+        }
+        .onChange(of: appState.showsFileTree) {
             refreshSortedVisibleNodes()
         }
         .onChange(of: nativeTableSort) {
@@ -260,6 +273,13 @@ private struct TableControlBar: View {
                 }
             }
         }
+        .overlay(alignment: .bottomLeading) {
+            if appState.sidebarSelection == .theoretical {
+                Text("Potential recovery includes tool-managed items. Active or protected items cannot be queued or moved directly.")
+                    .font(.caption2).foregroundStyle(.secondary).padding(.horizontal)
+            }
+        }
+        .padding(.bottom, appState.sidebarSelection == .theoretical ? 20 : 0)
         .controlSize(.small)
         .padding(.horizontal)
         .padding(.vertical, 10)
@@ -315,13 +335,27 @@ private struct TableControlBar: View {
             .disabled(visibleCount == 0)
 
             Button {
-                appState.selectCleanupReadyVisible()
+                appState.showSummary(.safe)
             } label: {
                 AdaptiveActionLabel("Safe", systemImage: "checkmark.shield", isCompact: layout.isCompact)
             }
-            .accessibilityLabel("Select cleanup-ready visible items")
-            .help("Select visible cleanup-ready items")
-            .disabled(appState.visibleCleanupReadyCount == 0)
+            .accessibilityLabel("Show cleanup-ready files")
+            .help("Show conservative cleanup-ready candidates")
+            .disabled(appState.snapshot == nil || appState.isScanning || appState.isCleaningUp || appState.isAddingFiles)
+
+            Button {
+                appState.chooseAdditionalFiles()
+            } label: {
+                AdaptiveActionLabel("Add Files…", systemImage: "plus", isCompact: layout.isCompact)
+            }
+            .accessibilityLabel("Add files or folders to the review queue")
+            .help("Choose files or folders to inspect and queue. Added targets last until you change the scan folder, forget the session or quit the app.")
+            .disabled(!appState.canCleanUp)
+
+            if appState.isAddingFiles {
+                ProgressView().controlSize(.small)
+                Button("Cancel") { appState.cancelAddingFiles() }
+            }
 
             Button {
                 appState.clearSelection()
@@ -624,12 +658,23 @@ private struct ScanTelemetryPanel: View {
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: layout.statTileMinimum), spacing: 10)], spacing: 10) {
                 ForEach(statTiles) { tile in
-                    StatTileView(tile: tile)
+                    if let selection = tile.selection {
+                        Button {
+                            appState.showSummary(selection, filter: tile.filter)
+                        } label: {
+                            StatTileView(tile: tile)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(appState.isScanning || appState.isCleaningUp || appState.isAddingFiles)
+                        .accessibilityLabel("Show \(tile.title) files: \(tile.value)")
+                    } else {
+                        StatTileView(tile: tile)
+                    }
                 }
             }
 
             if let snapshot = appState.snapshot, snapshot.hasLimitedDetails {
-                Text("All accessible files were measured. Folder details are limited to keep large scans responsive. Select a smaller folder for more detail, or use Smart Scan to search cleanup locations.")
+                Text("All accessible files were measured. Folder details are limited to keep large scans responsive. Expand retained folders with the disclosure arrow. Double-click a folder without displayed children to scan more detail, or use Smart Scan to search cleanup locations.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -725,18 +770,19 @@ private struct ScanTelemetryPanel: View {
         }
 
         return [
-            StatTile(title: "Total", value: ByteFormat.string(statistics.totalAllocatedBytes), detail: "\(statistics.totalItems) items", icon: "chart.pie", color: .cyan),
-            StatTile(title: "Files", value: "\(statistics.fileCount)", detail: "\(statistics.directoryCount) folders", icon: "doc.text.magnifyingglass", color: .blue),
-            StatTile(title: "Conservative", value: ByteFormat.string(statistics.queueableBytes), detail: "\(statistics.queueableCount) cleanup-ready", icon: "checkmark.shield", color: .green),
+            StatTile(title: "Total", value: ByteFormat.string(statistics.totalAllocatedBytes), detail: "\(statistics.totalItems) items", icon: "chart.pie", color: .cyan, selection: .all),
+            StatTile(title: "Files", value: "\(statistics.fileCount)", detail: "\(statistics.directoryCount) folders", icon: "doc.text.magnifyingglass", color: .blue, selection: .all, filter: .files),
+            StatTile(title: "Conservative", value: ByteFormat.string(statistics.queueableBytes), detail: "\(statistics.queueableCount) cleanup-ready", icon: "checkmark.shield", color: .green, selection: .safe),
             StatTile(
                 title: "Theoretical",
                 value: ByteFormat.string(appState.scanIntelligenceSummary?.theoreticalRecoverableBytes ?? statistics.queueableBytes),
                 detail: "after review",
                 icon: "arrow.triangle.2.circlepath",
-                color: .teal
+                color: .teal,
+                selection: .theoretical
             ),
-            StatTile(title: "Review", value: "\(statistics.reviewCount)", detail: "manual decisions", icon: "exclamationmark.magnifyingglass", color: .orange),
-            StatTile(title: "Protected", value: "\(statistics.protectedCount + statistics.activeCount)", detail: "do not delete", icon: "lock.shield", color: .red),
+            StatTile(title: "Review", value: "\(statistics.reviewCount)", detail: "manual decisions", icon: "exclamationmark.magnifyingglass", color: .orange, selection: .review),
+            StatTile(title: "Protected", value: "\(statistics.protectedCount + statistics.activeCount)", detail: "do not delete", icon: "lock.shield", color: .red, selection: .protected),
             StatTile(title: "Largest", value: ByteFormat.string(statistics.largestItemBytes), detail: statistics.largestItemName, icon: "arrow.up.left.and.arrow.down.right", color: .purple)
         ] + availableTile
     }
@@ -766,6 +812,8 @@ private struct StatTile: Identifiable {
     let detail: String
     let icon: String
     let color: Color
+    var selection: AppState.SidebarSelection? = nil
+    var filter: AppState.TableFilter = .all
 
     var id: String {
         title
@@ -800,6 +848,9 @@ private struct StatTileView: View {
             }
 
             Spacer(minLength: 0)
+            if tile.selection != nil {
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            }
         }
         .padding(10)
         .help("\(tile.title): \(tile.value) · \(tile.detail)")
