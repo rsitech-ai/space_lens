@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- Expand Smart Scan coverage and retain only candidate roots during sizing.
+- Index activity paths once, bound helper lifetimes, and reject unavailable activity checks.
+- Require rebuild evidence, preserve incomplete-scan warnings, and protect shared temporary directories.
+- Confirm every frozen cleanup target in a scrollable sheet and refresh activity before cleanup.
+- Rebind queued items after rescans and keep updated safety explanations consistent.
+
+
 All notable SpaceLens changes will be documented in this file. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and published
 versions will use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

@@ -8,7 +8,7 @@ struct SettingsView: View {
         TabView {
             Form {
                 Section("Safety") {
-                    Text("Cleanup is enabled only for items classified as safe temp, rebuildable cache, or generated output. SpaceLens 1.0 moves cleanup-ready items to the Bin and shows every target path before confirmation.")
+                    Text("Cleanup is enabled only for items classified as safe temp, rebuildable cache, or generated output. SpaceLens moves cleanup-ready items to the Bin and shows every target path before confirmation.")
                         .foregroundStyle(.secondary)
                 }
 
@@ -18,11 +18,11 @@ struct SettingsView: View {
 
                     Button("Forget Saved Folder and Queue…", role: .destructive) {
                         forgetSessionConfirmation = true
-                    }
+                    }.disabled(appState.isCleaningUp)
                 }
 
                 Section("AI") {
-                    Text("The MVP uses local rule-based explanations only. No file contents or metadata are sent to external services.")
+                    Text("Explanations use deterministic local rules. No file contents or metadata are sent to external services.")
                         .foregroundStyle(.secondary)
                 }
             }

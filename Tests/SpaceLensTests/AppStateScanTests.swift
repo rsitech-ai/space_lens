@@ -43,7 +43,7 @@ final class AppStateScanTests: XCTestCase {
     }
 
     @MainActor
-    func testRescanKeepsQueuedPathEvenWhenDisplayTreePrunesIt() async throws {
+    func testRescanDropsQueuedPathWhenLatestDisplayTreeOmitsIt() async throws {
         let buildFolder = temporaryRoot.appendingPathComponent(".build", isDirectory: true)
         try FileManager.default.createDirectory(at: buildFolder, withIntermediateDirectories: true)
         try Data([1]).write(to: buildFolder.appendingPathComponent("artifact.o"))
@@ -82,14 +82,19 @@ final class AppStateScanTests: XCTestCase {
         }
 
         XCTAssertFalse(appState.isScanning)
-        XCTAssertEqual(appState.cleanupQueue.map { $0.fileNode.path }, [buildFolder.path])
+        XCTAssertTrue(appState.cleanupQueue.isEmpty)
+        XCTAssertFalse(appState.rootNode?.children.contains { $0.path == buildFolder.path } ?? true)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: buildFolder.path))
     }
 
     @MainActor
     func testSmartScanPublishesVisibleCleanupCandidates() async throws {
         let buildFolder = temporaryRoot.appendingPathComponent("Project/.build", isDirectory: true)
+        let researchOutput = temporaryRoot.appendingPathComponent("dev/quants-lab/output", isDirectory: true)
         try FileManager.default.createDirectory(at: buildFolder, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: researchOutput, withIntermediateDirectories: true)
         try Data(repeating: 1, count: 512).write(to: buildFolder.appendingPathComponent("artifact.o"))
+        try Data(repeating: 2, count: 256).write(to: researchOutput.appendingPathComponent("run.bin"))
 
         let appState = AppState(
             smartCleanupScanner: SmartCleanupScanner(homeDirectory: temporaryRoot),
@@ -103,8 +108,13 @@ final class AppStateScanTests: XCTestCase {
 
         XCTAssertFalse(appState.isScanning)
         XCTAssertEqual(appState.scanMode, .smart)
+        XCTAssertEqual(appState.sidebarSelection, .queue)
+        XCTAssertEqual(appState.cleanupQueue.map(\.fileNode.displayName), ["Build Artifacts (.build)"])
+        XCTAssertFalse(appState.cleanupQueue.contains { $0.fileNode.path.contains("output") })
         XCTAssertEqual(appState.visibleNodes.map(\.node.displayName), ["Build Artifacts (.build)"])
+        XCTAssertTrue(appState.visibleNodes.allSatisfy { $0.node.children.isEmpty })
         XCTAssertGreaterThan(appState.visibleCleanupReadyCount, 0)
+        XCTAssertEqual(appState.selectedNodeIDs, Set(appState.cleanupQueue.map(\.fileNode.id)))
     }
 
     @MainActor

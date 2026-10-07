@@ -98,7 +98,7 @@ enum CleanupTargetNormalizer {
         _ elements: [Element],
         url: (Element) -> URL
     ) -> [Element] {
-        collapsingDescendants(elements, url: url, canonicalize: canonicalPath)
+        collapsingDescendants(elements, url: url, canonicalize: { $0.standardizedFileURL.path })
     }
 
     static func collapsingDescendants<Element>(
@@ -148,16 +148,12 @@ enum CleanupTargetNormalizer {
     }
 
     static func isSameOrDescendant(_ candidate: URL, of ancestor: URL) -> Bool {
-        let candidatePath = canonicalPath(candidate)
-        let ancestorPath = canonicalPath(ancestor)
+        let candidatePath = candidate.standardizedFileURL.path
+        let ancestorPath = ancestor.standardizedFileURL.path
         guard ancestorPath != "/" else {
             return true
         }
         return candidatePath == ancestorPath || candidatePath.hasPrefix(ancestorPath + "/")
-    }
-
-    private static func canonicalPath(_ url: URL) -> String {
-        url.standardizedFileURL.resolvingSymlinksInPath().path
     }
 
     private struct CanonicalElement<Element> {

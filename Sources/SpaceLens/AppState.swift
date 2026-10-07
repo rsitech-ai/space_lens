@@ -138,6 +138,7 @@ final class AppState: ObservableObject {
             }
             objectWillChange.send()
             storedSelectedNodeIDs = newValue
+            cachedSelectedCleanupEligibleIDs = nil
         }
     }
     private var storedSearchText = ""
@@ -169,6 +170,9 @@ final class AppState: ObservableObject {
     @Published var scanProgress: ScanProgress?
     @Published var scanStatistics: ScanStatistics?
     @Published var scanIntelligenceSummary: ScanIntelligenceSummary?
+    @Published var volumePressure: VolumePressure?
+    private var pathUseSnapshot: PathUseSnapshot = .empty
+    private var didRemoveFiles = false
     private var storedCleanupQueue: [CleanupCandidate] = []
     private(set) var queuedNodeIDs: Set<UUID> = []
     var cleanupQueue: [CleanupCandidate] {
@@ -183,18 +187,26 @@ final class AppState: ObservableObject {
     }
     @Published var cleanupInProgressIDs: Set<UUID> = []
     @Published var cleanupProgress: CleanupProgress?
+    @Published private(set) var isCleaningUp = false
     @Published var cleanupStatusMessage: String?
     @Published var latestError: String?
+    @Published private(set) var classificationRevision = 0
     private(set) var visibleNodes: [FlattenedFileNode] = []
     private(set) var visibleCleanupReadyCount = 0
     var selectedCleanupEligibleNodes: [FileNode] {
-        let eligibleNodes = selectedNodeIDs.compactMap { id -> FileNode? in
+        if let cachedSelectedCleanupEligibleIDs, cachedSelectedCleanupEligibleIDs == storedSelectedNodeIDs {
+            return cachedSelectedCleanupEligibleNodes
+        }
+        let eligibleNodes = storedSelectedNodeIDs.compactMap { id -> FileNode? in
             guard let node = nodeByID[id], classification(for: node).level.isQueueable else {
                 return nil
             }
             return node
         }
-        return CleanupTargetNormalizer.collapsingDescendants(eligibleNodes, url: \.url)
+        let nodes = CleanupTargetNormalizer.collapsingDescendants(eligibleNodes, url: \.url)
+        cachedSelectedCleanupEligibleNodes = nodes
+        cachedSelectedCleanupEligibleIDs = storedSelectedNodeIDs
+        return nodes
     }
 
     var selectedRecoverableBytes: Int64 {
@@ -205,12 +217,18 @@ final class AppState: ObservableObject {
     let intelligenceService: IntelligenceService = LocalIntelligenceService()
 
     private let smartCleanupScanner: SmartCleanupScanner
+    private let activitySnapshot: @Sendable () async -> PathUseSnapshot
     private var scanTask: Task<Void, Never>?
     private var activeScanID: UUID?
+    private var scanStartedAt = Date()
     private var currentScanRootURL: URL?
     private var allNodes: [FlattenedFileNode] = []
     private var nodeByID: [UUID: FileNode] = [:]
     private var classificationCache: [UUID: SafetyClassification] = [:]
+    private var cachedSelectedCleanupEligibleNodes: [FileNode] = []
+    private var cachedSelectedCleanupEligibleIDs: Set<UUID>?
+    private var lastProgressPublishAt = Date.distantPast
+    private var lastCandidatePublishAt = Date.distantPast
     private var securityScopedRootURL: URL?
     private var isAccessingSecurityScopedRoot = false
     private let requiresSecurityScopedAccess: Bool
@@ -229,12 +247,14 @@ final class AppState: ObservableObject {
         sessionStore: AppSessionStore? = nil,
         restoreOnLaunch: Bool = false,
         smartCleanupScanner: SmartCleanupScanner = SmartCleanupScanner(),
+        activitySnapshot: @escaping @Sendable () async -> PathUseSnapshot = { await PathUseDetector.liveSnapshot() },
         requiresSecurityScopedAccess: Bool = AppState.hasAppSandboxEntitlement(),
         startSecurityScopedAccess: @escaping @Sendable (URL) -> Bool = { $0.startAccessingSecurityScopedResource() },
         stopSecurityScopedAccess: @escaping @Sendable (URL) -> Void = { $0.stopAccessingSecurityScopedResource() }
     ) {
         self.sessionStore = sessionStore
         self.smartCleanupScanner = smartCleanupScanner
+        self.activitySnapshot = activitySnapshot
         self.requiresSecurityScopedAccess = requiresSecurityScopedAccess
         self.startSecurityScopedAccess = startSecurityScopedAccess
         self.stopSecurityScopedAccess = stopSecurityScopedAccess
@@ -280,7 +300,19 @@ final class AppState: ObservableObject {
         cleanupQueue.reduce(Int64(0)) { $0 + $1.estimatedRecoverableBytes }
     }
 
+    var canCleanUp: Bool { !isScanning && snapshot != nil && !isCleaningUp }
+
     var emptyResultsPresentation: EmptyResultsPresentation {
+        if isScanning {
+            return EmptyResultsPresentation(
+                title: scanMode == .smart ? "Finding Cleanup Candidates" : "Scanning Files",
+                systemImage: "sparkle.magnifyingglass",
+                description: scanMode == .smart
+                    ? "Rebuildable caches appear here as each folder is sized. SpaceLens does not list every file inside them."
+                    : "Files appear when the scan finishes. You can stop the scan at any time."
+            )
+        }
+
         if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || tableFilter != .all {
             return EmptyResultsPresentation(
                 title: "No Matching Items",
@@ -385,6 +417,7 @@ final class AppState: ObservableObject {
     }
 
     func startScan(root: URL) {
+        guard !isCleaningUp else { return }
         scanTask?.cancel()
         guard beginAccessingSecurityScopedRoot(root) else {
             rejectUnauthorizedScan()
@@ -395,72 +428,53 @@ final class AppState: ObservableObject {
         activeScanID = scanID
         currentScanRootURL = root
         scanMode = .full
+        scanStartedAt = Date()
+        didRemoveFiles = false
         isScanning = true
         latestError = nil
         selectedNodeIDs = []
         snapshot = nil
         scanStatistics = nil
         scanIntelligenceSummary = nil
+        volumePressure = nil
+        pathUseSnapshot = .empty
+        lastProgressPublishAt = .distantPast
         scanProgress = ScanProgress(currentPath: root.path, scannedCount: 0, errorCount: 0)
 
         let ruleEngine = ruleEngine
         let intelligenceService = intelligenceService
+        let target = WeakAppState(self)
 
-        scanTask = Task { [weak self] in
-            let result = await DiskScanner().scan(root: root) { [weak self] progress in
-                Task { @MainActor [weak self] in
-                    guard let self, self.isScanning, self.activeScanID == scanID else {
-                        return
-                    }
-
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        self.scanProgress = progress
+        scanTask = Task {
+            let payload = await Self.runFullScan(
+                root: root,
+                ruleEngine: ruleEngine,
+                intelligenceService: intelligenceService,
+                onProgress: { progress in
+                    Task { @MainActor in
+                        target.value?.publishScanProgress(progress, scanID: scanID)
                     }
                 }
-            }
-
-            guard !Task.isCancelled else {
+            )
+            guard let self = target.value, let payload, self.activeScanID == scanID else {
                 return
             }
-
-            let items = result.root.flattened().dropFirst().map { item in
-                ClassifiedScanItem(
-                    node: item.node,
-                    classification: ruleEngine.classify(item.node)
-                )
-            }
-            let statistics = ScanStatistics(snapshot: result.snapshot, items: items)
-            let intelligenceSummary = await intelligenceService.summarizeScan(
-                snapshot: result.snapshot,
-                items: items
+            self.applyFinishedScan(
+                root: payload.root,
+                snapshot: payload.snapshot,
+                statistics: payload.statistics,
+                intelligenceSummary: payload.intelligenceSummary,
+                volumePressure: payload.volumePressure,
+                pathUse: payload.pathUse,
+                items: payload.items,
+                autoQueueConservative: false,
+                conservativeNodes: []
             )
-
-            await MainActor.run { [weak self] in
-                guard let self else {
-                    return
-                }
-                guard !Task.isCancelled, self.activeScanID == scanID else {
-                    return
-                }
-
-                self.rootNode = result.root
-                self.snapshot = result.snapshot
-                self.isScanning = false
-                self.activeScanID = nil
-                self.scanProgress = nil
-                self.scanStatistics = statistics
-                self.scanIntelligenceSummary = intelligenceSummary
-                self.selectedNodeIDs = result.root.children.first.map { Set([$0.id]) } ?? []
-                self.cleanupQueue.removeAll { candidate in
-                    !FileManager.default.fileExists(atPath: candidate.fileNode.path)
-                }
-                self.restorePersistedCleanupQueueIfNeeded()
-                self.persistSession()
-            }
         }
     }
 
     func startSmartScan(root: URL) {
+        guard !isCleaningUp else { return }
         scanTask?.cancel()
         guard beginAccessingSecurityScopedRoot(root) else {
             rejectUnauthorizedScan()
@@ -471,69 +485,56 @@ final class AppState: ObservableObject {
         activeScanID = scanID
         currentScanRootURL = root
         scanMode = .smart
+        scanStartedAt = Date()
+        didRemoveFiles = false
         isScanning = true
         latestError = nil
         selectedNodeIDs = []
         snapshot = nil
         scanStatistics = nil
         scanIntelligenceSummary = nil
+        volumePressure = nil
+        pathUseSnapshot = .empty
+        lastProgressPublishAt = .distantPast
+        lastCandidatePublishAt = .distantPast
         scanProgress = ScanProgress(currentPath: root.path, scannedCount: 0, errorCount: 0)
 
         let ruleEngine = ruleEngine
         let intelligenceService = intelligenceService
         let smartCleanupScanner = smartCleanupScanner
+        let target = WeakAppState(self)
 
-        scanTask = Task { [weak self] in
-            let result = await smartCleanupScanner.scan(root: root) { [weak self] progress in
-                Task { @MainActor [weak self] in
-                    guard let self, self.isScanning, self.activeScanID == scanID else {
-                        return
+        scanTask = Task {
+            let payload = await Self.runSmartScan(
+                root: root,
+                scanner: smartCleanupScanner,
+                ruleEngine: ruleEngine,
+                intelligenceService: intelligenceService,
+                onProgress: { progress in
+                    Task { @MainActor in
+                        target.value?.publishScanProgress(progress, scanID: scanID)
                     }
-
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        self.scanProgress = progress
+                },
+                onCandidates: { candidates in
+                    Task { @MainActor in
+                        target.value?.publishLiveSmartScanCandidates(candidates, root: root, scanID: scanID)
                     }
                 }
-            }
-
-            guard !Task.isCancelled else {
+            )
+            guard let self = target.value, let payload, self.activeScanID == scanID else {
                 return
             }
-
-            let items = result.root.flattened().dropFirst().map { item in
-                ClassifiedScanItem(
-                    node: item.node,
-                    classification: ruleEngine.classify(item.node)
-                )
-            }
-            let statistics = ScanStatistics(snapshot: result.snapshot, items: items)
-            let intelligenceSummary = await intelligenceService.summarizeScan(
-                snapshot: result.snapshot,
-                items: items
+            self.applyFinishedScan(
+                root: payload.root,
+                snapshot: payload.snapshot,
+                statistics: payload.statistics,
+                intelligenceSummary: payload.intelligenceSummary,
+                volumePressure: payload.volumePressure,
+                pathUse: payload.pathUse,
+                items: payload.items,
+                autoQueueConservative: true,
+                conservativeNodes: payload.conservativeNodes
             )
-
-            await MainActor.run { [weak self] in
-                guard let self else {
-                    return
-                }
-                guard !Task.isCancelled, self.activeScanID == scanID else {
-                    return
-                }
-
-                self.rootNode = result.root
-                self.snapshot = result.snapshot
-                self.isScanning = false
-                self.activeScanID = nil
-                self.scanProgress = nil
-                self.scanStatistics = statistics
-                self.scanIntelligenceSummary = intelligenceSummary
-                self.selectedNodeIDs = result.root.children.first.map { Set([$0.id]) } ?? []
-                self.cleanupQueue.removeAll { candidate in
-                    !FileManager.default.fileExists(atPath: candidate.fileNode.path)
-                }
-                self.restorePersistedCleanupQueueIfNeeded()
-                self.persistSession()
-            }
         }
     }
 
@@ -543,9 +544,197 @@ final class AppState: ObservableObject {
         activeScanID = nil
         isScanning = false
         scanProgress = nil
+        if snapshot == nil {
+            rootNode = nil
+            cleanupStatusMessage = "Scan cancelled. Rescan before cleanup."
+        }
         if rootNode == nil {
             stopAccessingSecurityScopedRoot()
         }
+    }
+
+    private func publishScanProgress(_ progress: ScanProgress, scanID: UUID) {
+        guard isScanning, activeScanID == scanID else {
+            return
+        }
+        let now = Date()
+        guard now.timeIntervalSince(lastProgressPublishAt) >= 0.1 else {
+            return
+        }
+        lastProgressPublishAt = now
+        scanProgress = progress
+    }
+
+    private func publishLiveSmartScanCandidates(_ candidates: [FileNode], root: URL, scanID: UUID) {
+        guard isScanning, activeScanID == scanID else {
+            return
+        }
+        let now = Date()
+        let isFirstPaint = storedRootNode == nil
+        guard isFirstPaint || now.timeIntervalSince(lastCandidatePublishAt) >= 0.1 else {
+            return
+        }
+        lastCandidatePublishAt = now
+        let logicalSize = candidates.reduce(Int64(0)) { $0 + $1.logicalSize }
+        let allocatedSize = candidates.reduce(Int64(0)) { $0 + $1.allocatedSize }
+        rootNode = FileNode(
+            url: root,
+            name: "Smart Scan",
+            path: root.path,
+            isDirectory: true,
+            logicalSize: logicalSize,
+            allocatedSize: allocatedSize,
+            children: candidates,
+            captureIdentity: false
+        )
+    }
+
+    private struct FinishedScanPayload: Sendable {
+        let root: FileNode
+        let snapshot: ScanSnapshot
+        let statistics: ScanStatistics
+        let intelligenceSummary: ScanIntelligenceSummary
+        let volumePressure: VolumePressure?
+        let pathUse: PathUseSnapshot
+        let items: [ClassifiedScanItem]
+        let conservativeNodes: [FileNode]
+    }
+
+    private nonisolated static func runFullScan(
+        root: URL,
+        ruleEngine: RuleEngine,
+        intelligenceService: IntelligenceService,
+        onProgress: @escaping @Sendable (ScanProgress) -> Void
+    ) async -> FinishedScanPayload? {
+        let result = await DiskScanner().scan(root: root, progress: onProgress)
+        guard !Task.isCancelled else {
+            return nil
+        }
+
+        let volumePressure = VolumePressureReader.read(for: root)
+        let pathUse = await PathUseDetector.liveSnapshot()
+        let items = result.root.flattened().dropFirst().map { item in
+            ClassifiedScanItem(
+                node: item.node,
+                classification: ruleEngine.classify(item.node, pathUse: pathUse)
+            )
+        }
+        let statistics = ScanStatistics(snapshot: result.snapshot, items: items)
+        let intelligenceSummary = await intelligenceService.summarizeScan(
+            snapshot: result.snapshot,
+            items: items,
+            context: ScanSummaryContext(volumePressure: volumePressure, pathUse: pathUse)
+        )
+        return FinishedScanPayload(
+            root: result.root,
+            snapshot: result.snapshot,
+            statistics: statistics,
+            intelligenceSummary: intelligenceSummary,
+            volumePressure: volumePressure,
+            pathUse: pathUse,
+            items: items,
+            conservativeNodes: []
+        )
+    }
+
+    private nonisolated static func runSmartScan(
+        root: URL,
+        scanner: SmartCleanupScanner,
+        ruleEngine: RuleEngine,
+        intelligenceService: IntelligenceService,
+        onProgress: @escaping @Sendable (ScanProgress) -> Void,
+        onCandidates: @escaping @Sendable ([FileNode]) -> Void
+    ) async -> FinishedScanPayload? {
+        let result = await scanner.scan(root: root, progress: onProgress, onCandidates: onCandidates)
+        guard !Task.isCancelled else {
+            return nil
+        }
+
+        let volumePressure = VolumePressureReader.read(for: root)
+        let rawPathUse = await PathUseDetector.liveSnapshot(simulatorInventory: result.simulatorInventory)
+        let flattened = Array(result.root.flattened().dropFirst())
+        let pathUse = rawPathUse.withOpenPaths(
+            PathUseDetector.matchingOpenPaths(
+                candidatePaths: flattened.map(\.node.path),
+                openPaths: rawPathUse.openPaths
+            )
+        )
+        let items = flattened.map { item in
+            ClassifiedScanItem(
+                node: item.node,
+                classification: ruleEngine.classify(item.node, pathUse: pathUse)
+            )
+        }
+        let statistics = ScanStatistics(snapshot: result.snapshot, items: items)
+        let intelligenceSummary = await intelligenceService.summarizeScan(
+            snapshot: result.snapshot,
+            items: items,
+            context: ScanSummaryContext(
+                volumePressure: volumePressure,
+                pathUse: pathUse,
+                pendingDiscoveryPaths: result.pendingDiscoveryPaths
+            )
+        )
+        let conservativeNodes = CleanupTargetNormalizer.collapsingDescendants(
+            items.filter { $0.classification.level.isQueueable }.map(\.node),
+            url: \.url
+        )
+        return FinishedScanPayload(
+            root: result.root,
+            snapshot: result.snapshot,
+            statistics: statistics,
+            intelligenceSummary: intelligenceSummary,
+            volumePressure: volumePressure,
+            pathUse: pathUse,
+            items: items,
+            conservativeNodes: conservativeNodes
+        )
+    }
+
+    private func applyFinishedScan(
+        root: FileNode,
+        snapshot: ScanSnapshot,
+        statistics: ScanStatistics,
+        intelligenceSummary: ScanIntelligenceSummary,
+        volumePressure: VolumePressure?,
+        pathUse: PathUseSnapshot,
+        items: [ClassifiedScanItem],
+        autoQueueConservative: Bool,
+        conservativeNodes: [FileNode]
+    ) {
+        Self.logger.info("\(self.scanMode.rawValue, privacy: .public) scan completed: \(snapshot.nodeCount) items, \(Date().timeIntervalSince(self.scanStartedAt)) seconds, \(snapshot.errorCount) read errors")
+        objectWillChange.send()
+        pathUseSnapshot = pathUse
+        self.volumePressure = volumePressure
+        storedRootNode = root
+        self.snapshot = snapshot
+        isScanning = false
+        activeScanID = nil
+        scanProgress = nil
+        scanStatistics = statistics
+        scanIntelligenceSummary = intelligenceSummary
+        classificationCache = Dictionary(uniqueKeysWithValues: items.map { ($0.node.id, $0.classification) })
+        cachedSelectedCleanupEligibleIDs = nil
+        rebuildNodeCachesKeepingClassification()
+
+        let currentItems = Dictionary(uniqueKeysWithValues: items.map { ($0.node.path, $0) })
+        storedCleanupQueue = storedCleanupQueue.compactMap { candidate in
+            guard FileManager.default.fileExists(atPath: candidate.fileNode.path) else { return nil }
+            guard let item = currentItems[candidate.fileNode.path] else { return nil }
+            guard item.classification.level.isQueueable else { return nil }
+            return CleanupCandidate(id: candidate.id, fileNode: item.node, classification: item.classification,
+                estimatedRecoverableBytes: item.node.effectiveSize, action: candidate.action)
+        }
+        queuedNodeIDs = Set(storedCleanupQueue.lazy.map(\.fileNode.id))
+        restorePersistedCleanupQueueIfNeeded()
+        if autoQueueConservative {
+            replaceCleanupQueueWithConservativeCandidates(conservativeNodes)
+        } else if storedSelectedNodeIDs.isEmpty {
+            storedSelectedNodeIDs = root.children.first.map { Set([$0.id]) } ?? []
+        }
+        rebuildVisibleNodes()
+        for candidate in storedCleanupQueue { nodeByID[candidate.fileNode.id] = candidate.fileNode }
+        persistSession()
     }
 
     func classification(for node: FileNode) -> SafetyClassification {
@@ -553,15 +742,46 @@ final class AppState: ObservableObject {
             return cached
         }
 
-        let classification = ruleEngine.classify(node)
+        let classification = ruleEngine.classify(node, pathUse: pathUseSnapshot)
         classificationCache[node.id] = classification
         return classification
     }
 
+    private func replaceCleanupQueueWithConservativeCandidates(_ roots: [FileNode]) {
+        let candidates = roots.map { node in
+            CleanupCandidate(
+                fileNode: node,
+                classification: classification(for: node),
+                estimatedRecoverableBytes: node.effectiveSize,
+                action: .queueForFutureTrash
+            )
+        }
+
+        if !candidates.isEmpty {
+            let previousCount = storedCleanupQueue.count
+            storedCleanupQueue = CleanupTargetNormalizer.collapsingDescendants(storedCleanupQueue + candidates, url: { $0.fileNode.url })
+            queuedNodeIDs = Set(storedCleanupQueue.lazy.map(\.fileNode.id))
+            if storedCleanupQueue.count > previousCount {
+                cleanupStatusMessage = "Queued \(storedCleanupQueue.count) conservative cleanup-ready items"
+            }
+        }
+
+        guard !storedCleanupQueue.isEmpty else {
+            storedSidebarSelection = .safe
+            storedSelectedNodeIDs = []
+            cachedSelectedCleanupEligibleIDs = nil
+            return
+        }
+
+        storedSidebarSelection = .queue
+        storedSelectedNodeIDs = Set(storedCleanupQueue.map(\.fileNode.id))
+        cachedSelectedCleanupEligibleIDs = nil
+    }
+
     func addToCleanupQueue(node: FileNode) {
-        let classification = ruleEngine.classify(node)
+        let classification = ruleEngine.classify(node, pathUse: pathUseSnapshot)
         guard classification.level.isQueueable else {
-            latestError = "SpaceLens only queues known safe, rebuildable, or generated candidates in this MVP."
+            latestError = "SpaceLens only queues known safe, rebuildable, or generated candidates."
             return
         }
 
@@ -584,6 +804,7 @@ final class AppState: ObservableObject {
             )
         )
         cleanupQueue = updatedQueue
+        for candidate in updatedQueue { nodeByID[candidate.fileNode.id] = candidate.fileNode }
     }
 
     func addSelectedToCleanupQueue() {
@@ -627,6 +848,7 @@ final class AppState: ObservableObject {
     }
 
     func forgetSavedSession() {
+        guard !isCleaningUp else { return }
         cancelScan()
         stopAccessingSecurityScopedRoot()
         currentScanRootURL = nil
@@ -634,6 +856,8 @@ final class AppState: ObservableObject {
         snapshot = nil
         scanStatistics = nil
         scanIntelligenceSummary = nil
+        volumePressure = nil
+        pathUseSnapshot = .empty
         selectedNodeIDs = []
         cleanupQueue = []
         pendingRestoredCleanupPaths = []
@@ -665,31 +889,57 @@ final class AppState: ObservableObject {
     }
 
     func moveToBin(node: FileNode) async {
-        guard let authorizedRoot = authorizedScanRoot else {
-            latestError = "Select and scan a folder before cleaning up files."
-            return
-        }
-        await performCleanup(node: node, operationName: "Moved to Bin") { progress in
-            try await FileCleanupService.moveToBin(
-                node: node,
-                authorizedRoot: authorizedRoot,
-                progress: progress
-            )
-        }
+        await moveToBin(nodes: [node])
     }
 
     func moveSelectedToBin() async {
-        guard let authorizedRoot = authorizedScanRoot else {
-            latestError = "Select and scan a folder before cleaning up files."
+        await moveToBin(nodes: selectedCleanupEligibleNodes)
+    }
+
+    func moveToBin(nodes: [FileNode]) async {
+        guard canCleanUp, let authorizedRoot = authorizedScanRoot, !nodes.isEmpty else {
+            latestError = "Complete a scan and select cleanup-ready items before cleaning up files."
             return
         }
-        await performBulkCleanup(nodes: selectedCleanupEligibleNodes, operationName: "Moved to Bin") { node, progress in
+        isCleaningUp = true
+        defer { isCleaningUp = false }
+        cleanupProgress = CleanupProgress(phase: .preparing, currentPath: authorizedRoot.path, completedItemCount: 0,
+            totalItemCount: nodes.count, completedBytes: 0, totalBytes: nodes.reduce(0) { $0 + $1.effectiveSize })
+        pathUseSnapshot = await activitySnapshot()
+        classificationCache.removeAll(keepingCapacity: true)
+        classificationRevision &+= 1
+        cachedSelectedCleanupEligibleIDs = nil
+        cleanupQueue = cleanupQueue.compactMap { candidate in
+            let classification = ruleEngine.classify(candidate.fileNode, pathUse: pathUseSnapshot)
+            guard classification.level.isQueueable else { return nil }
+            return CleanupCandidate(id: candidate.id, fileNode: candidate.fileNode, classification: classification,
+                estimatedRecoverableBytes: candidate.estimatedRecoverableBytes, action: candidate.action)
+        }
+        rebuildVisibleNodes()
+        let invalid = nodes.contains { !ruleEngine.classify($0, pathUse: pathUseSnapshot).level.isQueueable }
+        guard !invalid else {
+            cleanupProgress = nil
+            latestError = "Cleanup stopped: an item is active, unverified, or no longer cleanup-ready. Close its tools and rescan."
+            await refreshSummaryAfterCleanup()
+            return
+        }
+        await performBulkCleanup(nodes: nodes, operationName: "Moved to Bin") { node, progress in
             try await FileCleanupService.moveToBin(
                 node: node,
                 authorizedRoot: authorizedRoot,
                 progress: progress
             )
         }
+        cleanupProgress = nil
+        await refreshSummaryAfterCleanup()
+    }
+
+    private func refreshSummaryAfterCleanup() async {
+        guard let snapshot else { return }
+        let items = allNodes.map { ClassifiedScanItem(node: $0.node, classification: classification(for: $0.node)) }
+        scanStatistics = ScanStatistics(snapshot: snapshot, items: items)
+        scanIntelligenceSummary = await intelligenceService.summarizeScan(snapshot: snapshot, items: items,
+            context: ScanSummaryContext(volumePressure: volumePressure, pathUse: pathUseSnapshot, didRemoveFiles: didRemoveFiles))
     }
 
     func removeFromCleanupQueue(_ candidate: CleanupCandidate) {
@@ -705,7 +955,7 @@ final class AppState: ObservableObject {
         operationName: String,
         operation: @escaping @Sendable (FileCleanupService.ProgressHandler?) async throws -> Void
     ) async {
-        let classification = ruleEngine.classify(node)
+        let classification = ruleEngine.classify(node, pathUse: pathUseSnapshot)
         guard classification.level.isQueueable else {
             latestError = "Cleanup is disabled for this item because it is not classified as a safe, rebuildable, or generated candidate."
             return
@@ -733,6 +983,7 @@ final class AppState: ObservableObject {
 
         do {
             try await operation(cleanupProgressHandler(for: node))
+            didRemoveFiles = true
             cleanupInProgressIDs.remove(node.id)
             cleanupStatusMessage = "\(operationName): \(node.displayName)"
             cleanupProgress = nil
@@ -796,8 +1047,22 @@ final class AppState: ObservableObject {
         for item in allNodes {
             nodeByID[item.node.id] = item.node
         }
+        for candidate in storedCleanupQueue { nodeByID[candidate.fileNode.id] = candidate.fileNode }
         classificationCache.removeAll(keepingCapacity: true)
+        cachedSelectedCleanupEligibleIDs = nil
         rebuildVisibleNodes()
+    }
+
+    private func rebuildNodeCachesKeepingClassification() {
+        allNodes = storedRootNode.map { Array($0.flattened().dropFirst()) } ?? []
+        nodeByID = [:]
+        if let storedRootNode {
+            nodeByID[storedRootNode.id] = storedRootNode
+        }
+        for item in allNodes {
+            nodeByID[item.node.id] = item.node
+        }
+        cachedSelectedCleanupEligibleIDs = nil
     }
 
     private func rebuildVisibleNodes() {
@@ -822,7 +1087,7 @@ final class AppState: ObservableObject {
         case .errors:
             sidebarFilteredNodes = allNodes.filter { $0.node.scanError != nil }
         case .queue:
-            sidebarFilteredNodes = allNodes.filter { queuedNodeIDs.contains($0.node.id) }
+            sidebarFilteredNodes = cleanupQueue.map { FlattenedFileNode(node: $0.fileNode, depth: 1) }
         }
 
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -853,7 +1118,11 @@ final class AppState: ObservableObject {
                 count += 1
             }
         }
-        storedSelectedNodeIDs.formIntersection(visibleNodes.map(\.node.id))
+        let retainedSelection = storedSelectedNodeIDs.intersection(Set(visibleNodes.lazy.map(\.node.id)))
+        if retainedSelection != storedSelectedNodeIDs {
+            storedSelectedNodeIDs = retainedSelection
+            cachedSelectedCleanupEligibleIDs = nil
+        }
     }
 
     private func restorePersistedCleanupQueueIfNeeded() {
@@ -896,11 +1165,8 @@ final class AppState: ObservableObject {
 
         stopAccessingSecurityScopedRoot()
         let startedAccess = startSecurityScopedAccess(standardizedURL)
-        let alreadyHasAccess = (try? FileManager.default.contentsOfDirectory(
-            at: standardizedURL,
-            includingPropertiesForKeys: nil,
-            options: []
-        )) != nil
+        let alreadyHasAccess = (try? standardizedURL.checkResourceIsReachable()) == true
+            || FileManager.default.isReadableFile(atPath: standardizedURL.path)
         guard startedAccess || alreadyHasAccess || !requiresSecurityScopedAccess else {
             return false
         }
@@ -920,6 +1186,8 @@ final class AppState: ObservableObject {
         snapshot = nil
         scanStatistics = nil
         scanIntelligenceSummary = nil
+        volumePressure = nil
+        pathUseSnapshot = .empty
         selectedNodeIDs = []
         cleanupQueue = []
         pendingRestoredCleanupPaths = []
@@ -980,4 +1248,12 @@ final class AppState: ObservableObject {
         !pathMatchKeys(for: [lhs.path]).isDisjoint(with: pathMatchKeys(for: [rhs.path]))
     }
 
+}
+
+private final class WeakAppState: @unchecked Sendable {
+    weak var value: AppState?
+
+    init(_ value: AppState) {
+        self.value = value
+    }
 }

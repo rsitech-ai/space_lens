@@ -70,10 +70,13 @@ changes to the generated project must be reproducible from that source.
 
 ## Safety and privacy
 
-SpaceLens does not expose permanent deletion in 1.0. Move to Bin is available
-only for items classified as safe temporary data, rebuildable cache, or
-generated output. The confirmation lists every target path, and cleanup rejects
-changed identities, symlinks, unauthorized roots, and non-queueable data.
+SpaceLens does not expose permanent deletion. Move to Bin is available
+only for completed, cleanup-ready scans with successful activity inspection.
+Cargo targets and Node dependency trees need verified rebuild manifests or
+lockfiles; worktrees and tool-owned state require manual review. The confirmation lists every target path, and cleanup rejects
+changed identities, symlinks, unauthorized roots, incomplete scans, active
+paths, missing rebuild evidence, and non-queueable data. Moving to the Bin
+does not immediately reclaim disk space.
 
 The app reads filesystem metadata only within a folder selected through the
 macOS picker. Read the [privacy policy](docs/PRIVACY.md) and the documented

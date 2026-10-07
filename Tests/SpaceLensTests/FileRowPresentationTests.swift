@@ -99,4 +99,19 @@ final class FileRowPresentationTests: XCTestCase {
             ".build, /Users/example/dev/App/.build, Selected, Queued for cleanup"
         )
     }
+    func testSelectedFolderLocationsAreRelativeAndFullPathIsPreserved() {
+        let selected = URL(fileURLWithPath: "/tmp/SpaceLens-E2E-Fixture")
+        for (path, expected) in [
+            ("/tmp/SpaceLens-E2E-Fixture/Web", "Selected folder"),
+            ("/tmp/SpaceLens-E2E-Fixture/Library/Application Support/Cursor", "Library/Application Support"),
+            ("/tmp/SpaceLens-E2E-Fixture-other/Web", "/tmp/SpaceLens-E2E-Fixture-other")
+        ] {
+            let node = FileNode(url: URL(fileURLWithPath: path), isDirectory: true, logicalSize: 1, allocatedSize: 1)
+            let row = FileRowPresentation(node: node, homeDirectory: home, scanRoot: selected, isSelected: false, isQueued: false)
+            XCTAssertEqual(row.location, expected)
+            XCTAssertEqual(row.absolutePath, path)
+            XCTAssertTrue(row.accessibilityLabel.contains(path))
+        }
+    }
+
 }

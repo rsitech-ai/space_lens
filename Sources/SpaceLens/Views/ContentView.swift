@@ -23,13 +23,15 @@ struct ContentView: View {
                     Label("Select Folder", systemImage: "folder.badge.plus")
                 }
                 .help("Select a folder to scan")
+                .disabled(appState.isCleaningUp)
 
                 Button {
                     appState.smartScan()
                 } label: {
                     Label("Smart Scan", systemImage: "sparkle.magnifyingglass")
                 }
-                .help("Find safe caches and review-worthy generated files without scanning every file first")
+                .help("Audit rebuildable caches and conditional user data without deleting anything")
+                .disabled(appState.isCleaningUp)
 
                 Button {
                     appState.rescan()
@@ -37,7 +39,7 @@ struct ContentView: View {
                     Label("Rescan", systemImage: "arrow.clockwise")
                 }
                 .help("Scan the current folder again")
-                .disabled(appState.isScanning)
+                .disabled(appState.isScanning || appState.isCleaningUp)
 
                 Button {
                     appState.cancelScan()

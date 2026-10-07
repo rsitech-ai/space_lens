@@ -43,10 +43,22 @@ public struct ScanSnapshot: Identifiable, Hashable, Sendable {
 public struct ScanResult: Sendable {
     public let root: FileNode
     public let snapshot: ScanSnapshot
+    public let pendingDiscoveryPaths: [String]
+    public let simulatorInventory: SimulatorInventory
+    public let createdNodeCount: Int
 
-    public init(root: FileNode, snapshot: ScanSnapshot) {
+    public init(
+        root: FileNode,
+        snapshot: ScanSnapshot,
+        pendingDiscoveryPaths: [String] = [],
+        simulatorInventory: SimulatorInventory = .empty,
+        createdNodeCount: Int = 0
+    ) {
         self.root = root
         self.snapshot = snapshot
+        self.pendingDiscoveryPaths = pendingDiscoveryPaths
+        self.simulatorInventory = simulatorInventory
+        self.createdNodeCount = createdNodeCount
     }
 }
 

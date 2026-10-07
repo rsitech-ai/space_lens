@@ -4,6 +4,7 @@ public enum CleanupValidationError: LocalizedError, Equatable {
     case missingScanIdentity
     case outsideAuthorizedRoot
     case targetChanged
+    case notCleanupReady
 
     public var errorDescription: String? {
         switch self {
@@ -13,6 +14,8 @@ public enum CleanupValidationError: LocalizedError, Equatable {
             "The selected item is outside the folder authorized for cleanup."
         case .targetChanged:
             "The selected item changed after it was scanned. Rescan the folder before trying again."
+        case .notCleanupReady:
+            "The selected item is not verified as cleanup-ready. Rescan and review it before cleanup."
         }
     }
 }
@@ -58,6 +61,10 @@ public enum FileCleanupService {
     }
 
     static func validatedCleanupURL(for node: FileNode, authorizedRoot: URL) throws -> URL {
+        guard RuleEngine().classify(node).level.isQueueable,
+              node.rebuildEvidence.isSubset(of: RebuildEvidence.capture(at: node.url)) else {
+            throw CleanupValidationError.notCleanupReady
+        }
         let authorizedRoot = authorizedRoot.standardizedFileURL.resolvingSymlinksInPath()
         let candidateURL = node.url.standardizedFileURL.resolvingSymlinksInPath()
         let rootPath = authorizedRoot.path

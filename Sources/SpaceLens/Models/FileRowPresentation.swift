@@ -10,6 +10,7 @@ struct FileRowPresentation: Equatable {
     init(
         node: FileNode,
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
+        scanRoot: URL? = nil,
         isSelected: Bool,
         isQueued: Bool
     ) {
@@ -20,7 +21,12 @@ struct FileRowPresentation: Equatable {
 
         let parentPath = node.url.deletingLastPathComponent().standardizedFileURL.path
         let homePath = homeDirectory.standardizedFileURL.path
-        if parentPath == homePath {
+        let rootPath = scanRoot?.standardizedFileURL.path
+        if let rootPath, parentPath == rootPath {
+            location = "Selected folder"
+        } else if let rootPath, rootPath != "/", parentPath.hasPrefix(rootPath + "/") {
+            location = String(parentPath.dropFirst(rootPath.count + 1))
+        } else if parentPath == homePath {
             location = "~"
         } else if parentPath.hasPrefix(homePath + "/") {
             location = "~/" + String(parentPath.dropFirst(homePath.count + 1))

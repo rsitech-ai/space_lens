@@ -99,6 +99,28 @@ final class DiskScannerTests: XCTestCase {
         XCTAssertGreaterThan(finalProgress.discoveredBytes, 0)
     }
 
+    func testCollapsedScanSizesThousandsOfFilesWithoutMaterializingNodes() async throws {
+        let derivedData = temporaryRoot.appendingPathComponent("DerivedData", isDirectory: true)
+        try FileManager.default.createDirectory(at: derivedData, withIntermediateDirectories: true)
+        let fileCount = 3_000
+        for index in 0..<fileCount {
+            FileManager.default.createFile(
+                atPath: derivedData.appendingPathComponent("f\(index).o").path,
+                contents: Data()
+            )
+        }
+
+        let started = Date()
+        let result = await DiskScanner().scan(root: derivedData, options: .collapsed)
+        let elapsed = Date().timeIntervalSince(started)
+
+        XCTAssertEqual(result.root.children.count, 0)
+        XCTAssertEqual(result.createdNodeCount, 1)
+        XCTAssertEqual(result.snapshot.fileCount, fileCount)
+        XCTAssertEqual(result.snapshot.directoryCount, 1)
+        XCTAssertLessThan(elapsed, 30)
+    }
+
     func testScannerThrottlesProgressForLargeTrees() async throws {
         let recorder = ProgressRecorder()
 
@@ -114,6 +136,30 @@ final class DiskScannerTests: XCTestCase {
         let updates = recorder.updates
         XCTAssertEqual(updates.last?.scannedCount, result.snapshot.nodeCount)
         XCTAssertLessThan(updates.count, result.snapshot.nodeCount / 10)
+    }
+
+    func testCollapsedScanStopsWhenCancelled() async throws {
+        let derivedData = temporaryRoot.appendingPathComponent("DerivedData", isDirectory: true)
+        try FileManager.default.createDirectory(at: derivedData, withIntermediateDirectories: true)
+        let fileCount = 6_000
+        for index in 0..<fileCount {
+            FileManager.default.createFile(
+                atPath: derivedData.appendingPathComponent("f\(index).o").path,
+                contents: Data()
+            )
+        }
+
+        let started = Date()
+        let task = Task {
+            await DiskScanner().scan(root: derivedData, options: .collapsed)
+        }
+        try await Task.sleep(nanoseconds: 15_000_000)
+        task.cancel()
+        let result = await task.value
+
+        XCTAssertEqual(result.createdNodeCount, 1)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5)
+        XCTAssertLessThanOrEqual(result.snapshot.fileCount, fileCount)
     }
 }
 

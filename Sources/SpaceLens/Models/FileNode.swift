@@ -5,6 +5,8 @@ public struct FileIdentity: Hashable, Sendable {
     public let deviceID: UInt64
     public let fileID: UInt64
     public let fileType: UInt32
+    public let createdSeconds: Int64
+    public let createdNanoseconds: Int64
 
     public static func capture(at url: URL) -> FileIdentity? {
         var metadata = Darwin.stat()
@@ -15,12 +17,39 @@ public struct FileIdentity: Hashable, Sendable {
         return FileIdentity(
             deviceID: UInt64(metadata.st_dev),
             fileID: UInt64(metadata.st_ino),
-            fileType: UInt32(metadata.st_mode & mode_t(S_IFMT))
+            fileType: UInt32(metadata.st_mode & mode_t(S_IFMT)),
+            createdSeconds: Int64(metadata.st_birthtimespec.tv_sec),
+            createdNanoseconds: Int64(metadata.st_birthtimespec.tv_nsec)
         )
     }
 
     public var isSymbolicLink: Bool {
         fileType == UInt32(S_IFLNK)
+    }
+}
+
+public enum RebuildEvidence: Hashable, Sendable {
+    case packageLockfile
+    case cargoManifest
+    case gradleManifest
+
+    static func capture(at url: URL) -> Set<RebuildEvidence> {
+        guard ["node_modules", "target", "intermediates", ".next", ".nuxt", ".svelte-kit", ".parcel-cache", ".turbo"].contains(url.lastPathComponent.lowercased()) else { return [] }
+        let parent = url.deletingLastPathComponent()
+        let files = FileManager.default
+        func hasFile(_ directory: URL, _ name: String) -> Bool {
+            let values = try? directory.appendingPathComponent(name).resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+            return values?.isRegularFile == true && values?.isSymbolicLink != true
+        }
+        var evidence: Set<RebuildEvidence> = []
+        if ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"].contains(where: { hasFile(parent, $0) }),
+           files.fileExists(atPath: parent.appendingPathComponent("package.json").path) {
+            evidence.insert(.packageLockfile)
+        }
+        if hasFile(parent, "Cargo.toml") { evidence.insert(.cargoManifest) }
+        let module = parent.lastPathComponent == "build" ? parent.deletingLastPathComponent() : parent
+        if hasFile(module, "build.gradle") || hasFile(module, "build.gradle.kts") { evidence.insert(.gradleManifest) }
+        return evidence
     }
 }
 
@@ -38,6 +67,7 @@ public struct FileNode: Identifiable, Hashable, Sendable {
     public let fileIdentity: FileIdentity?
     public let children: [FileNode]
     public let scanError: String?
+    public let rebuildEvidence: Set<RebuildEvidence>
 
     public init(
         id: UUID = UUID(),
@@ -52,7 +82,9 @@ public struct FileNode: Identifiable, Hashable, Sendable {
         createdAt: Date? = nil,
         fileIdentity: FileIdentity? = nil,
         children: [FileNode] = [],
-        scanError: String? = nil
+        scanError: String? = nil,
+        captureIdentity: Bool = true,
+        rebuildEvidence: Set<RebuildEvidence>? = nil
     ) {
         self.id = id
         self.url = url
@@ -64,9 +96,10 @@ public struct FileNode: Identifiable, Hashable, Sendable {
         self.allocatedSize = allocatedSize
         self.modifiedAt = modifiedAt
         self.createdAt = createdAt
-        self.fileIdentity = fileIdentity ?? FileIdentity.capture(at: url)
+        self.fileIdentity = fileIdentity ?? (captureIdentity ? FileIdentity.capture(at: url) : nil)
         self.children = children
         self.scanError = scanError
+        self.rebuildEvidence = rebuildEvidence ?? (isDirectory && captureIdentity ? RebuildEvidence.capture(at: url) : [])
     }
 
     public var effectiveSize: Int64 {
@@ -116,8 +149,10 @@ public extension FileNode {
             return self
         }
 
-        let logicalSize = updatedChildren.reduce(Int64(0)) { $0 + $1.logicalSize }
-        let allocatedSize = updatedChildren.reduce(Int64(0)) { $0 + $1.allocatedSize }
+        let removedLogical = children.reduce(Int64(0)) { $0 + $1.logicalSize } - updatedChildren.reduce(Int64(0)) { $0 + $1.logicalSize }
+        let removedAllocated = children.reduce(Int64(0)) { $0 + $1.allocatedSize } - updatedChildren.reduce(Int64(0)) { $0 + $1.allocatedSize }
+        let logicalSize = max(0, self.logicalSize - removedLogical)
+        let allocatedSize = max(0, self.allocatedSize - removedAllocated)
 
         return FileNode(
             id: id,
@@ -132,7 +167,8 @@ public extension FileNode {
             createdAt: createdAt,
             fileIdentity: fileIdentity,
             children: updatedChildren,
-            scanError: scanError
+            scanError: scanError,
+            rebuildEvidence: rebuildEvidence
         )
     }
 }

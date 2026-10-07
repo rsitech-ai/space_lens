@@ -148,6 +148,13 @@ struct NativeFileTableRenderState: Equatable {
 struct NativeFileTableRow: Identifiable, Equatable {
     let item: FlattenedFileNode
     let classification: SafetyClassification
+    let scanRoot: URL?
+
+    init(item: FlattenedFileNode, classification: SafetyClassification, scanRoot: URL? = nil) {
+        self.item = item
+        self.classification = classification
+        self.scanRoot = scanRoot
+    }
 
     var id: UUID {
         item.id
@@ -311,6 +318,7 @@ struct NativeFileTableView: NSViewRepresentable {
                     item: tableRow.item,
                     presentation: FileRowPresentation(
                         node: tableRow.item.node,
+                        scanRoot: tableRow.scanRoot,
                         isSelected: selectedNodeIDs.contains(tableRow.id),
                         isQueued: queuedNodeIDs.contains(tableRow.id)
                     ),
@@ -472,7 +480,7 @@ private final class NativeFileTableNameCellView: NSTableCellView {
 
         primaryLabel.lineBreakMode = .byTruncatingMiddle
         primaryLabel.maximumNumberOfLines = 1
-        secondaryLabel.lineBreakMode = .byTruncatingMiddle
+        secondaryLabel.lineBreakMode = .byTruncatingHead
         secondaryLabel.maximumNumberOfLines = 1
         secondaryLabel.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
         secondaryLabel.textColor = .secondaryLabelColor
