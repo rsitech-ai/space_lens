@@ -12,6 +12,11 @@ public struct ScanSnapshot: Identifiable, Hashable, Sendable {
     public let directoryCount: Int
     public let symlinkCount: Int
     public let errorCount: Int
+    public let retainedNodeCount: Int?
+
+    public var hasLimitedDetails: Bool {
+        retainedNodeCount.map { $0 < nodeCount } ?? false
+    }
 
     public init(
         id: UUID = UUID(),
@@ -24,7 +29,8 @@ public struct ScanSnapshot: Identifiable, Hashable, Sendable {
         fileCount: Int = 0,
         directoryCount: Int = 0,
         symlinkCount: Int = 0,
-        errorCount: Int
+        errorCount: Int,
+        retainedNodeCount: Int? = nil
     ) {
         self.id = id
         self.rootPath = rootPath
@@ -37,6 +43,7 @@ public struct ScanSnapshot: Identifiable, Hashable, Sendable {
         self.directoryCount = directoryCount
         self.symlinkCount = symlinkCount
         self.errorCount = errorCount
+        self.retainedNodeCount = retainedNodeCount
     }
 }
 
@@ -62,7 +69,26 @@ public struct ScanResult: Sendable {
     }
 }
 
+public enum ScanPhase: Int, Sendable, Equatable {
+    case discovering
+    case checkingActivity
+    case classifying
+    case summarizing
+
+    public var title: String {
+        switch self {
+        case .discovering: "Scanning files"
+        case .checkingActivity: "Checking active applications"
+        case .classifying: "Checking candidate safety"
+        case .summarizing: "Preparing scan results"
+        }
+    }
+}
+
 public struct ScanProgress: Sendable, Equatable {
+    public let phase: ScanPhase
+    public let processedCandidateCount: Int
+    public let totalCandidateCount: Int
     public let currentPath: String
     public let scannedCount: Int
     public let fileCount: Int
@@ -72,6 +98,16 @@ public struct ScanProgress: Sendable, Equatable {
     public let discoveredBytes: Int64
     public let startedAt: Date
 
+    public init(snapshot: ScanSnapshot, phase: ScanPhase, processed: Int = 0, total: Int = 0) {
+        self.init(
+            currentPath: snapshot.rootPath, scannedCount: snapshot.nodeCount,
+            fileCount: snapshot.fileCount, directoryCount: snapshot.directoryCount,
+            symlinkCount: snapshot.symlinkCount, errorCount: snapshot.errorCount,
+            discoveredBytes: snapshot.totalAllocatedSize, startedAt: snapshot.startedAt,
+            phase: phase, processedCandidateCount: processed, totalCandidateCount: total
+        )
+    }
+
     public init(
         currentPath: String,
         scannedCount: Int,
@@ -80,8 +116,14 @@ public struct ScanProgress: Sendable, Equatable {
         symlinkCount: Int = 0,
         errorCount: Int,
         discoveredBytes: Int64 = 0,
-        startedAt: Date = Date()
+        startedAt: Date = Date(),
+        phase: ScanPhase = .discovering,
+        processedCandidateCount: Int = 0,
+        totalCandidateCount: Int = 0
     ) {
+        self.phase = phase
+        self.processedCandidateCount = processedCandidateCount
+        self.totalCandidateCount = totalCandidateCount
         self.currentPath = currentPath
         self.scannedCount = scannedCount
         self.fileCount = fileCount

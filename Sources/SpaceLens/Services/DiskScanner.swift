@@ -30,7 +30,7 @@ public final class DiskScanner {
         }
         await Task.yield()
         let startedAt = Date()
-        var context = ScanContext(startedAt: startedAt)
+        var context = ScanContext(startedAt: startedAt, resolvedRootPath: rootURL.standardizedFileURL.resolvingSymlinksInPath().path)
         let rootURL = rootURL.standardizedFileURL
         if Task.isCancelled {
             return ScanResult(
@@ -46,7 +46,7 @@ public final class DiskScanner {
                 )
             )
         }
-        let root = scanNode(rootURL, context: &context, options: options, progress: progress)
+        let root = scanNode(rootURL, context: &context, options: options, nodeBudget: options.maxRetainedNodes, progress: progress)
         emitProgress(url: rootURL, context: &context, progress: progress, force: true)
         let completedAt = Date()
 
@@ -62,7 +62,8 @@ public final class DiskScanner {
                 fileCount: context.fileCount,
                 directoryCount: context.directoryCount,
                 symlinkCount: context.symlinkCount,
-                errorCount: context.errorCount
+                errorCount: context.errorCount,
+                retainedNodeCount: root.flattened().count
             ),
             createdNodeCount: context.createdNodeCount
         )
@@ -72,6 +73,7 @@ public final class DiskScanner {
         _ url: URL,
         context: inout ScanContext,
         options: ScanOptions,
+        nodeBudget: Int?,
         progress: ProgressHandler?
     ) -> FileNode {
         if Task.isCancelled {
@@ -95,7 +97,7 @@ public final class DiskScanner {
             values = try url.resourceValues(forKeys: keys)
         } catch {
             context.errorCount += 1
-            emitProgress(url: url, context: &context, progress: progress, force: true)
+            emitProgress(url: url, context: &context, progress: progress)
             return placeholderNode(url: url, error: error.localizedDescription)
         }
 
@@ -128,7 +130,16 @@ public final class DiskScanner {
             )
         }
 
-        if options.maxRetainedChildrenPerDirectory == 0 {
+        if let issue = Self.traversalIssue(url, resolvedRootPath: context.resolvedRootPath) {
+            context.errorCount += 1
+            return makeNode(
+                url: url, isDirectory: true, logicalSize: 0, allocatedSize: 0,
+                modifiedAt: modifiedAt, createdAt: createdAt,
+                scanError: issue, context: &context
+            )
+        }
+
+        if options.maxRetainedChildrenPerDirectory == 0 || nodeBudget == 1 {
             return collapsedDirectoryNode(
                 url,
                 values: values,
@@ -137,41 +148,55 @@ public final class DiskScanner {
             )
         }
 
-        let childURLs: [URL]
-        do {
-            childURLs = try fileManager.contentsOfDirectory(
-                at: url,
-                includingPropertiesForKeys: Array(keys),
-                options: []
-            )
-        } catch {
+        // Share the display budget between siblings, preserving a useful overview of
+        // every large top-level folder. Budget-one subtrees are measured without
+        // creating millions of descendant FileNodes. Counts and sizes stay complete.
+        var displayOptions = options
+        var childBudget: Int?
+        if let nodeBudget {
+            let childLimit = min(options.maxRetainedChildrenPerDirectory ?? (nodeBudget - 1), nodeBudget - 1)
+            let sampledCount = immediateChildCount(url, upTo: childLimit)
+            let retainedLimit = max(1, sampledCount)
+            displayOptions = ScanOptions(maxRetainedChildrenPerDirectory: retainedLimit)
+            childBudget = max(1, (nodeBudget - 1) / retainedLimit)
+        }
+
+        let errors = EnumeratorErrorCounter()
+        let errorsBeforeChildren = context.errorCount
+        guard let enumerator = fileManager.enumerator(
+            at: url,
+            includingPropertiesForKeys: Array(keys),
+            options: [.skipsSubdirectoryDescendants],
+            errorHandler: { _, _ in
+                errors.count += 1
+                return !Task.isCancelled
+            }
+        ) else {
             context.errorCount += 1
-            emitProgress(url: url, context: &context, progress: progress, force: true)
             return makeNode(
-                url: url,
-                isDirectory: true,
-                isSymlink: false,
-                logicalSize: 0,
-                allocatedSize: 0,
-                modifiedAt: modifiedAt,
-                createdAt: createdAt,
-                scanError: error.localizedDescription,
-                context: &context
+                url: url, isDirectory: true, logicalSize: 0, allocatedSize: 0,
+                modifiedAt: modifiedAt, createdAt: createdAt,
+                scanError: "Could not enumerate this folder.", context: &context
             )
         }
 
         var retainedChildren: [FileNode] = []
-        let errorsBeforeChildren = context.errorCount
         var logicalSize: Int64 = 0
         var allocatedSize: Int64 = 0
-        for childURL in childURLs {
-            if Task.isCancelled { break }
-            let child = scanNode(childURL, context: &context, options: options, progress: progress)
+        while !Task.isCancelled {
+            // Drain Foundation's temporary URL/resource objects for every entry.
+            let child: FileNode? = autoreleasepool {
+                guard let childURL = enumerator.nextObject() as? URL else { return nil }
+                return scanNode(childURL, context: &context, options: options, nodeBudget: childBudget, progress: progress)
+            }
+            context.errorCount += errors.transfer()
+            guard let child else { break }
             logicalSize += child.logicalSize
             allocatedSize += child.allocatedSize
-            retainDisplayChild(child, in: &retainedChildren, options: options)
+            retainDisplayChild(child, in: &retainedChildren, options: displayOptions)
         }
-        finalizeRetainedChildren(&retainedChildren, options: options)
+        context.errorCount += errors.transfer()
+        finalizeRetainedChildren(&retainedChildren, options: displayOptions)
         emitProgress(url: url, context: &context, progress: progress)
 
         return makeNode(
@@ -186,6 +211,34 @@ public final class DiskScanner {
             scanError: Task.isCancelled ? "Scan cancelled" : (context.errorCount > errorsBeforeChildren ? "Some descendants could not be read." : nil),
             context: &context
         )
+    }
+
+    static func traversalIssue(_ url: URL, resolvedRootPath: String) -> String? {
+        let candidate = url.standardizedFileURL.resolvingSymlinksInPath().path
+        let prefix = resolvedRootPath == "/" ? "/" : resolvedRootPath + "/"
+        guard candidate == resolvedRootPath || candidate.hasPrefix(prefix) else {
+            return "Folder resolves outside the selected scan root."
+        }
+        // A whole-drive scan reaches the canonical folder separately. Following
+        // Data-volume firmlinks again duplicates counts, work, and displayed paths.
+        if resolvedRootPath == "/", candidate != url.standardizedFileURL.path {
+            return "Filesystem alias skipped; its canonical folder is scanned separately."
+        }
+        return nil
+    }
+
+    private func immediateChildCount(_ url: URL, upTo limit: Int) -> Int {
+        guard let enumerator = fileManager.enumerator(
+            at: url, includingPropertiesForKeys: nil,
+            options: [.skipsSubdirectoryDescendants], errorHandler: nil
+        ) else { return 0 }
+        var count = 0
+        while count < limit, !Task.isCancelled {
+            let hasNext = autoreleasepool { enumerator.nextObject() != nil }
+            guard hasNext else { break }
+            count += 1
+        }
+        return count
     }
 
     // Measure every entry while retaining only the candidate root.
@@ -210,7 +263,7 @@ public final class DiskScanner {
             options: [],
             errorHandler: { _, _ in
                 errors.count += 1
-                return true
+                return !Task.isCancelled
             }
         ) else {
             context.errorCount += 1
@@ -229,43 +282,47 @@ public final class DiskScanner {
 
         var logicalSize: Int64 = 0
         var allocatedSize: Int64 = 0
-        var visited = 0
-        while let childURL = enumerator.nextObject() as? URL {
-            if visited.isMultiple(of: 256), Task.isCancelled {
-                break
-            }
-            visited += 1
-            context.nodeCount += 1
-            context.errorCount += errors.transfer()
+        while !Task.isCancelled {
+            let hasNext: Bool = autoreleasepool {
+                guard let childURL = enumerator.nextObject() as? URL else { return false }
+                context.nodeCount += 1
+                context.errorCount += errors.transfer()
 
-            let childValues: URLResourceValues
-            do {
-                childValues = try childURL.resourceValues(forKeys: keys)
-            } catch {
-                context.errorCount += 1
+                let childValues: URLResourceValues
+                do {
+                    childValues = try childURL.resourceValues(forKeys: keys)
+                } catch {
+                    context.errorCount += 1
+                    emitProgress(url: childURL, context: &context, progress: progress)
+                    return true
+                }
+
+                let isDirectory = childValues.isDirectory ?? false
+                let isSymlink = childValues.isSymbolicLink ?? false
+                if isSymlink {
+                    context.symlinkCount += 1
+                    enumerator.skipDescendants()
+                } else if isDirectory {
+                    context.directoryCount += 1
+                    if Self.traversalIssue(childURL, resolvedRootPath: context.resolvedRootPath) != nil {
+                        enumerator.skipDescendants()
+                        context.errorCount += 1
+                    }
+                    emitProgress(url: childURL, context: &context, progress: progress)
+                    return true
+                } else {
+                    context.fileCount += 1
+                }
+
+                let logical = Int64(childValues.fileSize ?? 0)
+                let allocated = Int64(childValues.totalFileAllocatedSize ?? childValues.fileAllocatedSize ?? childValues.fileSize ?? 0)
+                logicalSize += logical
+                allocatedSize += allocated
+                context.discoveredBytes += allocated > 0 ? allocated : logical
                 emitProgress(url: childURL, context: &context, progress: progress)
-                continue
+                return true
             }
-
-            let isDirectory = childValues.isDirectory ?? false
-            let isSymlink = childValues.isSymbolicLink ?? false
-            if isSymlink {
-                context.symlinkCount += 1
-                enumerator.skipDescendants()
-            } else if isDirectory {
-                context.directoryCount += 1
-                emitProgress(url: childURL, context: &context, progress: progress)
-                continue
-            } else {
-                context.fileCount += 1
-            }
-
-            let logical = Int64(childValues.fileSize ?? 0)
-            let allocated = Int64(childValues.totalFileAllocatedSize ?? childValues.fileAllocatedSize ?? childValues.fileSize ?? 0)
-            logicalSize += logical
-            allocatedSize += allocated
-            context.discoveredBytes += allocated > 0 ? allocated : logical
-            emitProgress(url: childURL, context: &context, progress: progress)
+            guard hasNext else { break }
         }
         context.errorCount += errors.transfer()
 
@@ -380,20 +437,24 @@ public final class DiskScanner {
 }
 
 public struct ScanOptions: Equatable, Sendable {
-    public static let appDefault = ScanOptions(maxRetainedChildrenPerDirectory: 256)
+    public static let appDefault = ScanOptions(maxRetainedChildrenPerDirectory: 256, maxRetainedNodes: 10_000)
     public static let fullRetention = ScanOptions(maxRetainedChildrenPerDirectory: nil)
     public static let collapsed = ScanOptions(maxRetainedChildrenPerDirectory: 0)
 
     public let maxRetainedChildrenPerDirectory: Int?
+    public let maxRetainedNodes: Int?
 
-    public init(maxRetainedChildrenPerDirectory: Int? = 256) {
+    public init(maxRetainedChildrenPerDirectory: Int? = 256, maxRetainedNodes: Int? = nil) {
         precondition(maxRetainedChildrenPerDirectory.map { $0 >= 0 } ?? true)
+        precondition(maxRetainedNodes.map { $0 >= 1 } ?? true)
         self.maxRetainedChildrenPerDirectory = maxRetainedChildrenPerDirectory
+        self.maxRetainedNodes = maxRetainedNodes
     }
 }
 
 private struct ScanContext {
     let startedAt: Date
+    let resolvedRootPath: String
     var nodeCount = 0
     var fileCount = 0
     var directoryCount = 0

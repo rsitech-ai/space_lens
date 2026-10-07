@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+- Bound whole-folder scan details across the entire tree while measuring all accessible descendants.
+- Stream directory entries and drain temporary metadata objects during large scans.
+- Show activity, safety classification, and summary phases after traversal finishes.
+- Stop classification cooperatively when a scan is cancelled and disclose limited folder details.
+
 ## 1.1.0
 
 - Expand Smart Scan coverage and retain only candidate roots during sizing.

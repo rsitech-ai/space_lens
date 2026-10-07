@@ -26,6 +26,7 @@
 		64A5F33CE5623A6EE791EA1E /* FileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5858A729F588778874C88333 /* FileNode.swift */; };
 		6622A4390861A27DBFDD46AF /* FileRowPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE981FD64E5EFDBACDFFCAA4 /* FileRowPresentationTests.swift */; };
 		6C0EA93776E32C551B191DEE /* ScanStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC884C7884D14C7E1308DE05 /* ScanStatistics.swift */; };
+		70FD1661AFBDDC558A6ADF2E /* ScanClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E0A9A59CB82AEDC2FEE88A /* ScanClassifier.swift */; };
 		7511CC0389969F85DF95E711 /* SmartCleanupScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = E657529AC8EBF15E0021EC28 /* SmartCleanupScanner.swift */; };
 		7A5049BF6C0E0BEBBB7444ED /* IntelligenceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D06CF49B654377B2E8EE73 /* IntelligenceServiceTests.swift */; };
 		8137222782ECB9261713A06B /* CleanupQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABFC6C372BBB07464E935B6C /* CleanupQueueTests.swift */; };
@@ -55,6 +56,7 @@
 		E9A7B4BAFC6409766F1B085C /* IntelligenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D238F9714A46A9C80BE7B5D2 /* IntelligenceService.swift */; };
 		EC029A709237E2F2E64F0EC2 /* DiskScannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DABA29696B3BD1D8ACAB1CEF /* DiskScannerTests.swift */; };
 		EF38CEBC56AEEE8DEEF36864 /* FinderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 908E04AA2C5CB9C561BFA3E4 /* FinderService.swift */; };
+		FB857289D3F4221AA0EC3931 /* ScanClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF108B5BFFD9D7D8E65A24F /* ScanClassifierTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +86,7 @@
 		504EB635D9C34E7B20B75007 /* AppStatePresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStatePresentationTests.swift; sourceTree = "<group>"; };
 		508F8A963D4FF22CB7C62566 /* SmartCleanupScannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCleanupScannerTests.swift; sourceTree = "<group>"; };
 		554D3E3D40CEB1EA544FB7EC /* ReleasePackagingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleasePackagingTests.swift; sourceTree = "<group>"; };
+		57E0A9A59CB82AEDC2FEE88A /* ScanClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanClassifier.swift; sourceTree = "<group>"; };
 		5858A729F588778874C88333 /* FileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileNode.swift; sourceTree = "<group>"; };
 		5FD954B45F131B7748469A03 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		61D8684F1D8CE94569E95455 /* SupportLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportLinks.swift; sourceTree = "<group>"; };
@@ -99,6 +102,7 @@
 		9399116980D45B8B26CD6495 /* DiskScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskScanner.swift; sourceTree = "<group>"; };
 		950D30FA4736C62EF097F526 /* FocusedValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedValues.swift; sourceTree = "<group>"; };
 		987E4D33F3354C9718AE504A /* AppSessionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionStoreTests.swift; sourceTree = "<group>"; };
+		9BF108B5BFFD9D7D8E65A24F /* ScanClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanClassifierTests.swift; sourceTree = "<group>"; };
 		9D9689D8FA85667D5535A297 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A06D90A79A7558019265149D /* ScanSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSnapshot.swift; sourceTree = "<group>"; };
 		ABFC6C372BBB07464E935B6C /* CleanupQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupQueueTests.swift; sourceTree = "<group>"; };
@@ -162,6 +166,7 @@
 				D3038E293643692FE48EB7DF /* NativeFileTableLifecycleTests.swift */,
 				554D3E3D40CEB1EA544FB7EC /* ReleasePackagingTests.swift */,
 				DD86503021601A17851A540A /* RuleEngineTests.swift */,
+				9BF108B5BFFD9D7D8E65A24F /* ScanClassifierTests.swift */,
 				1724AE922B7EC8EC308BF11B /* ScanSafetyAuditTests.swift */,
 				508F8A963D4FF22CB7C62566 /* SmartCleanupScannerTests.swift */,
 				758B85B4BDBD14193F6766A5 /* SmartScanClassificationTests.swift */,
@@ -244,6 +249,7 @@
 				2DB36974E6FEC6C908E7A70F /* FileCleanupService.swift */,
 				908E04AA2C5CB9C561BFA3E4 /* FinderService.swift */,
 				D238F9714A46A9C80BE7B5D2 /* IntelligenceService.swift */,
+				57E0A9A59CB82AEDC2FEE88A /* ScanClassifier.swift */,
 				E657529AC8EBF15E0021EC28 /* SmartCleanupScanner.swift */,
 				91043C26DD4EE571EBE7C5B8 /* SmartScanSupport.swift */,
 			);
@@ -374,6 +380,7 @@
 				CBA27592647C09EBD62FC5BA /* RuleEngine.swift in Sources */,
 				83FACEB4FF12797EB8BBB934 /* SafetyClassification.swift in Sources */,
 				A2E596BD0B8637DEA5B2D9EC /* SafetyLevelStyle.swift in Sources */,
+				70FD1661AFBDDC558A6ADF2E /* ScanClassifier.swift in Sources */,
 				4F7F6C0C6DD03B536402D245 /* ScanSnapshot.swift in Sources */,
 				6C0EA93776E32C551B191DEE /* ScanStatistics.swift in Sources */,
 				A09F751310EFB258CC5A8E8A /* SettingsView.swift in Sources */,
@@ -402,6 +409,7 @@
 				B0F5F34A15DC41646DB52CD2 /* NativeFileTableLifecycleTests.swift in Sources */,
 				06B25AB1EB087869E481922A /* ReleasePackagingTests.swift in Sources */,
 				117C78C7B61C31308FCF8E25 /* RuleEngineTests.swift in Sources */,
+				FB857289D3F4221AA0EC3931 /* ScanClassifierTests.swift in Sources */,
 				449CFBEF688DC1AD129AC0F4 /* ScanSafetyAuditTests.swift in Sources */,
 				C9641C2AC31707C8934C72D0 /* SmartCleanupScannerTests.swift in Sources */,
 				DB194404F8294EBA27AFED2E /* SmartScanClassificationTests.swift in Sources */,
@@ -493,7 +501,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 2NY8A789TN;
 				ENABLE_APP_SANDBOX = NO;
@@ -509,7 +517,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -556,7 +564,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 2NY8A789TN;
 				ENABLE_APP_SANDBOX = NO;
@@ -578,7 +586,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

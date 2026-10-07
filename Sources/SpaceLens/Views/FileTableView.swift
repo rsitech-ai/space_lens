@@ -580,10 +580,18 @@ private struct ScanTelemetryPanel: View {
                 }
 
                 if let progress = appState.scanProgress, appState.isScanning {
-                    DocumentScanMotionView(scannedCount: progress.scannedCount)
+                    if progress.phase == .discovering {
+                        DocumentScanMotionView(scannedCount: progress.scannedCount)
+                    } else if progress.phase == .classifying {
+                        ProgressView(value: Double(progress.processedCandidateCount), total: Double(max(1, progress.totalCandidateCount)))
+                            .accessibilityLabel(progress.phase.title)
+                    } else {
+                        ProgressView().controlSize(.small)
+                            .accessibilityLabel(progress.phase.title)
+                    }
                 }
 
-                AnimatedScanBar(isActive: appState.isScanning)
+                AnimatedScanBar(isActive: appState.isScanning, phase: appState.scanProgress?.phase ?? .discovering)
 
                 if let progress = appState.scanProgress {
                     Text(progress.currentPath)
@@ -598,6 +606,13 @@ private struct ScanTelemetryPanel: View {
                 ForEach(statTiles) { tile in
                     StatTileView(tile: tile)
                 }
+            }
+
+            if let snapshot = appState.snapshot, snapshot.hasLimitedDetails {
+                Text("All accessible files were measured. Folder details are limited to keep large scans responsive. Select a smaller folder for more detail, or use Smart Scan to search cleanup locations.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if let summary = appState.scanIntelligenceSummary {
@@ -637,7 +652,7 @@ private struct ScanTelemetryPanel: View {
 
     private var statusTitle: String {
         if appState.isScanning {
-            return appState.scanMode.inProgressTitle
+            return appState.scanProgress?.phase.title ?? appState.scanMode.inProgressTitle
         }
 
         if let summary = appState.scanIntelligenceSummary {
@@ -649,7 +664,10 @@ private struct ScanTelemetryPanel: View {
 
     private var statusDetail: String {
         if let progress = appState.scanProgress {
-            return "\(progress.scannedCount) items"
+            if progress.phase == .classifying {
+                return "\(progress.processedCandidateCount) of \(progress.totalCandidateCount) candidates checked"
+            }
+            return "\(progress.scannedCount.formatted()) items scanned"
         }
 
         if let snapshot = appState.snapshot {
@@ -903,6 +921,7 @@ private struct DocumentScanMotionView: View {
 private struct AnimatedScanBar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let isActive: Bool
+    let phase: ScanPhase
 
     var body: some View {
         GeometryReader { geometry in
@@ -932,7 +951,7 @@ private struct AnimatedScanBar: View {
             .clipShape(Capsule())
         }
         .frame(height: 9)
-        .accessibilityLabel(isActive ? "Scan is discovering files" : "Scan complete")
+        .accessibilityLabel(isActive ? phase.title : "Scan complete")
     }
 
     private var scanGradient: LinearGradient {

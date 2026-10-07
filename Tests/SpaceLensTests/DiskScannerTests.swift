@@ -56,6 +56,90 @@ final class DiskScannerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(result.root.logicalSize, expectedLogicalSize)
     }
 
+    func testWholeScanBoundsNodesAcrossManySmallDirectories() async throws {
+        for directoryIndex in 0..<128 {
+            let directory = temporaryRoot.appendingPathComponent("d\(directoryIndex)")
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            for fileIndex in 0..<80 {
+                try Data([1]).write(to: directory.appendingPathComponent("f\(fileIndex)"))
+            }
+        }
+
+        let result = await DiskScanner().scan(root: temporaryRoot)
+
+        XCTAssertEqual(result.snapshot.nodeCount, 10_369)
+        XCTAssertEqual(result.snapshot.fileCount, 10_240)
+        XCTAssertEqual(result.root.logicalSize, 10_240)
+        XCTAssertLessThanOrEqual(result.root.flattened().count, 10_000)
+    }
+
+    func testBudgetOneStillMeasuresDescendantsAndDoesNotFollowLinks() async throws {
+        let folder = temporaryRoot.appendingPathComponent("folder")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data([1, 2, 3]).write(to: folder.appendingPathComponent("data"))
+        try FileManager.default.createSymbolicLink(
+            at: temporaryRoot.appendingPathComponent("linked"), withDestinationURL: folder
+        )
+        let options = ScanOptions(maxRetainedChildrenPerDirectory: 256, maxRetainedNodes: 1)
+        let result = await DiskScanner().scan(root: temporaryRoot, options: options)
+        let reference = await DiskScanner().scan(root: temporaryRoot, options: .fullRetention)
+
+        XCTAssertEqual(result.root.flattened().count, 1)
+        XCTAssertEqual(result.createdNodeCount, 1)
+        XCTAssertEqual(result.snapshot.nodeCount, reference.snapshot.nodeCount)
+        XCTAssertEqual(result.snapshot.symlinkCount, 1)
+        XCTAssertEqual(result.root.logicalSize, reference.root.logicalSize)
+        XCTAssertEqual(result.root.allocatedSize, reference.root.allocatedSize)
+        XCTAssertTrue(result.snapshot.hasLimitedDetails)
+    }
+
+    func testSmallBudgetPreservesSiblingOverviewAndCompleteTotals() async throws {
+        for index in 0..<3 {
+            let folder = temporaryRoot.appendingPathComponent("d\(index)")
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            for child in 0..<10 {
+                try Data([1, 2]).write(to: folder.appendingPathComponent("f\(child)"))
+            }
+        }
+        for budget in [2, 4, 7, 16] {
+            let result = await DiskScanner().scan(
+                root: temporaryRoot,
+                options: ScanOptions(maxRetainedChildrenPerDirectory: 256, maxRetainedNodes: budget)
+            )
+            XCTAssertLessThanOrEqual(result.root.flattened().count, budget)
+            XCTAssertEqual(result.snapshot.nodeCount, 34)
+            XCTAssertEqual(result.root.logicalSize, 60)
+            if budget >= 4 { XCTAssertEqual(result.root.children.count, 3) }
+        }
+    }
+
+    func testCollapsedReadErrorPropagatesThroughBoundedParents() async throws {
+        let blocked = temporaryRoot.appendingPathComponent("branch/blocked")
+        try FileManager.default.createDirectory(at: blocked, withIntermediateDirectories: true)
+        try Data([1]).write(to: blocked.appendingPathComponent("data"))
+        try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: blocked.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: blocked.path) }
+        let result = await DiskScanner().scan(
+            root: temporaryRoot,
+            options: ScanOptions(maxRetainedChildrenPerDirectory: 256, maxRetainedNodes: 2)
+        )
+        XCTAssertGreaterThan(result.snapshot.errorCount, 0)
+        XCTAssertNotNil(result.root.scanError)
+        XCTAssertNotNil(result.root.children.first?.scanError)
+    }
+
+    func testResolvedScopeRejectsAPFSDataVolumeFirmlink() throws {
+        let data = URL(fileURLWithPath: "/System/Volumes/Data")
+        let users = data.appendingPathComponent("Users")
+        guard FileManager.default.fileExists(atPath: users.path), users.resolvingSymlinksInPath().path == "/Users" else {
+            throw XCTSkip("Host does not expose the macOS Data-volume Users firmlink")
+        }
+        XCTAssertNotNil(DiskScanner.traversalIssue(users, resolvedRootPath: data.resolvingSymlinksInPath().path))
+        XCTAssertNotNil(DiskScanner.traversalIssue(users, resolvedRootPath: "/"))
+        XCTAssertNil(DiskScanner.traversalIssue(URL(fileURLWithPath: "/Users"), resolvedRootPath: "/"))
+        XCTAssertNotNil(DiskScanner.traversalIssue(URL(fileURLWithPath: "/Users/s1kor-other"), resolvedRootPath: "/Users/s1kor"))
+    }
+
     func testScannerRecordsMissingRootAsError() async throws {
         let missing = temporaryRoot.appendingPathComponent("missing")
         let result = await DiskScanner().scan(root: missing)
