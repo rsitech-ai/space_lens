@@ -143,6 +143,55 @@ final class ManualCleanupTests: XCTestCase {
         XCTAssertTrue(state.cleanupStatusMessage?.contains("1 items") == true)
     }
 
+    func testActiveManualFolderStopsBeforeContentsInspectionEvenIfToolWouldCloseLater() async throws {
+        let child = try fixture("active-folder/ordinary.txt")
+        let node = FileNode(url: child.url.deletingLastPathComponent(), isDirectory: true, logicalSize: 33, allocatedSize: 33)
+        let open = PathUseSnapshot(runningToolLabels: [], xcodeFamilyActive: false, dockerActive: false,
+            cursorActive: false, cargoActive: false, openPaths: [child.path])
+        let probes = ManualProbeCounter(first: open)
+        let progress = ManualCheckingRecorder()
+        do {
+            _ = try await FileCleanupService.moveToBin(node: node, authorizedRoot: root, reviewedByUser: true,
+                pathUse: .empty, activitySnapshot: { await probes.snapshot() }, progress: { progress.record($0) })
+            XCTFail("Activity at the start of folder inspection must stop cleanup")
+        } catch {
+            XCTAssertTrue(FileManager.default.fileExists(atPath: child.path))
+        }
+        let count = await probes.count
+        XCTAssertEqual(count, 1)
+        XCTAssertFalse(progress.didCheckContents)
+    }
+
+    func testManualFolderRequiresFreshActivityBeforeAndAfterInspection() async throws {
+        _ = try fixture("folder/ordinary.txt")
+        let node = FileNode(url: root.appendingPathComponent("folder"), isDirectory: true, logicalSize: 33, allocatedSize: 33)
+        let probes = ManualProbeCounter()
+        _ = try await FileCleanupService.moveToBin(node: node, authorizedRoot: root, reviewedByUser: true,
+            pathUse: .empty, activitySnapshot: { await probes.snapshot() })
+        let count = await probes.count
+        XCTAssertEqual(count, 2)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: node.path))
+    }
+
+    @MainActor
+    func testManualMoveUsesOneFinalProbeAndPersistsUpdatedQueue() async throws {
+        let node = try fixture("single-probe-\(UUID().uuidString).txt")
+        let store = AppSessionStore(fileURL: root.appendingPathComponent("session.json"))
+        let probes = ManualProbeCounter()
+        let state = AppState(sessionStore: store, activitySnapshot: { await probes.snapshot() }, requiresSecurityScopedAccess: false)
+        state.startScan(root: root)
+        for _ in 0..<200 where state.isScanning { try await Task.sleep(for: .milliseconds(10)) }
+        let scanned = try XCTUnwrap(state.rootNode?.flattened().first { $0.node.url.resolvingSymlinksInPath() == node.url.resolvingSymlinksInPath() }?.node)
+        state.addToCleanupQueue(node: scanned)
+        XCTAssertEqual(store.load()?.cleanupPaths.count, 1)
+        await state.moveToBin(nodes: [scanned], reviewedByUser: true)
+        let count = await probes.count
+        XCTAssertEqual(count, 1)
+        XCTAssertNil(state.latestError)
+        XCTAssertEqual(store.load()?.cleanupPaths, [])
+        XCTAssertEqual(state.estimatedMovedToBinBytes, scanned.effectiveSize)
+    }
+
     @MainActor
     func testExplicitReviewMovesOrdinaryFixtureToBin() async throws {
         let node = try fixture("reviewed-\(UUID().uuidString).txt")
@@ -155,6 +204,7 @@ final class ManualCleanupTests: XCTestCase {
         XCTAssertNil(state.latestError)
         XCTAssertFalse(FileManager.default.fileExists(atPath: node.path))
         XCTAssertTrue(state.cleanupStatusMessage?.contains("Moved to Bin") == true)
+        XCTAssertEqual(state.estimatedMovedToBinBytes, scanned.effectiveSize)
     }
 
     @MainActor
@@ -178,5 +228,22 @@ final class ManualCleanupTests: XCTestCase {
         state.rescan()
         XCTAssertEqual(state.scanMode, .smart)
         state.cancelScan()
+    }
+}
+
+private actor ManualProbeCounter {
+    private(set) var count = 0
+    private let first: PathUseSnapshot
+    init(first: PathUseSnapshot = .empty) { self.first = first }
+    func snapshot() -> PathUseSnapshot { count += 1; return count == 1 ? first : .empty }
+}
+
+private final class ManualCheckingRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var checked = false
+    var didCheckContents: Bool { lock.lock(); defer { lock.unlock() }; return checked }
+    func record(_ progress: CleanupProgress) {
+        lock.lock(); defer { lock.unlock() }
+        if progress.phase == .checking { checked = true }
     }
 }

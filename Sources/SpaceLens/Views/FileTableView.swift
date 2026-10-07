@@ -377,11 +377,18 @@ private struct BulkActionBar: View {
             } else {
                 Text("\(selectedCount) selected")
                     .font(.headline.monospacedDigit())
-                Text("\(cleanupReadyCount) eligible · \(appState.selectedManualReviewCount) need manual review · \(ByteFormat.string(appState.selectedRecoverableBytes)) selected")
+                Text("\(ByteFormat.string(appState.selectedRecoverableBytes)) selected · \(cleanupReadyCount) eligible")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
+                if appState.selectedManualReviewCount > 0 {
+                    Text("\(appState.selectedManualReviewCount) need manual review").font(.caption).foregroundStyle(.orange)
+                }
+                if appState.estimatedMovedToBinBytes > 0 {
+                    Text("Moved to Bin (est.): \(ByteFormat.string(appState.estimatedMovedToBinBytes))")
+                        .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -698,7 +705,9 @@ private struct ScanTelemetryPanel: View {
             if progress.phase == .findingCandidates {
                 return [
                     StatTile(title: "Checked", value: "\(progress.scannedCount)", detail: "filesystem locations", icon: "number", color: .cyan),
-                    StatTile(title: "Sizing", value: "Pending", detail: "after discovery", icon: "externaldrive", color: .teal),
+                    StatTile(title: "Files", value: "Pending", detail: "after discovery", icon: "doc", color: .blue),
+                    StatTile(title: "Folders", value: "Pending", detail: "after discovery", icon: "folder", color: .indigo),
+                    StatTile(title: "Found", value: "Pending", detail: "sizing after discovery", icon: "externaldrive", color: .teal),
                     StatTile(title: "Errors", value: "\(progress.errorCount)", detail: "blocked reads", icon: "exclamationmark.triangle", color: progress.errorCount == 0 ? .secondary : .orange)
                 ]
             }

@@ -49,6 +49,13 @@ struct SidebarView: View {
                         }
                     }
                     .font(.caption)
+
+                    if appState.estimatedMovedToBinBytes > 0 {
+                        Section("This session") {
+                            LabeledContent("Moved to Bin (est.)", value: ByteFormat.string(appState.estimatedMovedToBinBytes))
+                            Text("Still uses disk space until the Bin is emptied.").foregroundStyle(.secondary)
+                        }.font(.caption)
+                    }
                 }
                 .listStyle(.sidebar)
 

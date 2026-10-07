@@ -33,14 +33,22 @@ public enum FileCleanupService {
         progress: ProgressHandler? = nil
     ) async throws -> URL? {
         try await Task.detached(priority: .utility) {
-            let url = try validatedCleanupURL(for: node, authorizedRoot: authorizedRoot, reviewedByUser: reviewedByUser, pathUse: pathUse, progress: progress)
             if reviewedByUser, activitySnapshot == nil { throw CleanupValidationError.notCleanupReady }
+            var preflightActivity = pathUse
+            if reviewedByUser, node.isDirectory, let activitySnapshot {
+                // Folder checks can take minutes: inspect against fresh activity at
+                // both ends. Ordinary reviewed files need only the final probe.
+                preflightActivity = await activitySnapshot()
+                guard preflightActivity?.activityCheckError == nil else { throw CleanupValidationError.notCleanupReady }
+            }
+            let url = try validatedCleanupURL(for: node, authorizedRoot: authorizedRoot, reviewedByUser: reviewedByUser,
+                pathUse: preflightActivity, progress: progress)
             if let activitySnapshot {
                 // A folder preflight may be lengthy. Refresh after it, immediately before
                 // the move, and stop if a tool started while its contents were inspected.
                 let fresh = await activitySnapshot()
                 guard fresh.activityCheckError == nil else { throw CleanupValidationError.notCleanupReady }
-                if reviewedByUser, let previous = pathUse, fresh.hasNewlyRunningTools(comparedTo: previous) {
+                if reviewedByUser, let previous = preflightActivity, fresh.hasNewlyRunningTools(comparedTo: previous) {
                     throw CleanupValidationError.notCleanupReady
                 }
                 _ = try validateCleanupURL(for: node, authorizedRoot: authorizedRoot,

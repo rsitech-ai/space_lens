@@ -188,6 +188,7 @@ final class AppState: ObservableObject {
     @Published var cleanupInProgressIDs: Set<UUID> = []
     @Published var cleanupProgress: CleanupProgress?
     @Published private(set) var isCleaningUp = false
+    @Published private(set) var estimatedMovedToBinBytes: Int64 = 0
     @Published var cleanupStatusMessage: String?
     @Published var latestError: String?
     @Published private(set) var classificationRevision = 0
@@ -921,10 +922,12 @@ final class AppState: ObservableObject {
             return
         }
         isCleaningUp = true
-        defer { isCleaningUp = false }
+        defer { isCleaningUp = false; persistSession() }
         cleanupProgress = CleanupProgress(phase: .preparing, currentPath: authorizedRoot.path, completedItemCount: 0,
             totalItemCount: nodes.count, completedBytes: 0, totalBytes: nodes.reduce(0) { $0 + $1.effectiveSize })
-        pathUseSnapshot = await activitySnapshot()
+        // The service checks fresh activity after every manual target and before
+        // directory inspection. Reviewed files avoid a duplicate batch-wide probe.
+        if !reviewedByUser { pathUseSnapshot = await activitySnapshot() }
         classificationCache.removeAll(keepingCapacity: true)
         classificationRevision &+= 1
         cachedSelectedCleanupEligibleIDs = nil
@@ -1012,6 +1015,7 @@ final class AppState: ObservableObject {
         do {
             try await operation(cleanupProgressHandler(for: node))
             didRemoveFiles = true
+            estimatedMovedToBinBytes += node.effectiveSize
             cleanupInProgressIDs.remove(node.id)
             cleanupStatusMessage = "\(operationName): \(node.displayName)"
             cleanupProgress = nil
@@ -1255,6 +1259,10 @@ final class AppState: ObservableObject {
     }
 
     private func persistSession() {
+        // A batch may remove many queued items. Save the final queue once instead of
+        // rewriting its bookmark and JSON after every item; stale saved paths restore
+        // only after a new scan and never carry approval.
+        guard !isCleaningUp else { return }
         guard let sessionStore else {
             return
         }
