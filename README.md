@@ -35,6 +35,10 @@ this display budget. Traversal, application activity checks, safety classificati
 and summary preparation each report their current phase. Stop cancels processing
 as well as traversal.
 
+Smart Scan first reports the number of filesystem locations checked while finding
+cleanup candidates. Candidate sizing is a separate phase; discovery visits are
+not counted again in the final measured-file totals.
+
 Whole-drive scans skip the virtual `/.nofollow` and `/.resolve` kernel path namespaces; these can expose the same root tree again without being symbolic links. Both Full Scan and Smart Scan use canonical folders instead.
 
 ## Requirements
@@ -114,7 +118,7 @@ SPACE_LENS_NOTARIZED_OUTPUT_DIR='/absolute/path/to/final-artifacts' \
   ./script/notarize_direct_download.sh
 ```
 
-Version 1.1.1 targets private use and direct distribution. App Sandbox is disabled
+Version 1.1.2 targets private use and direct distribution. App Sandbox is disabled
 because it prevents the activity inspection needed for safe cleanup. The historical
 App Store scripts are unavailable for this configuration. See [the release runbook](docs/RELEASING.md).
 Never reuse an older signed artifact as evidence for changed source.

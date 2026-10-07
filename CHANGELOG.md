@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+
+- Drain temporary filesystem objects during Smart Scan discovery.
+- Show checked discovery locations separately from measured candidate files and sizes.
+
 ## 1.1.1
 
 - Skip virtual `/.nofollow` and `/.resolve` kernel path namespaces in both scan modes to prevent duplicate whole-drive traversal.

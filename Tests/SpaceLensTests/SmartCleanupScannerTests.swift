@@ -27,6 +27,22 @@ final class SmartCleanupScannerTests: XCTestCase {
         }
     }
 
+    func testDiscoveryReportsCheckedLocationsBeforeSizingCandidates() async throws {
+        let directory = temporaryRoot.appendingPathComponent("ordinary", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for index in 0..<100 {
+            try Data([1]).write(to: directory.appendingPathComponent("file-\(index).txt"))
+        }
+        let progress = DiscoveryProgressRecorder()
+        let result = await SmartCleanupScanner(homeDirectory: temporaryRoot).scan(root: temporaryRoot, progress: { value in
+            progress.record(value)
+        })
+        let discovery = progress.values.filter { $0.phase == .findingCandidates }
+        XCTAssertEqual(discovery.last?.scannedCount, 101)
+        XCTAssertTrue(discovery.contains { $0.scannedCount > 0 }, "Discovery must report work before sizing starts")
+        XCTAssertEqual(result.snapshot.nodeCount, 0, "Discovery visits are separate from measured candidate totals")
+    }
+
     func testSmartScanCollapsesDerivedDataTargetAndNodeModules() async throws {
         let derivedData = temporaryRoot.appendingPathComponent(
             "Library/Developer/XcodeBuildMCP/workspaces/heat-cycle/DerivedData",
@@ -434,4 +450,11 @@ final class SmartCleanupScannerTests: XCTestCase {
 
 private final class CountRecorder: @unchecked Sendable {
     var values: [Int] = []
+}
+
+private final class DiscoveryProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [ScanProgress] = []
+    var values: [ScanProgress] { lock.withLock { stored } }
+    func record(_ value: ScanProgress) { lock.withLock { stored.append(value) } }
 }

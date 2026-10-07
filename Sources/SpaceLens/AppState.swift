@@ -498,7 +498,7 @@ final class AppState: ObservableObject {
         pathUseSnapshot = .empty
         lastProgressPublishAt = .distantPast
         lastCandidatePublishAt = .distantPast
-        scanProgress = ScanProgress(currentPath: root.path, scannedCount: 0, errorCount: 0)
+        scanProgress = ScanProgress(currentPath: root.path, scannedCount: 0, errorCount: 0, phase: .findingCandidates)
 
         let ruleEngine = ruleEngine
         let intelligenceService = intelligenceService

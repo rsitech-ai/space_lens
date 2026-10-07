@@ -220,59 +220,67 @@ public final class SmartCleanupScanner: @unchecked Sendable {
         }
 
         var visited = 0
-        while let url = enumerator.nextObject() as? URL {
+        while !Task.isCancelled {
             if visited.isMultiple(of: 256) {
                 if Task.isCancelled { return false }
                 if Date().timeIntervalSince(context.startedAt) > discoveryBudget { return false }
             }
-            visited += 1
+            let hasNext: Bool = autoreleasepool {
+                guard let url = enumerator.nextObject() as? URL else { return false }
+                visited += 1
+                context.discoveryCount += 1
+                emitDiscoveryProgress(url, context: &context, progress: progress)
 
-            if let issue = DiskScanner.excludedNamespaceReason(url) {
-                enumerator.skipDescendants()
-                context.errorCount += 1
-                appendErrorPlaceholder(url, message: issue, to: &candidates, seenPaths: &seenPaths)
-                onCandidates?(candidates)
-                continue
-            }
-
-            // APFS firmlinks may enumerate canonical URLs outside the selected folder.
-            guard contains(url.resolvingSymlinksInPath(), in: authorizedRoot) else {
-                enumerator.skipDescendants()
-                continue
-            }
-
-            let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-            if values?.isSymbolicLink == true {
-                enumerator.skipDescendants()
-                continue
-            }
-
-            let path = url.standardizedFileURL.path
-            if skipRootSet.contains(path) || isInsideSkippedRoot(path, skipRootSet: skipRootSet) {
-                enumerator.skipDescendants()
-                continue
-            }
-
-            emitDiscoveryProgress(url, context: &context, progress: progress)
-
-            if values?.isDirectory != true {
-                if isLargeUserContentFile(url) || isDisposableDiagnosticFile(url) {
-                    enqueueCandidate(url, into: &pendingURLs, seenPaths: &seenPaths, scannedRoots: &scannedRoots)
+                if let issue = DiskScanner.excludedNamespaceReason(url) {
+                    enumerator.skipDescendants()
+                    context.errorCount += 1
+                    appendErrorPlaceholder(url, message: issue, to: &candidates, seenPaths: &seenPaths)
+                    onCandidates?(candidates)
+                    return true
                 }
-                continue
-            }
 
-            if isDiscoveredCandidate(url) {
-                enumerator.skipDescendants()
-                enqueueCandidate(url, into: &pendingURLs, seenPaths: &seenPaths, scannedRoots: &scannedRoots)
-                continue
-            }
+                // APFS firmlinks may enumerate canonical URLs outside the selected folder.
+                guard contains(url.resolvingSymlinksInPath(), in: authorizedRoot) else {
+                    enumerator.skipDescendants()
+                    return true
+                }
 
-            if shouldSkipDiscoveryDescendants(url, skippingSimulatorDeviceTrees: skippingSimulatorDeviceTrees) {
-                enumerator.skipDescendants()
+                let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+                if values?.isSymbolicLink == true {
+                    enumerator.skipDescendants()
+                    return true
+                }
+
+                let path = url.standardizedFileURL.path
+                if skipRootSet.contains(path) || isInsideSkippedRoot(path, skipRootSet: skipRootSet) {
+                    enumerator.skipDescendants()
+                    return true
+                }
+
+                if values?.isDirectory != true {
+                    if isLargeUserContentFile(url) || isDisposableDiagnosticFile(url) {
+                        enqueueCandidate(url, into: &pendingURLs, seenPaths: &seenPaths, scannedRoots: &scannedRoots)
+                    }
+                    return true
+                }
+
+                if isDiscoveredCandidate(url) {
+                    enumerator.skipDescendants()
+                    enqueueCandidate(url, into: &pendingURLs, seenPaths: &seenPaths, scannedRoots: &scannedRoots)
+                    return true
+                }
+
+                if shouldSkipDiscoveryDescendants(url, skippingSimulatorDeviceTrees: skippingSimulatorDeviceTrees) {
+                    enumerator.skipDescendants()
+                }
+                return true
+            }
+            guard hasNext else {
+                emitDiscoveryProgress(rootURL, context: &context, progress: progress, force: true)
+                return true
             }
         }
-        return true
+        return false
     }
 
     private func measurePending(
@@ -416,21 +424,23 @@ public final class SmartCleanupScanner: @unchecked Sendable {
     private func emitDiscoveryProgress(
         _ url: URL,
         context: inout SmartScanContext,
-        progress: ProgressHandler?
+        progress: ProgressHandler?,
+        force: Bool = false
     ) {
-        guard context.shouldEmitProgress() else {
+        guard force || context.shouldEmitProgress() else {
             return
         }
         progress?(
             ScanProgress(
                 currentPath: url.path,
-                scannedCount: context.scannedCount,
+                scannedCount: context.discoveryCount,
                 fileCount: context.fileCount,
                 directoryCount: context.directoryCount,
                 symlinkCount: context.symlinkCount,
                 errorCount: context.errorCount,
                 discoveredBytes: 0,
-                startedAt: context.startedAt
+                startedAt: context.startedAt,
+                phase: .findingCandidates
             )
         )
     }
@@ -919,6 +929,7 @@ private final class MeasureProgressSink: @unchecked Sendable {
 private struct SmartScanContext {
     let startedAt: Date
     var scannedCount = 0
+    var discoveryCount = 0
     var fileCount = 0
     var directoryCount = 0
     var symlinkCount = 0
