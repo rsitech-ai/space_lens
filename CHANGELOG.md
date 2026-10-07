@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1
+
+- Skip virtual `/.nofollow` and `/.resolve` kernel path namespaces in both scan modes to prevent duplicate whole-drive traversal.
+- Bound whole-folder scan details across the entire tree while measuring all accessible descendants.
+- Stream directory entries and drain temporary metadata objects during large scans.
+- Show activity, safety classification, and summary phases after traversal finishes.
+- Preserve signed Darwin device identifier bits and skip virtual device storage.
+- Stop classification cooperatively when a scan is cancelled and disclose limited folder details.
+
 ## 1.1.0
 
 - Expand Smart Scan coverage and retain only candidate roots during sizing.

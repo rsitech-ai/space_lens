@@ -92,6 +92,9 @@ public struct LocalIntelligenceService: IntelligenceService {
         } else {
             bodyParts.append("Scan visited \(snapshot.nodeCount) items; displayed candidates total \(total).")
         }
+        if snapshot.hasLimitedDetails {
+            bodyParts.append("Cleanup estimates cover the retained folder details. Scan a smaller folder or use Smart Scan to investigate additional candidates.")
+        }
         bodyParts.append("Conservative cleanup \(recoverable) across \(conservativeRoots.count) rebuildable/temp roots.")
         if theoreticalBytes > conservativeBytes {
             bodyParts.append("Theoretical \(theoretical) if inactive package caches are pruned after review.")
@@ -99,7 +102,7 @@ public struct LocalIntelligenceService: IntelligenceService {
         bodyParts.append("\(statistics.reviewCount) conditional items (history, research, toolchains, simulators) need a human decision.")
         bodyParts.append("\(statistics.activeCount + statistics.protectedCount) are active, tool-owned, or protected.")
         if snapshot.errorCount > 0 {
-            bodyParts.append("\(snapshot.errorCount) scan errors; open Scan Errors for paths SpaceLens could not read.")
+            bodyParts.append("\(snapshot.errorCount) scan errors; open Scan Errors for affected folders. Limited folder details may group unreadable paths under a parent.")
         }
         if !topCandidates.isEmpty {
             bodyParts.append("Best cleanup candidates: \(topCandidates.joined(separator: "; ")).")

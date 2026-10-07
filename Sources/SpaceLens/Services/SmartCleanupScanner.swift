@@ -34,6 +34,9 @@ public final class SmartCleanupScanner: @unchecked Sendable {
         await Task.yield()
         let startedAt = Date()
         let rootURL = rootURL.standardizedFileURL
+        if DiskScanner.excludedNamespaceReason(rootURL) != nil {
+            return await diskScanner.scan(root: rootURL, options: .collapsed, progress: progress)
+        }
         var context = SmartScanContext(startedAt: startedAt)
         var candidates: [FileNode] = []
         var pendingURLs: [URL] = []
@@ -223,6 +226,14 @@ public final class SmartCleanupScanner: @unchecked Sendable {
                 if Date().timeIntervalSince(context.startedAt) > discoveryBudget { return false }
             }
             visited += 1
+
+            if let issue = DiskScanner.excludedNamespaceReason(url) {
+                enumerator.skipDescendants()
+                context.errorCount += 1
+                appendErrorPlaceholder(url, message: issue, to: &candidates, seenPaths: &seenPaths)
+                onCandidates?(candidates)
+                continue
+            }
 
             // APFS firmlinks may enumerate canonical URLs outside the selected folder.
             guard contains(url.resolvingSymlinksInPath(), in: authorizedRoot) else {

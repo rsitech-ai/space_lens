@@ -16,6 +16,21 @@ final class AppStatePresentationTests: XCTestCase {
     }
 
     @MainActor
+    func testScanErrorsIncludesRootWhenUnreadableDetailsAreOmitted() {
+        let appState = AppState(requiresSecurityScopedAccess: false)
+        appState.rootNode = FileNode(
+            url: URL(fileURLWithPath: "/tmp/SpaceLens-errors"), isDirectory: true,
+            logicalSize: 100, allocatedSize: 100,
+            children: [FileNode(url: URL(fileURLWithPath: "/tmp/SpaceLens-errors/readable"),
+                                isDirectory: false, logicalSize: 100, allocatedSize: 100)],
+            scanError: "Some descendants could not be read."
+        )
+        appState.sidebarSelection = .errors
+        XCTAssertEqual(appState.visibleNodes.map(\.node.path), ["/tmp/SpaceLens-errors"])
+        XCTAssertFalse(appState.classification(for: appState.visibleNodes[0].node).level.isQueueable)
+    }
+
+    @MainActor
     func testScanErrorsCategoryHasAContextualEmptyState() {
         let appState = AppState(requiresSecurityScopedAccess: false)
         appState.sidebarSelection = .errors

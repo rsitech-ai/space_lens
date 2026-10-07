@@ -27,6 +27,16 @@ cleanup-ready items to the Bin.
 - Sends no file contents or metadata to an external service and includes no
   analytics, advertising, or tracking SDK.
 
+Full-folder scans measure every accessible descendant while retaining at most
+10,000 result nodes and 256 children per folder. Large scans show a bounded folder
+overview; select a smaller folder for deeper file details. Cleanup estimates cover
+the retained results. Smart Scan searches known cleanup locations independently of
+this display budget. Traversal, application activity checks, safety classification,
+and summary preparation each report their current phase. Stop cancels processing
+as well as traversal.
+
+Whole-drive scans skip the virtual `/.nofollow` and `/.resolve` kernel path namespaces; these can expose the same root tree again without being symbolic links. Both Full Scan and Smart Scan use canonical folders instead.
+
 ## Requirements
 
 - macOS 14 or later
@@ -82,7 +92,7 @@ The app scans filesystem metadata within a folder selected through the macOS
 picker. It also inspects local process names and open paths to protect in-use
 files. It runs with Hardened Runtime outside App Sandbox; cleanup remains
 bounded to the selected folder by explicit validation. Read the [privacy policy](docs/PRIVACY.md) and the documented
-[limitations](docs/release/1.1.0/RELEASE_NOTES.md#limits) before use.
+[limitations](docs/release/1.1.1/RELEASE_NOTES.md#limits) before use.
 
 ## Distribution
 
@@ -104,7 +114,7 @@ SPACE_LENS_NOTARIZED_OUTPUT_DIR='/absolute/path/to/final-artifacts' \
   ./script/notarize_direct_download.sh
 ```
 
-Version 1.1.0 targets private use and direct distribution. App Sandbox is disabled
+Version 1.1.1 targets private use and direct distribution. App Sandbox is disabled
 because it prevents the activity inspection needed for safe cleanup. The historical
 App Store scripts are unavailable for this configuration. See [the release runbook](docs/RELEASING.md).
 Never reuse an older signed artifact as evidence for changed source.

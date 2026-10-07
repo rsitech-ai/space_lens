@@ -305,7 +305,8 @@ final class AppState: ObservableObject {
     var emptyResultsPresentation: EmptyResultsPresentation {
         if isScanning {
             return EmptyResultsPresentation(
-                title: scanMode == .smart ? "Finding Cleanup Candidates" : "Scanning Files",
+                title: scanProgress.flatMap { $0.phase == .discovering ? nil : $0.phase.title }
+                    ?? (scanMode == .smart ? "Finding Cleanup Candidates" : "Scanning Files"),
                 systemImage: "sparkle.magnifyingglass",
                 description: scanMode == .smart
                     ? "Rebuildable caches appear here as each folder is sized. SpaceLens does not list every file inside them."
@@ -557,8 +558,11 @@ final class AppState: ObservableObject {
         guard isScanning, activeScanID == scanID else {
             return
         }
+        // Progress callbacks hop to the main actor asynchronously. Ignore an older
+        // phase if its callback arrives after classification or summary preparation.
+        if let current = scanProgress, progress.phase.rawValue < current.phase.rawValue { return }
         let now = Date()
-        guard now.timeIntervalSince(lastProgressPublishAt) >= 0.1 else {
+        guard scanProgress?.phase != progress.phase || now.timeIntervalSince(lastProgressPublishAt) >= 0.1 else {
             return
         }
         lastProgressPublishAt = now
@@ -611,20 +615,22 @@ final class AppState: ObservableObject {
             return nil
         }
 
+        onProgress(ScanProgress(snapshot: result.snapshot, phase: .checkingActivity))
         let volumePressure = VolumePressureReader.read(for: root)
         let pathUse = await PathUseDetector.liveSnapshot()
-        let items = result.root.flattened().dropFirst().map { item in
-            ClassifiedScanItem(
-                node: item.node,
-                classification: ruleEngine.classify(item.node, pathUse: pathUse)
-            )
-        }
+        guard !Task.isCancelled else { return nil }
+        guard let items = await ScanClassifier.classify(
+            nodes: Array(result.root.flattened().dropFirst()), snapshot: result.snapshot,
+            ruleEngine: ruleEngine, pathUse: pathUse, onProgress: onProgress
+        ) else { return nil }
+        onProgress(ScanProgress(snapshot: result.snapshot, phase: .summarizing))
         let statistics = ScanStatistics(snapshot: result.snapshot, items: items)
         let intelligenceSummary = await intelligenceService.summarizeScan(
             snapshot: result.snapshot,
             items: items,
             context: ScanSummaryContext(volumePressure: volumePressure, pathUse: pathUse)
         )
+        guard !Task.isCancelled else { return nil }
         return FinishedScanPayload(
             root: result.root,
             snapshot: result.snapshot,
@@ -650,8 +656,10 @@ final class AppState: ObservableObject {
             return nil
         }
 
+        onProgress(ScanProgress(snapshot: result.snapshot, phase: .checkingActivity))
         let volumePressure = VolumePressureReader.read(for: root)
         let rawPathUse = await PathUseDetector.liveSnapshot(simulatorInventory: result.simulatorInventory)
+        guard !Task.isCancelled else { return nil }
         let flattened = Array(result.root.flattened().dropFirst())
         let pathUse = rawPathUse.withOpenPaths(
             PathUseDetector.matchingOpenPaths(
@@ -659,12 +667,12 @@ final class AppState: ObservableObject {
                 openPaths: rawPathUse.openPaths
             )
         )
-        let items = flattened.map { item in
-            ClassifiedScanItem(
-                node: item.node,
-                classification: ruleEngine.classify(item.node, pathUse: pathUse)
-            )
-        }
+        guard !Task.isCancelled else { return nil }
+        guard let items = await ScanClassifier.classify(
+            nodes: flattened, snapshot: result.snapshot,
+            ruleEngine: ruleEngine, pathUse: pathUse, onProgress: onProgress
+        ) else { return nil }
+        onProgress(ScanProgress(snapshot: result.snapshot, phase: .summarizing))
         let statistics = ScanStatistics(snapshot: result.snapshot, items: items)
         let intelligenceSummary = await intelligenceService.summarizeScan(
             snapshot: result.snapshot,
@@ -679,6 +687,7 @@ final class AppState: ObservableObject {
             items.filter { $0.classification.level.isQueueable }.map(\.node),
             url: \.url
         )
+        guard !Task.isCancelled else { return nil }
         return FinishedScanPayload(
             root: result.root,
             snapshot: result.snapshot,
@@ -1085,7 +1094,12 @@ final class AppState: ObservableObject {
         case .active:
             sidebarFilteredNodes = allNodes.filter { classification(for: $0.node).level == .activeOrInUse }
         case .errors:
-            sidebarFilteredNodes = allNodes.filter { $0.node.scanError != nil }
+            let errors = allNodes.filter { $0.node.scanError != nil }
+            if errors.isEmpty, let rootNode, rootNode.scanError != nil {
+                sidebarFilteredNodes = [FlattenedFileNode(node: rootNode, depth: 0)]
+            } else {
+                sidebarFilteredNodes = errors
+            }
         case .queue:
             sidebarFilteredNodes = cleanupQueue.map { FlattenedFileNode(node: $0.fileNode, depth: 1) }
         }

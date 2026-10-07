@@ -15,7 +15,8 @@ public struct FileIdentity: Hashable, Sendable {
         }
 
         return FileIdentity(
-            deviceID: UInt64(metadata.st_dev),
+            // Darwin dev_t is signed, but high-bit device identifiers are valid.
+            deviceID: UInt64(UInt32(bitPattern: metadata.st_dev)),
             fileID: UInt64(metadata.st_ino),
             fileType: UInt32(metadata.st_mode & mode_t(S_IFMT)),
             createdSeconds: Int64(metadata.st_birthtimespec.tv_sec),
