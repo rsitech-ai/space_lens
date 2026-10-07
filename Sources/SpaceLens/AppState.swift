@@ -444,6 +444,9 @@ final class AppState: ObservableObject {
         cachedSelectedCleanupEligibleIDs = nil
         var accepted: [FileNode] = []
         var rejected: [String] = []
+        let retainedByPath = Dictionary(allNodes.map { ($0.node.url.standardizedFileURL.path, $0.node) },
+            uniquingKeysWith: { first, _ in first })
+        let retainedIDs = Set(allNodes.map(\.id))
         let targets = CleanupTargetNormalizer.collapsingDescendants(urls.map { $0.standardizedFileURL }, url: { $0 })
         for url in targets {
             // Reject protected roots and symlinks before walking potentially huge folders.
@@ -471,7 +474,7 @@ final class AppState: ObservableObject {
                 continue
             }
             // Reuse a retained node when available, keeping queue and tree identity coherent.
-            if let retained = allNodes.first(where: { $0.node.url.standardizedFileURL == url })?.node {
+            if let retained = retainedByPath[url.path] {
                 guard retained.fileIdentity == node.fileIdentity,
                       retained.effectiveSize == node.effectiveSize,
                       retained.modifiedAt == node.modifiedAt else {
@@ -483,7 +486,7 @@ final class AppState: ObservableObject {
         }
         guard !Task.isCancelled else { return }
         for node in accepted {
-            if !allNodes.contains(where: { $0.id == node.id }) {
+            if !retainedIDs.contains(node.id) {
                 additionalNodes.append(node)
                 additionalCleanupRoots[node.id] = node.url.deletingLastPathComponent()
             }

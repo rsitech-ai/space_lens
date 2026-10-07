@@ -163,7 +163,15 @@ final class CleanupNavigationTests: XCTestCase {
         let state = AppState(activitySnapshot: { .empty }, requiresSecurityScopedAccess: false)
         state.startScan(root: scanned)
         for _ in 0..<500 where state.isScanning { try await Task.sleep(for: .milliseconds(10)) }
+        let retained = (0..<10_000).map { index in
+            FileNode(url: scanned.appendingPathComponent("retained\(index)"), isDirectory: false,
+                logicalSize: 1, allocatedSize: 1, captureIdentity: false)
+        }
+        state.rootNode = FileNode(url: scanned, isDirectory: true, logicalSize: 10_000,
+            allocatedSize: 10_000, children: retained)
+        let started = ContinuousClock.now
         await state.addAdditionalFiles(files + files)
+        print("Add Files benchmark: 100 targets against 10000 retained nodes, \(started.duration(to: .now))")
         XCTAssertEqual(state.cleanupQueue.count, 100)
         XCTAssertEqual(state.selectedCleanupEligibleNodes.count, 100)
     }
