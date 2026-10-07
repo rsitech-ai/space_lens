@@ -9,6 +9,8 @@ struct FileTableView: View {
     @State private var nativeRenderState = NativeFileTableRenderState(selectedNodeIDs: [], queuedNodeIDs: [])
     @State private var binSelectionConfirmation = false
     @State private var confirmedNodes: [FileNode] = []
+    @State private var confirmedRequiresManualReview = false
+    @State private var manualReviewAcknowledged = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -36,7 +38,11 @@ struct FileTableView: View {
                     BulkActionBar(
                         layout: layout,
                         moveToBinConfirmation: Binding(get: { binSelectionConfirmation }, set: { presented in
-                            if presented { confirmedNodes = appState.selectedCleanupEligibleNodes }
+                            if presented {
+                                confirmedNodes = appState.selectedCleanupEligibleNodes
+                                confirmedRequiresManualReview = appState.selectedManualReviewCount > 0
+                                manualReviewAcknowledged = false
+                            }
                             binSelectionConfirmation = presented
                         })
                     )
@@ -56,16 +62,23 @@ struct FileTableView: View {
                         }
                     }.padding(12)
                 }.background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+                if confirmedRequiresManualReview {
+                    Text("This selection includes Needs Review or Valuable Data. These files may contain documents, project state or history that cannot be recreated. Moving a folder includes all of its contents.")
+                        .font(.callout).foregroundStyle(.orange)
+                    Toggle("I reviewed these paths and want to move this data to the Bin.", isOn: $manualReviewAcknowledged)
+                        .toggleStyle(.checkbox)
+                }
                 HStack {
                     Spacer()
                     Button("Cancel") { binSelectionConfirmation = false }.keyboardShortcut(.cancelAction)
                     Button("Move to Bin", role: .destructive) {
                         let nodes = confirmedNodes
+                        let reviewed = confirmedRequiresManualReview && manualReviewAcknowledged
                         binSelectionConfirmation = false
-                        Task { await appState.moveToBin(nodes: nodes) }
-                    }.tint(.red).disabled(!appState.canCleanUp || confirmedNodes.isEmpty)
+                        Task { await appState.moveToBin(nodes: nodes, reviewedByUser: reviewed) }
+                    }.tint(.red).disabled(!appState.canCleanUp || confirmedNodes.isEmpty || (confirmedRequiresManualReview && !manualReviewAcknowledged))
                 }
-            }.padding(24).frame(width: 560, height: 440)
+            }.padding(24).frame(width: 600, height: confirmedRequiresManualReview ? 560 : 440)
         }
     }
 
@@ -364,7 +377,7 @@ private struct BulkActionBar: View {
             } else {
                 Text("\(selectedCount) selected")
                     .font(.headline.monospacedDigit())
-                Text("\(cleanupReadyCount) cleanup-ready, \(ByteFormat.string(appState.selectedRecoverableBytes)) recoverable")
+                Text("\(cleanupReadyCount) eligible · \(appState.selectedManualReviewCount) need manual review · \(ByteFormat.string(appState.selectedRecoverableBytes)) selected")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -402,7 +415,7 @@ private struct BulkActionBar: View {
             } label: {
                 AdaptiveActionLabel("Queue", systemImage: "tray.and.arrow.down", isCompact: false)
             }
-            .accessibilityLabel("Queue selected cleanup-ready items")
+            .accessibilityLabel("Queue selected items for review")
             .buttonStyle(AnimatedBulkButtonStyle(color: .blue, isProminent: false))
             .disabled(!hasCleanupReadySelection || !appState.canCleanUp)
 
@@ -411,7 +424,7 @@ private struct BulkActionBar: View {
             } label: {
                 AdaptiveActionLabel("Move to Bin", systemImage: "trash", isCompact: layout.isCompact)
             }
-            .accessibilityLabel("Move selected cleanup-ready items to the Bin")
+            .accessibilityLabel("Review and move selected items to the Bin")
             .buttonStyle(AnimatedBulkButtonStyle(color: .red, isProminent: true))
             .disabled(!hasCleanupReadySelection || !appState.canCleanUp)
 

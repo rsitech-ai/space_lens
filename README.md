@@ -118,7 +118,7 @@ SPACE_LENS_NOTARIZED_OUTPUT_DIR='/absolute/path/to/final-artifacts' \
   ./script/notarize_direct_download.sh
 ```
 
-Version 1.1.2 targets private use and direct distribution. App Sandbox is disabled
+Version 1.2.0 targets private use and direct distribution. App Sandbox is disabled
 because it prevents the activity inspection needed for safe cleanup. The historical
 App Store scripts are unavailable for this configuration. See [the release runbook](docs/RELEASING.md).
 Never reuse an older signed artifact as evidence for changed source.

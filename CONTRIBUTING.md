@@ -22,8 +22,10 @@ git diff --exit-code -- SpaceLens.xcodeproj
 3. Add focused unit coverage, a boundary integration check when applicable,
    and update user-facing documentation when behavior changes.
 4. Preserve the cleanup contract: exact paths, explicit confirmation,
-   cleanup-ready classifications only, and Move to Bin rather than permanent
-   deletion.
+   automatic cleanup-ready classifications, a separate explicit manual-review
+   acknowledgement for Needs Review and Valuable Data, fresh activity and identity
+   checks, and Move to Bin rather than permanent deletion. Active, protected and
+   incompletely inspected data must stay blocked.
 5. Do not commit build output, credentials, signing material, notarization
    profiles, private paths, or private file contents.
 

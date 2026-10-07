@@ -495,10 +495,6 @@ public struct RuleEngine: Sendable {
         guard let reason = inUseReason(for: node, pathUse: pathUse) else {
             return classification
         }
-        guard classification.level.isQueueable || pathUse.isPathOpen(node.path) else {
-            return classification
-        }
-
         return SafetyClassification(
             level: .activeOrInUse,
             confidence: max(classification.confidence, 0.9),
@@ -558,13 +554,13 @@ public struct RuleEngine: Sendable {
     }
 
     private func isSystemCritical(path: String) -> Bool {
-        (path.hasPrefix("/system/") && !path.hasPrefix("/system/volumes/vm"))
-            || path.hasPrefix("/bin/")
-            || path.hasPrefix("/sbin/")
-            || path.hasPrefix("/usr/bin/")
-            || path.hasPrefix("/usr/sbin/")
-            || path.hasPrefix("/private/var/db/")
-            || path.hasPrefix("/library/apple/")
+        (path == "/system" || (path.hasPrefix("/system/") && !path.hasPrefix("/system/volumes/vm")))
+            || (path == "/bin" || path.hasPrefix("/bin/"))
+            || (path == "/sbin" || path.hasPrefix("/sbin/"))
+            || (path == "/usr/bin" || path.hasPrefix("/usr/bin/"))
+            || (path == "/usr/sbin" || path.hasPrefix("/usr/sbin/"))
+            || (path == "/private/var/db" || path.hasPrefix("/private/var/db/"))
+            || (path == "/library/apple" || path.hasPrefix("/library/apple/"))
     }
 
     private func isSystemVirtualMemory(path: String) -> Bool {

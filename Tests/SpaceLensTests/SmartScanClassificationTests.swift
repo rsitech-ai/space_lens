@@ -93,7 +93,7 @@ final class SmartScanClassificationTests: XCTestCase {
         )
 
         XCTAssertEqual(derivedData.level, .activeOrInUse)
-        XCTAssertEqual(tmp.level, .unknownReview)
+        XCTAssertEqual(tmp.level, .activeOrInUse)
         XCTAssertEqual(cursorCache.level, .activeOrInUse)
         XCTAssertEqual(cargoRegistry.level, .activeOrInUse)
         XCTAssertFalse(derivedData.level.isQueueable)
