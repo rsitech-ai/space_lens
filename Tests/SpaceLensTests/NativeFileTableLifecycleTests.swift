@@ -4,6 +4,20 @@ import XCTest
 
 @MainActor
 final class NativeFileTableLifecycleTests: XCTestCase {
+    @MainActor
+    func testTextCellLayoutKeepsFiniteFramesForTinyBounds() {
+        for size in [NSSize.zero, NSSize(width: 1, height: 1), NSSize(width: 9, height: 15), NSSize(width: 100, height: 44)] {
+            let cell = NativeFileTableTextCellView(frame: NSRect(origin: .zero, size: size))
+            cell.layout()
+            let frame = cell.subviews[0].frame
+            XCTAssertTrue(frame.origin.x.isFinite)
+            XCTAssertTrue(frame.origin.y.isFinite)
+            XCTAssertEqual(frame.origin.x, 5)
+            XCTAssertEqual(frame.origin.y, 8)
+            XCTAssertEqual(frame.width, max(size.width - 10, 0))
+            XCTAssertEqual(frame.height, max(size.height - 16, 0))
+        }
+    }
     func testQueuedStateIsStoredBeforeTheNameCellReloads() {
         let row = makeRow(name: "queued.tmp")
         let coordinator = makeCoordinator()

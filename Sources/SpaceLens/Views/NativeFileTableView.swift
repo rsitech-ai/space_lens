@@ -555,7 +555,7 @@ private final class NativeFileTableNameCellView: NSTableCellView {
 }
 
 @MainActor
-private final class NativeFileTableTextCellView: NSTableCellView {
+final class NativeFileTableTextCellView: NSTableCellView {
     private let label = NSTextField(labelWithString: "")
 
     override init(frame frameRect: NSRect) {
@@ -576,7 +576,9 @@ private final class NativeFileTableTextCellView: NSTableCellView {
 
     override func layout() {
         super.layout()
-        label.frame = bounds.insetBy(dx: 5, dy: 8)
+        // insetBy produces a null rect with infinite origins for tiny bounds.
+        label.frame = NSRect(x: bounds.minX + 5, y: bounds.minY + 8,
+                             width: max(bounds.width - 10, 0), height: max(bounds.height - 16, 0))
     }
 
     func configure(text: String, color: NSColor, monospaced: Bool) {
