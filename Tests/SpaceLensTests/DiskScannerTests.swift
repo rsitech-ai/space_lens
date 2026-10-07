@@ -140,6 +140,18 @@ final class DiskScannerTests: XCTestCase {
         XCTAssertNotNil(DiskScanner.traversalIssue(URL(fileURLWithPath: "/Users/s1kor-other"), resolvedRootPath: "/Users/s1kor"))
     }
 
+    func testVirtualDeviceNamespaceIsSkippedInBothRetentionModes() async throws {
+        for options in [ScanOptions.appDefault, .collapsed] {
+            let result = await DiskScanner().scan(root: URL(fileURLWithPath: "/dev"), options: options)
+            XCTAssertEqual(result.snapshot.nodeCount, 1)
+            XCTAssertEqual(result.snapshot.errorCount, 1)
+            XCTAssertEqual(result.root.logicalSize, 0)
+            XCTAssertTrue(result.root.children.isEmpty)
+            XCTAssertNotNil(result.root.scanError)
+            XCTAssertFalse(RuleEngine().classify(result.root).level.isQueueable)
+        }
+    }
+
     func testScannerRecordsMissingRootAsError() async throws {
         let missing = temporaryRoot.appendingPathComponent("missing")
         let result = await DiskScanner().scan(root: missing)

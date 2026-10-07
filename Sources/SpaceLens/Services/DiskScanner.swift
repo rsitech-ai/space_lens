@@ -81,6 +81,15 @@ public final class DiskScanner {
         }
 
         context.nodeCount += 1
+        if url.path == "/dev" || url.path.hasPrefix("/dev/") {
+            context.errorCount += 1
+            let isDirectory = url.path == "/dev"
+            if isDirectory { context.directoryCount += 1 }
+            return makeNode(
+                url: url, isDirectory: isDirectory, logicalSize: 0, allocatedSize: 0,
+                scanError: "Virtual device filesystem is not disk storage and was skipped.", context: &context
+            )
+        }
 
         let keys: Set<URLResourceKey> = [
             .isDirectoryKey,
@@ -287,6 +296,13 @@ public final class DiskScanner {
                 guard let childURL = enumerator.nextObject() as? URL else { return false }
                 context.nodeCount += 1
                 context.errorCount += errors.transfer()
+                if enumerator.level == 1, childURL.path == "/dev" {
+                    enumerator.skipDescendants()
+                    context.directoryCount += 1
+                    context.errorCount += 1
+                    emitProgress(url: childURL, context: &context, progress: progress)
+                    return true
+                }
 
                 let childValues: URLResourceValues
                 do {

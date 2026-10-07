@@ -39,6 +39,7 @@
 		A2E596BD0B8637DEA5B2D9EC /* SafetyLevelStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBEA7E4730BAACCC968736E /* SafetyLevelStyle.swift */; };
 		A42541BE68735688C13FB605 /* AppSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8876217183B9DB15813A9C /* AppSessionStore.swift */; };
 		B0F5F34A15DC41646DB52CD2 /* NativeFileTableLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3038E293643692FE48EB7DF /* NativeFileTableLifecycleTests.swift */; };
+		B2A6AF2E08DA37C1CCBAB544 /* FileIdentityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC06BE8790E18752CBC031B1 /* FileIdentityTests.swift */; };
 		B942F970E77C3C8C0A87862F /* SmartScanSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91043C26DD4EE571EBE7C5B8 /* SmartScanSupport.swift */; };
 		BDBCB5B13DCA2355B57FFB08 /* FileCleanupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFF89A3FB912CD3C64A53CF4 /* FileCleanupServiceTests.swift */; };
 		C0AF31902C9395EB7E68A3AB /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69655696786DE27D50B869CE /* InspectorView.swift */; };
@@ -106,6 +107,7 @@
 		9D9689D8FA85667D5535A297 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A06D90A79A7558019265149D /* ScanSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSnapshot.swift; sourceTree = "<group>"; };
 		ABFC6C372BBB07464E935B6C /* CleanupQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupQueueTests.swift; sourceTree = "<group>"; };
+		AC06BE8790E18752CBC031B1 /* FileIdentityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileIdentityTests.swift; sourceTree = "<group>"; };
 		AE981FD64E5EFDBACDFFCAA4 /* FileRowPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRowPresentationTests.swift; sourceTree = "<group>"; };
 		BFF89A3FB912CD3C64A53CF4 /* FileCleanupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCleanupServiceTests.swift; sourceTree = "<group>"; };
 		C883A63DE1DA47C45B07AEE6 /* SpaceLens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpaceLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -160,6 +162,7 @@
 				ABFC6C372BBB07464E935B6C /* CleanupQueueTests.swift */,
 				DABA29696B3BD1D8ACAB1CEF /* DiskScannerTests.swift */,
 				BFF89A3FB912CD3C64A53CF4 /* FileCleanupServiceTests.swift */,
+				AC06BE8790E18752CBC031B1 /* FileIdentityTests.swift */,
 				AE981FD64E5EFDBACDFFCAA4 /* FileRowPresentationTests.swift */,
 				72D06CF49B654377B2E8EE73 /* IntelligenceServiceTests.swift */,
 				FEE3485D6353C6A900C24CC2 /* NativeFileTableConfigurationTests.swift */,
@@ -403,6 +406,7 @@
 				8137222782ECB9261713A06B /* CleanupQueueTests.swift in Sources */,
 				EC029A709237E2F2E64F0EC2 /* DiskScannerTests.swift in Sources */,
 				BDBCB5B13DCA2355B57FFB08 /* FileCleanupServiceTests.swift in Sources */,
+				B2A6AF2E08DA37C1CCBAB544 /* FileIdentityTests.swift in Sources */,
 				6622A4390861A27DBFDD46AF /* FileRowPresentationTests.swift in Sources */,
 				7A5049BF6C0E0BEBBB7444ED /* IntelligenceServiceTests.swift in Sources */,
 				8FCB0E6CCEF2BAA064B67425 /* NativeFileTableConfigurationTests.swift in Sources */,

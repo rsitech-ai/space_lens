@@ -10,6 +10,8 @@ to a smaller folder or Smart Scan for additional cleanup candidates.
 - The scan shows traversal, application activity checks, candidate safety checks,
   and summary preparation as distinct phases.
 - Stopping a scan cancels classification as well as filesystem traversal.
+- Preserve high-bit Darwin device identifiers without integer-conversion traps.
+  Skip the virtual `/dev` namespace, which is not disk storage.
 - Full Scan rejects folders that resolve outside the selected root and skips
   duplicate Data-volume aliases during a whole-drive scan.
 - Scan Errors includes an affected parent when unreadable descendants were
